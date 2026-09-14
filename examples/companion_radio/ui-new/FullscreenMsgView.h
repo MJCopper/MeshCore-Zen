@@ -43,12 +43,17 @@ struct FullscreenMsgView {
   int  scroll;
   bool active;
   int  _max_scroll;   // last value computed in render(); bounds KEY_DOWN
+  bool allow_reply;
 
-  FullscreenMsgView() : scroll(0), active(false), _max_scroll(0) {}
+  FullscreenMsgView() : scroll(0), active(false), _max_scroll(0), allow_reply(true) {}
 
   enum Result { NONE, PREV, NEXT, CLOSE, REPLY };
 
-  void begin() { scroll = 0; active = true; }
+  void begin(bool reply_enabled = true) {
+    scroll = 0;
+    active = true;
+    allow_reply = reply_enabled;
+  }
 
   // Pixel-accurate word-wrap: breaks at last space that fits within max_px,
   // hard-breaks long words, and honours newlines the sender put in the text.
@@ -174,8 +179,8 @@ struct FullscreenMsgView {
     if (c == KEY_DOWN)        { if (scroll < _max_scroll) scroll++; return NONE; }
     if (keyIsPrev(c))         return PREV;
     if (keyIsNext(c))         return NEXT;
-    if (c == KEY_CONTEXT_MENU) return REPLY;
-    if (c == KEY_ENTER || c == KEY_CANCEL) return CLOSE;
+    if (c == KEY_CONTEXT_MENU) return allow_reply ? REPLY : NONE;
+    if (c == KEY_CANCEL) return CLOSE;
     return NONE;
   }
 };

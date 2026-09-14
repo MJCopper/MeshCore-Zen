@@ -9,7 +9,8 @@ TEST(QuietTime, RequiresLiveSyncEvenWithPlausibleRestoredTimestamp) {
   prefs.quiet_time_enabled = 1;
   prefs.quiet_time_start_min = 21 * 60;
   prefs.quiet_time_end_min = 7 * 60;
-  prefs.tz_offset_hours = 10;
+  prefs.timezone_mode = solo::TimezonePolicy::MANUAL;
+  prefs.timezone_manual_min = 10 * 60;
   const uint32_t utc = 20000UL * 86400 + 12 * 3600; // 22:00 local
   EXPECT_FALSE(quiettime::active(&prefs, utc, false));
   EXPECT_TRUE(quiettime::active(&prefs, utc, true));

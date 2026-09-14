@@ -11,11 +11,14 @@ and choose the UF2 matching the display.
 
 ## First setup
 
-1. Set the device name, timezone and units under **Settings › System**.
+1. Set the device name, selected city or fixed UTC offset, and units under
+   **Settings › System**. City mode adjusts daylight saving automatically but
+   does not detect the city from GPS; see the [Time Zone guide](./zen_features/timezone/timezone.md).
 2. Select the local mesh preset under **Settings › Radio**.
 3. Enable Bluetooth if a phone or computer will be used as a companion.
 4. Send an advert from the Advert home page.
-5. Leave GPS enabled until it obtains a fix if location sharing is required.
+5. Choose saved GPS power and a polling interval under **Settings › System**.
+   Leave GPS enabled until it obtains a fix if location sharing is required.
 
 The clock shows `SYNC TIME` until valid time arrives from GPS or a connected
 companion. Radio and messaging continue while time is unsynchronised.
@@ -26,7 +29,8 @@ companion. Radio and messaging continue while time is unsynchronised.
 - **Up/Down** moves through lists and scrolls transcripts.
 - **Enter** opens or confirms the selected item.
 - **Hold Enter** opens available actions or quick replies.
-- **Back** cancels or returns to Clock from a home page.
+- **Back** cancels or returns to Clock from another home page. On Clock, it
+  turns the display off.
 
 Back is the only button that wakes a sleeping display. A non-Clock home page
 returns to Clock after five minutes without input.
@@ -40,3 +44,7 @@ priority over USB serial, so disconnect BLE before using USB.
 Settings are normally staged while editing and written only when leaving the
 section with a changed value.
 
+Timed GPS modes power the receiver only while acquiring a fix. The GPS page
+shows its current state, last-fix age and course-over-ground. See
+[GPS and Course](./zen_features/gps/gps.md) for polling, power and direction
+behaviour.

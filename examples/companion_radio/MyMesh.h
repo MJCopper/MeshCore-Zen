@@ -8,6 +8,7 @@
 #include "solo/AdminSession.h"
 #include "solo/SensorTelemetry.h"
 #include "solo/RepeaterSignalMonitor.h"
+#include "solo/TimezonePolicy.h"
 #include <helpers/ui/DisplayDriver.h>
 
 // Forward declaration for UITask
@@ -23,7 +24,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.32.65"
+#define FIRMWARE_VERSION "v1.32.87"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -404,10 +405,8 @@ public:
   // To check if there is pending work
   bool hasPendingWork() const;
 
-  // Number of auto-replies sent since boot (DM + channel + room). Shown on BotScreen.
-  uint16_t botReplyCount() const { return _bot_reply_count; }
-
 private:
+#if SOLO_FEAT_REMOTE_BOT
   void tryBotReplyDM(const ContactInfo& from, const char* text, uint8_t hops);
   void tryBotReplyChannel(uint8_t channel_idx, const char* text, uint8_t hops);
   void tryBotReplyRoom(const ContactInfo& from, const uint8_t* sender_prefix, const char* text, uint8_t hops);
@@ -440,6 +439,7 @@ private:
   // the body only. `*msg_out` points into `text` (no copy); `sender_name`
   // defaults to "someone" if there's no ": " separator.
   void botChannelSenderSplit(const char* text, char* sender_name, int sender_name_len, const char** msg_out);
+#endif
 
   void writeOKFrame();
   void writeErrFrame(uint8_t err_code);
@@ -519,13 +519,14 @@ private:
   uint8_t *sign_data;
   uint32_t sign_data_len;
   unsigned long dirty_contacts_expiry;
-  unsigned long _bot_last_ch_reply_ms;
-  unsigned long _bot_last_room_reply_ms;
   unsigned long _next_auto_advert_ms;
   unsigned long _advert_indicator_until_ms;
   mesh::Packet* createConfiguredSelfAdvert();
   bool sendConfiguredSelfAdvert(bool flood);
   void noteAdvertQueued();
+#if SOLO_FEAT_REMOTE_BOT
+  unsigned long _bot_last_ch_reply_ms;
+  unsigned long _bot_last_room_reply_ms;
 
   // Per-contact DM reply throttle: a small ring of the most recent recipients so
   // one chatty contact can't be spammed while a different sender is still served.
@@ -579,6 +580,7 @@ private:
   int8_t _bot_gpio_action[4];    // per pin: -1 none requested, 0 off, 1 on
   void applyPendingBotActions();
   void resetPendingBotActions();
+#endif
 
   TransportKey send_scope;
 

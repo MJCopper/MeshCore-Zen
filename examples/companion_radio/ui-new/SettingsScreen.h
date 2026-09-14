@@ -10,11 +10,13 @@
 #include "DigitEditor.h"
 #include "QuietTime.h"
 #include "TimeOfDayEditor.h"
+#include "TimezoneEditor.h"
 #include "MessageEditorSupport.h"
 #include "HomePageRegistry.h"
 #include "../solo/GpsMode.h"
 #include "../solo/QuickReplies.h"
 #include "../solo/BuiltinMelodies.h"
+#include "../solo/TimezonePolicy.h"
 
 class SettingsScreen : public UIScreen {
   UITask* _task;
@@ -72,11 +74,16 @@ class SettingsScreen : public UIScreen {
     DEVICE_NAME,
     TIMEZONE,
 #if ENV_INCLUDE_GPS == 1
-    GPS_MODE,
+    GPS_ENABLED,
+    GPS_POLLING,
 #endif
-    BLUETOOTH_ENABLED,
     UNITS,
     REBOOT,
+    // Bluetooth section
+    SECTION_BLUETOOTH,
+    BLUETOOTH_ENABLED,
+    BLUETOOTH_PIN_MODE,
+    BLUETOOTH_PIN,
     // Keyboard section
     SECTION_KEYBOARD,
     KEYBOARD_TYPE,
@@ -87,7 +94,7 @@ class SettingsScreen : public UIScreen {
     SECTION_CONTACTS, DM_FILTER, CH_FILTER, ROOM_FILTER,
     // Child mode section
 #if SOLO_FEAT_CHILD_MODE
-    SECTION_CHILD, CHILD_ENABLED, CHILD_PIN, CHILD_CHANNELS, CHILD_FAVOURITES,
+    SECTION_CHILD, CHILD_ENABLED, CHILD_PIN, CHILD_CHANNELS, CHILD_ROOMS, CHILD_FAVOURITES,
 #endif
     // Quick Replies section
     SECTION_QUICK_REPLIES,
@@ -100,23 +107,26 @@ class SettingsScreen : public UIScreen {
   int  _selected = 0;   // SettingItem under the cursor, resolved per input/render
   int  _reserve = 0;    // right-edge px reserved for the scrollbar (0 when list fits)
   bool _dirty = false;
-  NodePrefs _initial_prefs;
+  uint32_t _initial_prefs_fingerprint = 0;
   bool _have_initial_prefs = false;
 #if ENV_INCLUDE_GPS == 1
   bool _gps_dirty = false; // staged until this settings screen is closed
-  uint8_t _gps_initial_mode = 0;
-  uint8_t _gps_pending_mode = 0;
+  bool _gps_initial_enabled = false;
+  bool _gps_pending_enabled = false;
+  uint8_t _gps_initial_polling = 0;
+  uint8_t _gps_pending_polling = 0;
 #endif
   bool _bluetooth_dirty = false; // staged with GPS; applied and saved on exit
   uint8_t _bluetooth_initial = 1;
 
-  static const int NUM_SECTIONS = 8 + SOLO_FEAT_CHILD_MODE;
+  static const int NUM_SECTIONS = 9 + SOLO_FEAT_CHILD_MODE;
   static const int MAX_PER_SEC  = 16;
   uint8_t _sec_items[NUM_SECTIONS][MAX_PER_SEC]; // SettingItem per (section, row)
   uint8_t _sec_count[NUM_SECTIONS];
   uint8_t _sec_header[NUM_SECTIONS];             // the SECTION_* enum for each section
   int     _num_sections = 0;
   int     _open_section = -1;
+  int     _open_item = -1;
   int     _active_section = -1;
   int     _section_sel = 0;
   int     _section_scroll = 0;
@@ -144,6 +154,16 @@ class SettingsScreen : public UIScreen {
   // Value column start, pulled left by the scrollbar gutter so right-side
   // values never render under the indicator when the list scrolls.
   int valCol(DisplayDriver& display) const { return display.valCol() - _reserve; }
+
+  static uint32_t prefsFingerprint(const NodePrefs& prefs) {
+    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&prefs);
+    uint32_t hash = 2166136261UL;
+    for (size_t i = 0; i < sizeof(NodePrefs); i++) {
+      hash ^= bytes[i];
+      hash *= 16777619UL;
+    }
+    return hash;
+  }
 
   // Shared 0/90/180/270 labels for display + joystick rotation.
   static const char* rotLabel(uint8_t r) {
@@ -181,6 +201,7 @@ class SettingsScreen : public UIScreen {
     return item == SECTION_DISPLAY || item == SECTION_SOUND ||
            item == SECTION_HOME_PAGES ||
            item == SECTION_RADIO   || item == SECTION_SYSTEM ||
+           item == SECTION_BLUETOOTH ||
            item == SECTION_KEYBOARD ||
            item == SECTION_CONTACTS ||
 #if SOLO_FEAT_CHILD_MODE
@@ -195,6 +216,7 @@ class SettingsScreen : public UIScreen {
     if (item == SECTION_HOME_PAGES) return "Home Pages";
     if (item == SECTION_RADIO)      return "Radio";
     if (item == SECTION_SYSTEM)     return "System";
+    if (item == SECTION_BLUETOOTH)  return "Bluetooth";
     if (item == SECTION_KEYBOARD)   return "Keyboard";
     if (item == SECTION_CONTACTS)   return "Contacts";
 #if SOLO_FEAT_CHILD_MODE
@@ -437,23 +459,46 @@ class SettingsScreen : public UIScreen {
       display.print(AUTO_OFF_LABELS[autoOffIndex()]);
 #endif
     } else if (item == TIMEZONE) {
-      display.print("Timezone");
-      char buf[8];
-      int8_t tz = p ? p->tz_offset_hours : 0;
-      if (tz >= 0) snprintf(buf, sizeof(buf),"UTC+%d", (int)tz);
-      else         snprintf(buf, sizeof(buf),"UTC%d",  (int)tz);
+      display.print("Time Zone");
       display.setCursor(valCol(display), y);
-      display.print(buf);
+      if (p && p->timezone_mode == solo::TimezonePolicy::CITY) {
+        display.print(solo::TimezonePolicy::cityName(p->timezone_city));
+      } else {
+        char buf[8];
+        int mins = p ? p->timezone_manual_min : 0;
+        int magnitude = mins < 0 ? -mins : mins;
+        snprintf(buf, sizeof(buf), "%c%02d:%02d", mins < 0 ? '-' : '+',
+                 magnitude / 60, magnitude % 60);
+        display.print(buf);
+      }
 #if ENV_INCLUDE_GPS == 1
-    } else if (item == GPS_MODE) {
+    } else if (item == GPS_ENABLED) {
       display.print("GPS");
       display.setCursor(valCol(display), y);
-      display.print(solo::GpsMode::label(_gps_pending_mode));
+      display.print(_gps_pending_enabled ? "On" : "Off");
+    } else if (item == GPS_POLLING) {
+      display.print("GPS Polling");
+      display.setCursor(valCol(display), y);
+      display.print(solo::GpsMode::pollingLabel(_gps_pending_polling));
 #endif
     } else if (item == BLUETOOTH_ENABLED) {
       display.print("Bluetooth");
       display.setCursor(valCol(display), y);
       display.print((p && p->bluetooth_enabled) ? "On" : "Off");
+    } else if (item == BLUETOOTH_PIN_MODE) {
+      display.print("PIN Mode");
+      display.setCursor(valCol(display), y);
+      display.print((p && p->ble_pin) ? "Fixed" : "Random");
+    } else if (item == BLUETOOTH_PIN) {
+      display.print("PIN");
+      display.setCursor(valCol(display), y);
+      if (p && p->ble_pin) {
+        char pin[8];
+        snprintf(pin, sizeof(pin), "%06lu", (unsigned long)p->ble_pin);
+        display.print(pin);
+      } else {
+        display.print("Random");
+      }
     } else if (item == UNITS) {
       display.print("Units");
       display.setCursor(valCol(display), y);
@@ -531,6 +576,9 @@ class SettingsScreen : public UIScreen {
     } else if (item == CHILD_CHANNELS) {
       display.print("Channels"); display.setCursor(valCol(display), y);
       display.print((p && p->child_channels_enabled) ? "On" : "Off");
+    } else if (item == CHILD_ROOMS) {
+      display.print("Rooms"); display.setCursor(valCol(display), y);
+      display.print((p && p->child_rooms_enabled) ? "On" : "Off");
     } else if (item == CHILD_FAVOURITES) {
       uint16_t bit = NodePrefs::HP_FAVOURITES;
       display.print("Favourites");
@@ -563,11 +611,13 @@ class SettingsScreen : public UIScreen {
   // stepping), shared with Tools › Repeater — see RadioParamsEditor.h.
   RadioParamsEditor _editor;
   DigitEditor _child_pin;
+  DigitEditor _bluetooth_pin;
   uint32_t _child_pin_first_hash = 0;
   bool _child_pin_confirming = false;
   bool _child_warning_active = false;
   bool _child_warning_enable = false;
   TimeOfDayEditor _quiet_editor;
+  TimezoneEditor _timezone_editor;
   int _quiet_edit_item = -1;
 
   void commitStagedChanges() {
@@ -576,8 +626,8 @@ class SettingsScreen : public UIScreen {
     gps_changed = _gps_dirty;
     if (gps_changed) {
       NodePrefs* p = _task->getNodePrefs();
-      p->gps_enabled = _gps_pending_mode != 0;
-      p->gps_interval = solo::GpsMode::interval(_gps_pending_mode);
+      p->gps_enabled = _gps_pending_enabled;
+      p->gps_interval = solo::GpsMode::pollingInterval(_gps_pending_polling);
       _task->applyGpsPrefs();
     }
 #endif
@@ -586,7 +636,7 @@ class SettingsScreen : public UIScreen {
 
     NodePrefs* p = _task->getNodePrefs();
     bool save_dirty = p && (!_have_initial_prefs ||
-                            memcmp(p, &_initial_prefs, sizeof(NodePrefs)) != 0);
+                            prefsFingerprint(*p) != _initial_prefs_fingerprint);
     _task->savePrefsIfDirty(save_dirty);
     _dirty = false;
 #if ENV_INCLUDE_GPS == 1
@@ -607,8 +657,8 @@ public:
 #if ENV_INCLUDE_GPS == 1
     if (_gps_dirty && _task->getNodePrefs()) {
       NodePrefs* p = _task->getNodePrefs();
-      p->gps_enabled = _gps_pending_mode != 0;
-      p->gps_interval = solo::GpsMode::interval(_gps_pending_mode);
+      p->gps_enabled = _gps_pending_enabled;
+      p->gps_interval = solo::GpsMode::pollingInterval(_gps_pending_polling);
     }
     _gps_dirty = false;
 #endif
@@ -621,11 +671,13 @@ public:
     _dirty = false;
     NodePrefs* p = _task->getNodePrefs();
     _have_initial_prefs = p != nullptr;
-    if (p) memcpy(&_initial_prefs, p, sizeof(NodePrefs));
+    if (p) _initial_prefs_fingerprint = prefsFingerprint(*p);
 #if ENV_INCLUDE_GPS == 1
     _gps_dirty = false;
-    _gps_initial_mode = _task->getGPSMode();
-    _gps_pending_mode = _gps_initial_mode;
+    _gps_initial_enabled = p && p->gps_enabled;
+    _gps_pending_enabled = _gps_initial_enabled;
+    _gps_initial_polling = solo::GpsMode::pollingFromInterval(p ? p->gps_interval : 0);
+    _gps_pending_polling = _gps_initial_polling;
 #endif
     _bluetooth_dirty = false;
     _bluetooth_initial = p ? p->bluetooth_enabled : 1;
@@ -636,17 +688,33 @@ public:
     _picker.deleting = false;
     _picker.confirm_slot = -1;
     _child_pin.active = false;
+    _bluetooth_pin.active = false;
     _child_pin_confirming = false;
     _child_pin_first_hash = 0;
     _child_warning_active = false;
     _quiet_edit_item = -1;
     _quiet_editor.editing = false;
+    _timezone_editor.close();
     _active_section = (_open_section >= 0 && _open_section < _num_sections)
                         ? _open_section : 0;
     _open_section = -1;
     _section_sel = 0;
+    if (_open_item >= 0) {
+      for (int i = 0; i < _sec_count[_active_section]; i++) {
+        if (_sec_items[_active_section][i] == _open_item) {
+          _section_sel = i;
+          break;
+        }
+      }
+    }
+    _open_item = -1;
     _section_scroll = 0;
     _editor.freq.active = false;
+  }
+
+  void onHide() override {
+    _task->stopMelody();
+    commitStagedChanges();
   }
 
   int sectionCount() const { return _num_sections; }
@@ -655,9 +723,44 @@ public:
              ? sectionName(_sec_header[index]) : "";
   }
   void openSection(int index) { _open_section = index; }
+  void openRadioSettings() {
+    for (int section = 0; section < _num_sections; section++) {
+      if (_sec_header[section] == SECTION_RADIO) {
+        _open_section = section;
+        return;
+      }
+    }
+  }
+  void openBluetoothSettings() {
+    for (int section = 0; section < _num_sections; section++) {
+      if (_sec_header[section] == SECTION_BLUETOOTH) {
+        _open_section = section;
+        return;
+      }
+    }
+  }
+#if ENV_INCLUDE_GPS == 1
+  void openGpsPolling() {
+    for (int section = 0; section < _num_sections; section++) {
+      for (int row = 0; row < _sec_count[section]; row++) {
+        if (_sec_items[section][row] == GPS_POLLING) {
+          _open_section = section;
+          _open_item = GPS_POLLING;
+          return;
+        }
+      }
+    }
+  }
+#endif
 
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
+
+    if (_timezone_editor.active()) {
+      NodePrefs* prefs = _task->getNodePrefs();
+      if (prefs) _timezone_editor.render(display, *prefs, _task->currentUtcTime());
+      return 1000;
+    }
 
     if (_child_warning_active) {
       display.drawCenteredHeader("CAUTION");
@@ -675,8 +778,13 @@ public:
       return 0;
     }
     if (_child_pin.active) {
-      display.drawCenteredHeader(_child_pin_confirming ? "CONFIRM PIN" : "SET CHILD PIN");
+      display.drawCenteredHeader(_child_pin_confirming ? "Confirm PIN" : "Set Child PIN");
       childmode::renderPinEditor(display, _child_pin, display.valCol(), display.height() / 2);
+      return 0;
+    }
+    if (_bluetooth_pin.active) {
+      display.drawCenteredHeader("Bluetooth PIN");
+      _bluetooth_pin.render(display, display.valCol(), display.height() / 2);
       return 0;
     }
     if (_edit_slot >= 0 || _edit_name || _picker.saving) {
@@ -743,7 +851,41 @@ public:
       }
       return true;
     }
+    if (_bluetooth_pin.active) {
+      DigitEditor::Result r = _bluetooth_pin.handleInput(c);
+      if (r == DigitEditor::DONE) {
+        NodePrefs* prefs = _task->getNodePrefs();
+        if (prefs) {
+          prefs->ble_pin = (uint32_t)_bluetooth_pin.value;
+          _dirty = true;
+          _task->showAlert("PIN after reboot", 1200);
+        }
+      }
+      return true;
+    }
     NodePrefs* p = _task->getNodePrefs();
+
+    if (_timezone_editor.active()) {
+      if (!p) { _timezone_editor.close(); return true; }
+      uint8_t old_mode = p->timezone_mode;
+      uint8_t old_city = p->timezone_city;
+      int16_t old_offset = p->timezone_manual_min;
+      bool handled = _timezone_editor.handleInput(c, *p);
+      _dirty |= old_mode != p->timezone_mode || old_city != p->timezone_city ||
+                old_offset != p->timezone_manual_min;
+      // Back applies the dedicated editor. Persist once here when its value
+      // changed, then refresh the screen fingerprint so leaving Settings does
+      // not write the same configuration a second time.
+      if (!_timezone_editor.active() && c == KEY_CANCEL) {
+        bool changed = !_have_initial_prefs ||
+                       prefsFingerprint(*p) != _initial_prefs_fingerprint;
+        _task->savePrefsIfDirty(changed);
+        _initial_prefs_fingerprint = prefsFingerprint(*p);
+        _have_initial_prefs = true;
+        _dirty = false;
+      }
+      return handled;
+    }
 
 #if SOLO_FEAT_QUIET_TIME
     if (_quiet_editor.active()) {
@@ -839,8 +981,6 @@ public:
     }
 
     if (c == KEY_CANCEL) {
-      _task->stopMelody();
-      commitStagedChanges();
       if (p && p->child_mode_enabled) _task->setChildAdminUnlocked(false);
       _task->gotoHomeScreen();
       return true;
@@ -870,8 +1010,8 @@ public:
       return right || left;
     }
 #endif
-    if (_selected == BUZZER && (left || right || enter)) {
-      _task->cycleBuzzerMode();
+    if (_selected == BUZZER && (left || right)) {
+      _task->cycleBuzzerMode(left ? -1 : 1);
       _dirty = true;
       return true;
     }
@@ -961,28 +1101,54 @@ public:
 #if AUTO_OFF_MILLIS > 0
     if (_selected == AUTO_OFF && p) {
       int idx = autoOffIndex();
-      if (right || enter) idx = (idx + 1) % AUTO_OFF_COUNT;
+      if (right) idx = (idx + 1) % AUTO_OFF_COUNT;
       if (left)  idx = (idx + AUTO_OFF_COUNT - 1) % AUTO_OFF_COUNT;
-      if (left || right || enter) { p->auto_off_secs = AUTO_OFF_OPTS[idx]; _dirty = true; return true; }
+      if (left || right) { p->auto_off_secs = AUTO_OFF_OPTS[idx]; _dirty = true; return true; }
     }
 #endif
-    if (_selected == TIMEZONE && p) {
-      if (right && p->tz_offset_hours < 14)  { p->tz_offset_hours++; _dirty = true; return true; }
-      if (left  && p->tz_offset_hours > -12) { p->tz_offset_hours--; _dirty = true; return true; }
+    if (_selected == TIMEZONE && p && enter) {
+      _timezone_editor.begin();
+      return true;
     }
 #if ENV_INCLUDE_GPS == 1
-    if (_selected == GPS_MODE && p && (left || right || enter)) {
-      int mode = _gps_pending_mode;
-      if (left) mode = (mode + solo::GpsMode::COUNT - 1) % solo::GpsMode::COUNT;
-      else mode = (mode + 1) % solo::GpsMode::COUNT;
-      _gps_pending_mode = (uint8_t)mode;
-      _gps_dirty = (uint8_t)mode != _gps_initial_mode;
+    if (_selected == GPS_ENABLED && p && (left || right || enter)) {
+      _gps_pending_enabled = !_gps_pending_enabled;
+      _gps_dirty = _gps_pending_enabled != _gps_initial_enabled ||
+                   _gps_pending_polling != _gps_initial_polling;
+      return true;
+    }
+    if (_selected == GPS_POLLING && p && (left || right)) {
+      int choice = _gps_pending_polling;
+      if (left) choice = (choice + solo::GpsMode::POLLING_COUNT - 1) % solo::GpsMode::POLLING_COUNT;
+      else choice = (choice + 1) % solo::GpsMode::POLLING_COUNT;
+      _gps_pending_polling = (uint8_t)choice;
+      _gps_dirty = _gps_pending_enabled != _gps_initial_enabled ||
+                   _gps_pending_polling != _gps_initial_polling;
       return true;
     }
 #endif
     if (_selected == BLUETOOTH_ENABLED && p && (left || right || enter)) {
       p->bluetooth_enabled ^= 1;
       _bluetooth_dirty = p->bluetooth_enabled != _bluetooth_initial;
+      return true;
+    }
+    if (_selected == BLUETOOTH_PIN_MODE && p && (left || right || enter)) {
+      if (p->ble_pin) {
+        p->ble_pin = 0;
+      } else {
+        uint32_t active = the_mesh.getBLEPin();
+        p->ble_pin = active >= 100000 && active <= 999999 ? active : 123456;
+      }
+      _dirty = true;
+      return true;
+    }
+    if (_selected == BLUETOOTH_PIN && p && enter) {
+      uint32_t pin = p->ble_pin;
+      if (pin < 100000 || pin > 999999) {
+        uint32_t active = the_mesh.getBLEPin();
+        pin = active >= 100000 && active <= 999999 ? active : 123456;
+      }
+      _bluetooth_pin.begin(pin, 100000, 999999, 6, 0);
       return true;
     }
     if (_selected == UNITS && p && (left || right || enter)) {
@@ -1008,9 +1174,9 @@ public:
     }
     if (_selected == BATT_DISPLAY && p) {
       int idx = p->batt_display_mode < BATT_DISPLAY_COUNT ? p->batt_display_mode : 0;
-      if (right || enter) idx = (idx + 1) % BATT_DISPLAY_COUNT;
+      if (right) idx = (idx + 1) % BATT_DISPLAY_COUNT;
       if (left)  idx = (idx + BATT_DISPLAY_COUNT - 1) % BATT_DISPLAY_COUNT;
-      if (left || right || enter) { p->batt_display_mode = idx; _dirty = true; return true; }
+      if (left || right) { p->batt_display_mode = idx; _dirty = true; return true; }
     }
 #if FEAT_CLOCK_SECONDS_SETTING
     if (_selected == CLOCK_SECONDS && p && (left || right || enter)) {
@@ -1025,7 +1191,7 @@ public:
       return true;
     }
 #if FEAT_DISPLAY_ROTATION_SETTING
-    if (_selected == ROTATION && p && (left || right || enter)) {
+    if (_selected == ROTATION && p && (left || right)) {
       p->display_rotation = (p->display_rotation + (left ? 3 : 1)) & 3;
       _task->applyRotation();
       _dirty = true;
@@ -1033,14 +1199,14 @@ public:
     }
 #endif
 #if FEAT_JOYSTICK_ROTATION_SETTING
-    if (_selected == JOY_ROTATION && p && (left || right || enter)) {
+    if (_selected == JOY_ROTATION && p && (left || right)) {
       p->joystick_rotation = (p->joystick_rotation + (left ? 3 : 1)) & 3;
       _dirty = true;
       return true;
     }
 #endif
 #if FEAT_FULL_REFRESH_SETTING
-    if (_selected == EINK_FULL_REFRESH && p && (left || right || enter)) {
+    if (_selected == EINK_FULL_REFRESH && p && (left || right)) {
       int idx = p->eink_full_refresh_every;
       if (idx >= EINK_FULL_REFRESH_COUNT) idx = 0;
       idx = (idx + (left ? EINK_FULL_REFRESH_COUNT - 1 : 1)) % EINK_FULL_REFRESH_COUNT;
@@ -1096,6 +1262,13 @@ public:
     if (_selected == CHILD_CHANNELS && p && (left || right || enter)) {
       p->child_channels_enabled ^= 1;
       _dirty = true;
+      return true;
+    }
+    if (_selected == CHILD_ROOMS && p && (left || right || enter)) {
+      p->child_rooms_enabled ^= 1;
+      _dirty = true;
+      if (p->child_rooms_enabled)
+        _task->logWarning("Child Rooms", "All room users allowed");
       return true;
     }
 #endif

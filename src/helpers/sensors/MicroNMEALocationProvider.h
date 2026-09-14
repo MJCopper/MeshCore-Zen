@@ -125,6 +125,8 @@ public :
         return alt;
     }
     long satellitesCount() override { return nmea.getNumSatellites(); }
+    long getCourse() override { return nmea.getCourse(); }
+    long getSpeed() override { return nmea.getSpeed(); }
     long getHDOP() override { return nmea.getHDOP(); }
     bool isValid() override { return nmea.isValid(); }
 

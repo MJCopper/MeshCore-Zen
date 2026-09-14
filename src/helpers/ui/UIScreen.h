@@ -28,6 +28,20 @@
 static inline bool keyIsPrev(char c) { return c == KEY_LEFT  || c == KEY_PREV; }
 static inline bool keyIsNext(char c) { return c == KEY_RIGHT || c == KEY_NEXT; }
 
+// Menus wrap; content views and editor cursors clamp. Keeping menu movement in
+// one helper prevents subtly different Up/Down behaviour on short lists.
+static inline int wrapSelection(int current, int count, int delta) {
+  if (count <= 0) return 0;
+  int next = (current + delta) % count;
+  return next < 0 ? next + count : next;
+}
+
+// Input and asynchronous UI callbacks invalidate the frame immediately. Static
+// screens therefore need only a slow safety refresh; active progress views use
+// the shorter cadence while waiting on time-dependent state.
+static const int UI_REFRESH_STATIC_MS = 30000;
+static const int UI_REFRESH_ACTIVE_MS = 500;
+
 #ifndef JOYSTICK_ROTATION
   #define JOYSTICK_ROTATION 0
 #endif
@@ -70,4 +84,7 @@ public:
   // Default no-op for screens that keep state across visits. Because it's
   // invoked centrally, a new screen can't "forget" to be reset on show.
   virtual void onShow() { }
+  // Called before another screen becomes current. Use this for staged writes,
+  // sensitive-editor cleanup and cancellation; render() remains side-effect free.
+  virtual void onHide() { }
 };

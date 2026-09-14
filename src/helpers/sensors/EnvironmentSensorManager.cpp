@@ -1,4 +1,5 @@
 #include "EnvironmentSensorManager.h"
+#include "GpsPollingPolicy.h"
 
 #include <Wire.h>
 
@@ -714,6 +715,7 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
   if (gps_detected && strcmp(name, "gps") == 0) {
     if (strcmp(value, "0") == 0) {
       gps_configured = false;
+      gps_consecutive_failures = 0;
       stop_gps();
     } else {
       gps_configured = true;
@@ -725,6 +727,7 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
   if (strcmp(name, "gps_interval") == 0) {
     uint32_t interval_seconds = atoi(value);
     gps_update_interval_sec = interval_seconds;
+    gps_consecutive_failures = 0;
     if (gps_configured) {
       if (gps_update_interval_sec == 0) start_gps();
       else start_periodic_gps();
@@ -912,6 +915,8 @@ void EnvironmentSensorManager::start_periodic_gps() {
   uint32_t now = millis();
   gps_acquire_deadline_ms = now + 90000UL;
   gps_fix_stable_since_ms = 0;
+  gps_movement_seen = false;
+  gps_movement_since_ms = 0;
 }
 #endif // ENV_INCLUDE_GPS
 
@@ -941,20 +946,39 @@ void EnvironmentSensorManager::loop() {
       MESH_DEBUG_PRINTLN("lat %f lon %f alt %f", node_lat, node_lon, node_altitude);
       gps_next_cache_ms = now + 1000UL;
     }
-    if (valid) {
+    long hdop = valid ? _location->getHDOP() : -1;
+    bool quality_good = valid && GpsPollingPolicy::qualityGood(
+        hdop, valid ? _location->satellitesCount() : 0);
+    if (quality_good) {
       if (gps_fix_stable_since_ms == 0) gps_fix_stable_since_ms = now;
     } else {
       gps_fix_stable_since_ms = 0;
     }
 
     if (gps_configured && gps_update_interval_sec > 0) {
-      bool stable = gps_fix_stable_since_ms != 0 &&
-                    (uint32_t)(now - gps_fix_stable_since_ms) >= 4000UL;
+      // A moving receiver stays awake long enough to establish a useful
+      // walking course. Stationary polling retains the original four-second
+      // stable-fix window and therefore its existing power cost.
+      long speed = valid ? _location->getSpeed() : LONG_MIN;
+      if (quality_good && speed >= 800 && !gps_movement_seen) {
+        gps_movement_seen = true;
+        gps_movement_since_ms = now;
+      }
+      bool stable = quality_good && (gps_movement_seen
+          ? (uint32_t)(now - gps_movement_since_ms) >= GpsPollingPolicy::MOVING_CAPTURE_MS
+          : (gps_fix_stable_since_ms != 0 &&
+             (uint32_t)(now - gps_fix_stable_since_ms) >= GpsPollingPolicy::STATIONARY_STABLE_MS));
       bool timed_out = (int32_t)(now - gps_acquire_deadline_ms) >= 0;
       if (stable || timed_out) {
         stop_gps();
-        gps_next_acquire_ms = now + gps_update_interval_sec * 1000UL;
+        if (stable) gps_consecutive_failures = 0;
+        else if (gps_consecutive_failures < 255) gps_consecutive_failures++;
+        uint32_t next_sec = GpsPollingPolicy::retryDelaySeconds(
+            gps_update_interval_sec, gps_consecutive_failures);
+        gps_next_acquire_ms = now + next_sec * 1000UL;
         gps_fix_stable_since_ms = 0;
+        gps_movement_seen = false;
+        gps_movement_since_ms = 0;
       }
     }
   }

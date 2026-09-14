@@ -4,6 +4,7 @@
 #include "SoloFeatures.h"
 #include <Utils.h>
 #include <helpers/ContactInfo.h>
+#include <helpers/AdvertDataHelpers.h>
 #include <string.h>
 
 // One fail-closed policy boundary for every feature that can expose a child to
@@ -35,7 +36,10 @@ public:
                              const ContactInfo* contact, uint8_t expected_type = 0) {
     if (!locked) return true;
     if (!prefs || !contact || !favouriteContact(*contact)) return false;
-    return expected_type == 0 || contact->type == expected_type;
+    if (expected_type != 0 && contact->type != expected_type) return false;
+    if (contact->type == ADV_TYPE_CHAT) return true;
+    if (contact->type == ADV_TYPE_ROOM) return prefs->child_rooms_enabled != 0;
+    return false;
   }
 
   static bool privateChannel(const char* name, const uint8_t* secret) {

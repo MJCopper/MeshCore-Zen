@@ -17,6 +17,7 @@ extern MyMesh the_mesh;
 class RepeaterScreen : public UIScreen {
   UITask* _task;
   bool    _dirty;
+  bool    _initial_enabled;
   int     _sel;
   int     _scroll;    // first visible row (render keeps _sel in view)
 
@@ -39,17 +40,20 @@ class RepeaterScreen : public UIScreen {
   }
 
 public:
-  RepeaterScreen(UITask* task) : _task(task), _dirty(false), _sel(0), _scroll(0) {}
+  RepeaterScreen(UITask* task) : _task(task), _dirty(false), _initial_enabled(false), _sel(0), _scroll(0) {}
 
   void onShow() override {
+    NodePrefs* p = _task->getNodePrefs();
+    _initial_enabled = p && p->client_repeat;
     _dirty = false; _sel = 0; _scroll = 0;
   }
+  void onHide() override { _task->savePrefsIfDirty(_dirty); }
 
   int render(DisplayDriver& display) override {
     NodePrefs* p = _task->getNodePrefs();
     display.setTextSize(1);
     display.setColor(DisplayDriver::LIGHT);
-    display.drawCenteredHeader("REPEATER");
+    display.drawCenteredHeader("Repeater");
 
     // Config only — live forwarding stats live on Tools › Diagnostics.
     drawList(display, ITEM_COUNT, _sel, _scroll, [&](int item, int y, bool sel, int reserve) {
@@ -61,17 +65,17 @@ public:
       display.drawTextRightAlign(display.width() - reserve - 2, y, val);
       display.setColor(DisplayDriver::LIGHT);
     });
-    return 500;
+    return UI_REFRESH_STATIC_MS;
   }
 
   bool handleInput(char c) override {
     NodePrefs* p = _task->getNodePrefs();
 
-    if (c == KEY_CANCEL || c == KEY_CONTEXT_MENU) {
-      _task->savePrefsIfDirty(_dirty);
+    if (c == KEY_CANCEL) {
       _task->gotoToolsScreen();
       return true;
     }
+    if (c == KEY_CONTEXT_MENU) return true;
     if (c == KEY_UP)   { _sel = (_sel > 0) ? _sel - 1 : ITEM_COUNT - 1; return true; }
     if (c == KEY_DOWN) { _sel = (_sel < ITEM_COUNT - 1) ? _sel + 1 : 0; return true; }
     if (!p) return false;
@@ -83,7 +87,8 @@ public:
 
     if (item == IT_REPEATER && (left || right || enter)) {
       p->client_repeat ^= 1;
-      _dirty = true;
+      _dirty = (p->client_repeat != _initial_enabled);
+      _task->showAlert(p->client_repeat ? "Repeater: On" : "Repeater: Off", 900);
       return true;
     }
     return false;

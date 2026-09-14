@@ -1,6 +1,6 @@
 # Zen features
 
-Zen v1.32.65 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
+Zen v1.32.87 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
 The features below are provided by Zen in addition to the standard MeshCore
 companion protocol and radio operation.
 
@@ -13,11 +13,11 @@ companion protocol and radio operation.
 | Text entry | EN-US ABC and predictive T9 with a 4,000-word Australianised dictionary, compact previous-word ranking and command-prioritised console completion |
 | Emoji | Monochrome common emoji, diamond fallback and an insertable chat emoji picker |
 | CardKB | Startup detection, direct input, automatic compact editor and screen-aware polling through Grove I2C |
-| Clock and time | Permanent first page, unread count, 12/24-hour display and background GPS/companion time synchronisation |
-| GPS | Off, Continuous and timed 2 min–6 h operation with temporary boot-time synchronisation |
+| Clock and time | Permanent first page, unread count, selectable city daylight-saving rules or fixed UTC offset, 12/24-hour display and background GPS/companion time synchronisation ([guide](./docs/zen_features/timezone/timezone.md)) |
+| GPS | Session-only power toggle, cached-fix age, quality-controlled Continuous or timed 2 min–6 h polling, temporary clock synchronisation and eight-point live/timed course-over-ground ([guide](./docs/zen_features/gps/gps.md)) |
 | Sensors | Sensor-node carousel with authenticated, on-demand multi-channel telemetry and line scrolling |
 | Favourites | Four editable contact shortcuts with unread badges, plus starred contact, room and channel ordering |
-| Child Mode | Parent PIN, favourite-only messaging, optional private channels and disabled companion access while locked |
+| Child Mode | Parent PIN, favourite-only direct messages, optional favourite rooms/private channels and disabled companion access while locked |
 | Quiet Time | Daily local-time sound suppression while visual alerts, message reception and unread state continue |
 | Notifications | Per-contact/channel tones, eight built-in melodies, two editable chromatic tones and five-second notification wake |
 | Advert | Manual and Off/1 h/3 h/6 h automatic adverts with shared GPS privacy control and timed status icon |

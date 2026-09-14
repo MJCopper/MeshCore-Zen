@@ -80,6 +80,7 @@ public:
     memset(_notes, 0, sizeof(_notes));
     memset(_initial_notes, 0, sizeof(_initial_notes));
   }
+  void onHide() override { _task->stopMelody(); }
 
   // Preference slots retain their historical 32-byte layout. Editing exposes
   // the first 16 notes; saving clears the inactive legacy tail.
@@ -128,8 +129,7 @@ public:
     char header[32];
     snprintf(header, sizeof(header), "Custom%d%s %u %d/%d", _slot + 1, dirty() ? "*" : "",
              solo::RingtoneModel::bpm(_bpm_idx), _len, MAX_NOTES);
-    display.setCursor(0, 0); display.print(header);
-    display.fillRect(0, display.headerH() - 1, display.width(), display.sepH());
+    display.drawCenteredHeader(header, true, _menu.active);
     for (int i = 0; i < _visible_notes; i++) {
       int ni = _scroll + i, x = i * cell_w;
       bool selected = ni == _cursor;
@@ -153,13 +153,16 @@ public:
       char info[24];
       snprintf(info, sizeof(info), "oct:%u dur:%s", solo::RingtoneModel::octave(_notes[_cursor]),
                solo::RingtoneModel::durationLabel(solo::RingtoneModel::duration(_notes[_cursor])));
-      display.print(info);
-    } else display.print(_len ? "U/D to add note" : "Empty: U/D add");
-    display.setCursor(0, display.height() - display.lineStep());
-    display.print("ENT:oct MENU:opts");
+      display.drawTextEllipsized(cw + 2, info_y, display.width() - cw * 2 - 4, info);
+    } else {
+      display.drawTextEllipsized(cw + 2, info_y, display.width() - cw * 2 - 4,
+                                 _len ? "Up/Down: Add note" : "Empty: Up/Down adds");
+    }
+    display.drawTextEllipsized(0, display.height() - display.lineStep(), display.width(),
+                               "Enter: Oct Hold: Menu");
     if (_menu.active) _menu.render(display);
     if (_confirm.active) _confirm.render(display);
-    return 200;
+    return UI_REFRESH_STATIC_MS;
   }
 
   bool handleInput(char c) override {
@@ -179,7 +182,6 @@ public:
     bool left = keyIsPrev(c), right = keyIsNext(c), enter = c == KEY_ENTER;
     if (_menu.active) {
       int selected = _menu.selectedIndex();
-      if (enter && (selected == MI_DURATION || selected == MI_BPM)) right = true;
       if (left || right) {
         if (selected == MI_DURATION && _cursor < _len) {
           uint8_t value = solo::RingtoneModel::duration(_notes[_cursor]);

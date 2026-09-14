@@ -400,6 +400,10 @@ struct NodePrefs {  // persisted to file
   // Zen-owned semantic configuration schema. Unlike the file-layout sentinel,
   // this tracks ordered value migrations at boot.
   uint16_t zen_config_schema;
+  uint8_t timezone_mode;       // 0=fixed manual offset, 1=capital-city rules
+  uint8_t timezone_city;       // TimezonePolicy city index
+  int16_t timezone_manual_min; // signed fixed UTC offset, minute resolution
+  uint8_t child_rooms_enabled; // allow favourited room servers while Child Mode is locked
 
   // Single source of truth for the live-share option tables (shared by the Map
   // UI labels and the auto-send engine in UITask).
@@ -463,7 +467,7 @@ struct NodePrefs {  // persisted to file
   // adding/removing/reordering fields in DataStore::savePrefs/loadPrefsInt so
   // older saves are detected on load and skipped (zero-init defaults kept).
   // High 24 bits identify the file format; low byte is the schema revision.
-  static const uint32_t SCHEMA_SENTINEL = 0xC0DE002B;
+  static const uint32_t SCHEMA_SENTINEL = 0xC0DE002D;
 
   // Bit-index for each home page. Used by page_order (entries store bit+1) and
   // by home_pages_mask. Single source of truth — both HomeScreen::pageBit/bitToPage
@@ -556,12 +560,15 @@ struct NodePrefs {  // persisted to file
 // default to enabled and retain their existing sentinel alignment.
 // channel_melody_overrides (0xC0DE002A) adds 32 bytes at the persisted tail.
 // zen_config_schema (0xC0DE002B) consumes tail padding; size remains unchanged.
+// timezone mode, city and manual minutes (0xC0DE002C) are appended together;
+// alignment grows the Wio Tracker layout to 2792 bytes. child_rooms_enabled
+// (0xC0DE002D) consumes existing tail padding, so the size remains unchanged.
 // keyboard_main_alphabet (added in an earlier bump) landed in existing tail
 // padding -- confirmed via a real build's sizeof() -- so that bump left the
 // size unchanged. bot_actions_dm/ch/room and gpio1..4_mode (the last two
 // bumps, 7 more uint8_t total) added 8 bytes, not 7 -- one byte of tail
 // padding got consumed along the way. 2720 confirmed via a real
 // WioTrackerL1_Zen_E-INK build.
-static_assert(sizeof(NodePrefs) == 2784,
+static_assert(sizeof(NodePrefs) == 2792,
               "NodePrefs layout changed — sync DataStore save/load + clamp, bump "
               "SCHEMA_SENTINEL, then update this size (see steps above).");

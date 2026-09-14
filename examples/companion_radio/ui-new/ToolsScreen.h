@@ -78,7 +78,7 @@ public:
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
     display.setColor(DisplayDriver::LIGHT);
-    display.drawCenteredHeader("TOOLS");
+    display.drawCenteredHeader("Tools");
 
     drawList(display, TOOL_COUNT, _sel, _scroll,
       [&](int idx, int y, bool selected, int reserve) {
@@ -86,14 +86,15 @@ public:
         display.drawTextEllipsized(2, y, display.width() - 4 - reserve,
                                    TOOLS[idx].label, selected);
       });
-    return 500;
+    return UI_REFRESH_STATIC_MS;
   }
 
   bool handleInput(char c) override {
-    if (c == KEY_CANCEL || c == KEY_CONTEXT_MENU) {
+    if (c == KEY_CANCEL) {
       _task->gotoHomeScreen();
       return true;
     }
+    if (c == KEY_CONTEXT_MENU) return true;
     if (c == KEY_UP && TOOL_COUNT > 0) {
       _sel = _sel > 0 ? _sel - 1 : TOOL_COUNT - 1;
       return true;

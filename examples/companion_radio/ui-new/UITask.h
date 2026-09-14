@@ -22,13 +22,15 @@
 
 #include "../AbstractUITask.h"
 #include "../NodePrefs.h"
-#include "../LiveTrack.h"
 #include "../solo/SoloRuntime.h"
 #include "../solo/BootTimeSync.h"
 #include "../solo/GpsMode.h"
+#include "../solo/GpsCourse.h"
+#include "../solo/TimezonePolicy.h"
 #include "../solo/NodeLoginCoordinator.h"
 #include "../solo/DiagnosticLog.h"
 #include "KeyboardWidget.h"
+#include "ScreenHistory.h"
 #if defined(CARDKB_ADDRESS) && SOLO_FEAT_CARDKB
   #include <helpers/ui/CardKBController.h>
 #endif
@@ -60,14 +62,16 @@ class UITask : public AbstractUITask {
   solo::Runtime _solo;
   solo::NodeLoginCoordinator _node_login;
   solo::DiagnosticLog _diagnostic_log;
+#if ENV_INCLUDE_GPS == 1
+  solo::GpsCourse _gps_course;
+  uint32_t _next_gps_course_sample_ms = 0;
+  uint32_t _last_gps_fix_ms = 0;
+  bool _has_gps_fix_age = false;
+#endif
   bool _deferred_prefs_save = false;
   uint32_t _deferred_prefs_save_ms = 0;
   char _alert[80];
   char _notif_mel_buf[220];  // persistent RTTTL buffer for custom notification melodies
-  // Persistent RTTTL buffer for the bot !buzz command (see botBuzz()) -- sized
-  // for the full 30s cap: "Buzz:b=120:" (11B) + up to 60 "8c,8p," pairs (6B
-  // each) + NUL = 372B, rounded up with margin.
-  char _bot_buzz_buf[400];
   KeyboardWidget _kb;        // shared across all screens — only one active at a time
   unsigned long _alert_expiry;
   int _msgcount;
@@ -108,88 +112,19 @@ class UITask : public AbstractUITask {
   UIScreen* child_unlock = nullptr;
   UIScreen* tools_screen = nullptr;
   UIScreen* ringtone_edit = nullptr;
-  UIScreen* bot_screen = nullptr;
   UIScreen* admin_screen = nullptr;
   UIScreen* nearby_screen = nullptr;
   UIScreen* auto_advert_screen = nullptr;
-  UIScreen* live_share_screen = nullptr;
-  UIScreen* locator_screen = nullptr;
-  UIScreen* trail_screen = nullptr;
-  UIScreen* compass_screen = nullptr;
   UIScreen* diag_screen = nullptr;
   UIScreen* repeater_screen = nullptr;
-  UIScreen* clock_tools = nullptr;
-#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
-  UIScreen* gpio_screen = nullptr;
-#endif
   UIScreen* curr = nullptr;
-  LiveTrackStore _livetrack;
-  uint32_t _next_trail_sample_ms = 0;
-  uint32_t _next_livetrack_expire_ms = 0;
   solo::BootTimeSync _boot_time_sync;
-  bool _tool_home_entry = false;
+  ScreenHistory<4> _screen_history;
+  void pushScreenReturn(UIScreen* screen);
+  UIScreen* popScreenReturn();
   void beginBootTimeSync();
   void tickBootTimeSync();
 
-  // Live location sharing engine state (auto [LOC] broadcast while moving).
-  uint32_t _next_loc_share_check_ms = 0;
-  uint32_t _loc_share_last_ms = 0;
-  int32_t  _loc_share_last_lat = 0, _loc_share_last_lon = 0;
-  bool     _loc_share_has_last = false;
-  bool     _loc_share_was_enabled = false;
-
-  // Trail auto-pause engine state. _trail_pause_ref is the last position the
-  // device was considered "at"; if it doesn't move beyond the trail min-delta
-  // gate for the configured delay, the trail is auto-paused.
-  int32_t  _trail_pause_ref_lat = 0, _trail_pause_ref_lon = 0;
-  bool     _trail_pause_has_ref = false;
-  uint32_t _trail_last_move_ms = 0;
-
-  // Locator engine state. _locator_known guards the first evaluation after
-  // arming (initialise inside/outside silently, fire only on later crossings).
-  uint32_t _next_locator_ms = 0;
-  bool     _locator_inside = false;
-  bool     _locator_known = false;
-  // Proximity beeper: ticks while inside the radius, faster the nearer the
-  // target. _locator_beep_check_ms throttles the distance poll; _locator_beep_next_ms
-  // is when the next tick is due.
-  uint32_t _locator_beep_check_ms = 0;
-  uint32_t _locator_beep_next_ms = 0;
-  bool locatorDistance(float& dist_m, float& radius_m) const;
-  void evaluateLocator();
-  void fireLocator(bool arrived);
-  void locatorProximityBeeper();
-
-  // Clock tools engine — owned here (not by ClockToolsScreen) so the one-shot
-  // alarm and the countdown timer fire every loop regardless of the current
-  // screen / display state. ClockToolsScreen is pure UI over this state. The
-  // alarm is scheduled as an ABSOLUTE wall instant, recomputed from the stored
-  // time-of-day, so it survives RTC re-syncs (mesh/app/GPS/CLI all jump the
-  // clock) — small corrections still fire on time, a jump over the target still
-  // fires (late). See evaluateAlarm(). Timer + ring are millis-based.
-  uint32_t _alarm_next_fire = 0;   // unix; 0 = (re)compute lazily once time is valid
-  uint32_t _alarm_check_ms  = 0;   // throttle the wall-clock read to ~2 Hz
-  bool     _timer_running = false;
-  uint32_t _timer_deadline_ms = 0;
-  bool     _ringing = false;
-  uint32_t _ring_until_ms = 0;
-  char     _ring_label[20] = {0};
-  uint32_t computeAlarmNextFire(uint32_t now_wall) const;
-  void     evaluateAlarm();                    // alarm scheduling + fire detection
-  void     fireClockAlert(const char* label);  // wake + alert + melody + start ring
-  void     tickClockTools();                   // driven from loop(): ring + timer + alarm
-
-  // Course-over-ground ring — a heading source independent of trail recording.
-  // Filled from the same periodic GPS poll regardless of _trail.isActive().
-  // Heading = bearing across the window (oldest→newest) once the cumulative
-  // movement clears COG_MIN_MOVE_M; gross GPS jumps are rejected on insert.
-  static const int COG_RING = 5;
-  struct CogFix { int32_t lat, lon; uint32_t ms; };
-  CogFix   _cog[COG_RING];
-  uint8_t  _cog_head = 0, _cog_count = 0;
-  int      _cog_deg = -1;            // last good heading, -1 = none yet
-  uint32_t _next_cog_sample_ms = 0;
-  void pushCogFix(int32_t lat, int32_t lon);
 
   // Ping state
   bool _ping_active = false;
@@ -260,6 +195,12 @@ public:
   void onSensorTelemetry() override { _next_refresh = 0; } // redraw, never wake
 
   NodePrefs* getNodePrefs() const { return _node_prefs; }
+  int16_t localOffsetMinutes(uint32_t utc_time) const {
+    return _node_prefs ? solo::TimezonePolicy::offsetMinutes(
+        _node_prefs->timezone_mode, _node_prefs->timezone_manual_min,
+        _node_prefs->timezone_city, utc_time) : 0;
+  }
+  uint32_t currentUtcTime() const;
   bool isChildModeLocked() const { return _solo.childLocked(_node_prefs); }
   bool isTimeSyncPending() const { return _boot_time_sync.pending(); }
   bool isChildModeRestricted() const override { return isChildModeLocked(); }
@@ -275,21 +216,30 @@ public:
   uint16_t getBattMilliVolts() const { return _batt_mv > 0 ? _batt_mv : AbstractUITask::getBattMilliVolts(); }
   solo::BatteryRuntimeEstimator::State batteryRuntimeState() const { return _battery_runtime.state(); }
   uint32_t batteryRuntimeSeconds() const { return _battery_runtime.seconds(); }
-  void gotoHomeScreen() { _tool_home_entry = false; setCurrScreen(home); }
+  void sleepDisplay() { turnDisplayOff(); }
+  void gotoHomeScreen() { _screen_history.clear(); setCurrScreen(home); }
   void gotoSettingsScreen();
   int getSettingsSectionCount() const;
   const char* getSettingsSectionLabel(int index) const;
   void openSettingsSection(int index);
+  void gotoRadioSettings();
+  void gotoBluetoothSettings();
+#if ENV_INCLUDE_GPS == 1
+  void gotoGpsPollingSettings();
+#endif
   void gotoMessagesScreen();
   void gotoMessagesCategory(uint8_t category);
   void gotoChildUnlockScreen();
   void openContactDM(const ContactInfo& ci);
+  bool allowOnDeviceContactMessage(const ContactInfo& ci) const override {
+    return solo::Policy::contactAllowed(_node_prefs, isChildModeLocked(), &ci);
+  }
+  bool allowOnDeviceChannelMessage(uint8_t index) const override;
   void openPreferredTranscript();
-  void shareToMessage(const char* text);   // open Messages pre-loaded to share `text`
-  void quickShareMyLocation();             // Home Map Hold-Enter: one-shot position share
-  void pickLocShareTarget();               // open Messages to choose the live-share target
-  void pickBotChannelTarget();             // open Messages to choose the auto-reply bot's channel
-  void pickBotRoomTarget();                // open Messages to choose the auto-reply bot's room
+  void shareToMessage(const char* text);
+  void pickLocShareTarget();
+  void pickBotChannelTarget();
+  void pickBotRoomTarget();
   int  getRecentDMContacts(uint8_t out[][NodePrefs::FAVOURITE_PREFIX_LEN], int max) const;
   void gotoToolsScreen();
   int getToolsItemCount() const;
@@ -303,29 +253,6 @@ public:
   void gotoDiscoverScreen();
   void gotoAutoAdvertScreen();
   void gotoLiveShareScreen();
-  void gotoLocatorScreen();
-  // Re-arm the locator state machine so the next evaluation initialises
-  // silently (called by the Locator tool after the target/radius changes,
-  // so re-entering the zone doesn't fire on a stale inside/outside state).
-  void resetLocator() { _locator_known = false; }
-  // The one "active target" the device tracks — shared by the Locator geofence,
-  // the Nav bearing/ETA view and (future) the map focus, so every entry point
-  // sets the same thing. kind 0 = waypoint (key ignored), 1 = person (key
-  // required, 6-byte prefix). setTarget() only *defines* the target (fields +
-  // re-arm); the caller decides when to persist. Two commit policies, by
-  // context: a screen with an exit hook (LocatorScreen) batches the save so
-  // LEFT/RIGHT cycling doesn't thrash flash, while a per-item popup with no
-  // such hook uses setTargetNow() to save + confirm on the spot.
-  void setTarget(uint8_t kind, const uint8_t* key, int32_t lat, int32_t lon, const char* name);
-  void setTargetNow(uint8_t kind, const uint8_t* key, int32_t lat, int32_t lon, const char* name);
-  // Unset the active target (locator_has_target = 0). Distinct from setTarget()
-  // because there's no "kind" for nothing — clearing is its own operation.
-  void clearTarget();
-  // One-shot: if the active target is exactly this waypoint, clear it and
-  // persist immediately (setTargetNow()'s save-on-the-spot policy) — called
-  // from waypoint deletion so the Locator can't keep pointing at a spot
-  // that no longer exists.
-  void clearTargetIfWaypoint(int32_t lat_1e6, int32_t lon_1e6);
   // A contact was removed (companion app / CLI): drop any UI reference to its
   // pubkey that would otherwise dangle — a pinned favourite slot, the Locator
   // target if it was this contact, the Live Share target if it was this
@@ -337,51 +264,12 @@ public:
   // (the bot's channel, Live Share's channel target) and drop its per-channel
   // melody bit, so a future channel re-added at the same slot starts clean.
   void onChannelRemoved(uint8_t channel_idx) override;
-  // Resolve a person target (6-byte pubkey prefix) to a current position:
-  // prefers an active [LOC] live share, falls back to their last-advertised
-  // GPS fix. Returns false when neither is known. Optional live/ts report
-  // freshness for the picker's age tag. One precedence, used by both the
-  // Locator engine (locatorDistance) and the target picker.
-  bool resolvePersonPos(const uint8_t* key, int32_t& lat, int32_t& lon,
-                        bool* live = nullptr, uint32_t* ts = nullptr) const;
-  // Resolved position of the active target — a waypoint's coords, or a person
-  // via resolvePersonPos(). Gated only on a target being set, independent of
-  // whether the Locator alert is enabled, so a destination you set still shows
-  // on the map. Used by locatorDistance() and the map renderers.
-  bool activeTargetPos(int32_t& lat, int32_t& lon) const;
-  void gotoTrailScreen();
-  void gotoMapScreen();   // opens the Trail screen directly in its Map view
-  void gotoCompassScreen();
   void gotoDiagnosticsScreen();
   void gotoRepeaterScreen();
-  void gotoGpioScreen();   // no-op on boards without user GPIO pins (see PIN_GPIO1)
-  void gotoClockTools();   // Alarm / Timer / Stopwatch (from the home Clock page)
-  // Wake the display for an alarm/timer ring (force an immediate refresh).
-  void wakeForAlarm();
   // Clear any active alert overlay early (alarm dismiss).
   void clearAlert() { _alert_expiry = 0; }
-  // Clock tools engine API — ClockToolsScreen drives these; the engine itself
-  // runs in tickClockTools() from loop() so it fires regardless of the screen.
-  void onAlarmChanged() { _alarm_next_fire = 0; }   // re-schedule after an alarm edit
-  void startTimer(uint32_t duration_ms) { _timer_running = true; _timer_deadline_ms = millis() + duration_ms; }
-  void stopTimer() { _timer_running = false; }
-  bool isTimerRunning() const { return _timer_running; }
-  uint32_t timerRemainingMs() const {
-    if (!_timer_running) return 0;
-    uint32_t now = millis();
-    // Signed-difference compare so a deadline that lands past the millis()
-    // rollover (~49.7 days) doesn't read as already elapsed.
-    if ((int32_t)(now - _timer_deadline_ms) >= 0) return 0;
-    return _timer_deadline_ms - now;
-  }
-  bool isRinging() const { return _ringing; }
-  void dismissRing() { stopMelody(); _ringing = false; clearAlert(); }
-  LiveTrackStore& liveTrack() { return _livetrack; }
   // Shared on-screen keyboard — only one screen drives it at a time.
   KeyboardWidget& keyboard() { return _kb; }
-  // Current course over ground in degrees (0..359), or false if not enough
-  // recent movement to derive a stable heading. Independent of trail logging.
-  bool currentCourse(int& deg_out) const;
   // Current GPS position (1e6-scaled degrees), false when there's no usable
   // fix. Single source of truth for "where am I", shared by the nav / compass
   // / map screens so the LocationProvider lookup isn't duplicated per screen.
@@ -512,10 +400,7 @@ public:
       if (_node_prefs->favourite_contacts[slot][b]) return false;
     return true;
   }
-  void setFavouriteSlot(int slot, const uint8_t* pub_key) {
-    if (!_node_prefs || slot < 0 || slot >= NodePrefs::FAVOURITES_DIAL_COUNT || !pub_key) return;
-    memcpy(_node_prefs->favourite_contacts[slot], pub_key, NodePrefs::FAVOURITE_PREFIX_LEN);
-  }
+  bool setFavouriteSlot(int slot, const uint8_t* pub_key);
   void clearFavouriteSlot(int slot) {
     if (!_node_prefs || slot < 0 || slot >= NodePrefs::FAVOURITES_COUNT) return;
     memset(_node_prefs->favourite_contacts[slot], 0, NodePrefs::FAVOURITE_PREFIX_LEN);
@@ -531,7 +416,7 @@ public:
   }
 
   void toggleBuzzer();
-  void cycleBuzzerMode();   // ON → OFF → Auto → ON
+  void cycleBuzzerMode(int direction = 1); // Left/Right step Off/On/Auto
   int  getBuzzerMode(); // 0=ON, 1=OFF, 2=Auto
   bool getGPSState();
   uint8_t getGPSMode() const;
@@ -539,18 +424,19 @@ public:
   void applyGpsPrefs();
   void applyBluetoothPrefs();
   bool hasGPS();   // true if this board exposes a toggleable GPS (distinct from GPS being off)
+  solo::GpsCourse::Source getGpsCourse(long& course_millideg) const {
+#if ENV_INCLUDE_GPS == 1
+    return _gps_course.read(millis(), course_millideg);
+#else
+    (void)course_millideg; return solo::GpsCourse::NONE;
+#endif
+  }
+  bool getGpsFixAgeMs(uint32_t& age) const {
+    if (!_has_gps_fix_age) return false;
+    age = millis() - _last_gps_fix_ms;
+    return true;
+  }
   void toggleGPS();
-  void applyGpsState(bool on);   // shared by toggleGPS() and botSetGPS()
-  void botSetGPS(bool on) override;
-  void botBuzz(int seconds) override;
-  // User GPIO (!gpio1..!gpio4 + Tools > GPIO screen). idx is 1-4. Bodies are
-  // no-ops / return false on boards without PIN_GPIO1 defined.
-  bool botSetGPIO(int idx, bool on) override;
-  bool botGetGPIO(int idx, bool& is_output, bool& value) override;
-  bool botGetGPIOAnalog(int idx, int& millivolts) override;
-  bool gpioSupportsAnalog(int idx) const;    // true only for GPIO1/GPIO2 (AIN0/AIN5)
-  void setGpioMode(int idx, uint8_t mode);   // 0=Off 1=In 2=Out-low 3=Out-high 4=Analog; applies + persists
-  void applyAllGpioModes();                  // boot-time restore from NodePrefs, called from begin()
   void applyBrightness();
   void setBrightnessLevel(uint8_t level);
   uint8_t getBrightnessLevel() const { return _node_prefs ? _node_prefs->display_brightness : 2; }
@@ -563,6 +449,7 @@ public:
   // (some used to leave the flag set, relying on onShow() to reset it) and keeps
   // the "did we touch flash?" answer in one place. Returns whether it saved.
   bool savePrefsIfDirty(bool& dirty);
+  void requestPrefsSave();
   void applyRotation();
   void applyFullRefreshInterval();
   uint32_t autoOffMillis() const {
@@ -580,13 +467,7 @@ public:
                        uint8_t contact_type = 0, const uint8_t* pub_key = nullptr,
                        int channel_idx = -1) override;
   void notify(UIEventType t = UIEventType::none) override;
-  void onSharedLocation(const uint8_t* pub_key, const char* name,
-                        int32_t lat_1e6, int32_t lon_1e6,
-                        uint32_t ts, bool verified) override;
   void loop() override;
-  // Send one [LOC] message to the configured live-share target. Returns false
-  // if the target can't be resolved (no such channel / contact).
-  bool sendLocationShare(int32_t lat, int32_t lon);
 
   void shutdown(bool restart = false);
 };

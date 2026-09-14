@@ -21,7 +21,7 @@
 //   {hops}  — hop count: "direct" or "N hops" (bot replies only; requires hops>=0, else left literal)
 inline void expandMsg(const char* tmpl, char* out, int out_len,
                       double lat, double lon, bool gps_valid,
-                      uint32_t utc_ts, int8_t tz_hours,
+                      uint32_t utc_ts, int16_t tz_minutes,
                       SensorManager* sm = nullptr,
                       float batt_volts  = -1.0f,
                       const char* sender_name = nullptr,
@@ -86,7 +86,7 @@ inline void expandMsg(const char* tmpl, char* out, int out_len,
       APPEND(lb, strlen(lb)); p += 5;
     } else if (strncmp(p, "{time}", 6) == 0) {
       if (utc_ts > 1000000000UL) {
-        uint32_t local_ts = utc_ts + (int32_t)tz_hours * 3600;
+        uint32_t local_ts = utc_ts + (int32_t)tz_minutes * 60;
         time_t t = (time_t)local_ts;
         struct tm* ti = gmtime(&t);
         char tb[8];

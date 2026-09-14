@@ -187,7 +187,7 @@ class DiagnosticsScreen : public UIScreen {
       char time[6] = "--:--";
       if (event->timestamp) {
         int32_t local = (int32_t)(event->timestamp % 86400UL) +
-            (int32_t)(_task->getNodePrefs() ? _task->getNodePrefs()->tz_offset_hours : 0) * 3600;
+            (int32_t)_task->localOffsetMinutes(event->timestamp) * 60;
         while (local < 0) local += 86400;
         local %= 86400;
         snprintf(time, sizeof(time), "%02ld:%02ld", (long)(local / 3600),
@@ -208,7 +208,7 @@ class DiagnosticsScreen : public UIScreen {
   void eventTime(const solo::DiagnosticLog::Entry& event, char* out, size_t size) const {
     if (!event.timestamp) { snprintf(out, size, "--:--"); return; }
     int32_t local = (int32_t)(event.timestamp % 86400UL) +
-        (int32_t)(_task->getNodePrefs() ? _task->getNodePrefs()->tz_offset_hours : 0) * 3600;
+        (int32_t)_task->localOffsetMinutes(event.timestamp) * 60;
     while (local < 0) local += 86400;
     local %= 86400;
     snprintf(out, size, "%02ld:%02ld", (long)(local / 3600),
@@ -227,7 +227,7 @@ class DiagnosticsScreen : public UIScreen {
     snprintf(_event_detail, sizeof(_event_detail),
              "Time: %s\nOperation: %s\nReason: %s\nCount: %u",
              time, event->operation, event->reason, (unsigned)event->count);
-    _event_view.begin();
+    _event_view.begin(false);
   }
 
   void buildBatteryRows() {
@@ -376,8 +376,7 @@ public:
   bool handleInput(char c) override {
     if (_event_view.active) {
       FullscreenMsgView::Result result = _event_view.handleInput(c);
-      if (result == FullscreenMsgView::CLOSE || result == FullscreenMsgView::REPLY ||
-          result == FullscreenMsgView::PREV || result == FullscreenMsgView::NEXT)
+      if (result == FullscreenMsgView::CLOSE)
         _event_view.active = false;
       return true;
     }

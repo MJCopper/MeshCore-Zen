@@ -98,18 +98,40 @@ validated digit editor.
 | Setting | Options or action |
 | ------- | ----------------- |
 | Name | Up to 31 characters |
-| Timezone | UTC−12 to UTC+14 |
-| GPS | Off / Continuous / 2 min / 5 min / 15 min / 30 min / 1 h / 3 h / 6 h |
-| Bluetooth | On / Off |
+| Time Zone | Opens the City / Fixed UTC editor |
+| GPS | On / Off |
+| GPS Polling | Continuous / 2 min / 5 min / 15 min / 30 min / 1 h / 3 h / 6 h |
 | Units | Metric / Imperial |
 | Reboot | Save pending changes and restart |
 
-Timed GPS modes acquire a stable fix, cache it, power down, then repeat after
-the selected interval. GPS and Bluetooth changes are applied when Settings is
-closed.
+Timed GPS polling acquires a stable fix, caches it, powers down, then repeats
+after the selected interval. GPS and Bluetooth changes are applied when
+Settings is closed. See [GPS and Course](../gps/gps.md) for acquisition timing,
+power use, fix quality and the direction display.
+
+City mode uses the selected city's standard and daylight-saving rules. Fixed UTC
+uses an unchanging UTC−12:00 to UTC+14:00 offset in 15-minute steps. The editor
+only shows the value relevant to the selected mode and previews the effective
+offset. Fresh installations default to City with Sydney selected. Existing
+installations retain their previous Fixed UTC offset until City is selected.
+City mode does not select a location from GPS. See the
+[Time Zone guide](../timezone/timezone.md) for the supported cities and all
+local-time consumers.
+
+## Bluetooth
+
+| Setting | Options or action |
+| ------- | ----------------- |
+| Bluetooth | On / Off |
+| PIN Mode | Random / Fixed |
+| PIN | Edit the fixed six-digit pairing PIN |
+
+Random mode generates a new pairing PIN each time Zen boots. Fixed PIN changes
+are saved on Back and take effect after reboot.
 
 See [Radio, GPS, Bluetooth and Adverts](../connectivity/connectivity.md) for the
-related home-page controls.
+related home-page controls and [GPS and Course](../gps/gps.md) for detailed GPS
+behaviour.
 
 ## Keyboard
 
@@ -127,8 +149,8 @@ Direct messages, Channels and Rooms can each show **All** or **Favourites**.
 
 ## Child Mode
 
-Set the six-digit PIN, enable the mode, and select whether favourited private
-Channels and the Favourites home page remain visible. See
+Set the six-digit PIN, enable the mode, and select whether favourited Rooms,
+favourited private Channels and the Favourites home page remain visible. See
 [Child Mode](../child_mode/child_mode.md).
 
 ## Quick Replies

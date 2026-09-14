@@ -2,7 +2,6 @@
 // Custom screen — not part of upstream UITask.cpp
 // Included by UITask.cpp after SettingsScreen.h is defined.
 
-#include "NavView.h"   // navigate to a location shared inside a message
 #include "icons.h"     // scalable mini-icons (delivery markers)
 #include "ChannelsView.h"  // on-device channel add/edit form (Channels tab)
 #include "MessageEditorSupport.h"
@@ -51,7 +50,9 @@ class MessagesScreen : public UIScreen {
   uint8_t _active_replies[solo::QuickReplies::MAX_VISIBLE_COUNT];
   int _active_msg_count;
   bool _quick_msgs_bypassed = false;
-  bool _home_category_entry = false;
+  enum EntryOrigin : uint8_t { ORIGIN_NORMAL, ORIGIN_HOME_CATEGORY,
+                               ORIGIN_DIRECT_DM, ORIGIN_DIRECT_CHANNEL };
+  EntryOrigin _entry_origin = ORIGIN_NORMAL;
 
   // CHANNEL_HIST — selection + the unread "viewing session" bookkeeping. The
   // history ring itself and the per-channel unread counters live in _history.
@@ -86,22 +87,8 @@ class MessagesScreen : public UIScreen {
   uint8_t   _transcript_act[3];
   int       _transcript_act_n = 0;
   RecentParticipants _recent_participants;
-  bool      _dm_direct_entry;    // entered DM_HIST via Favourites shortcut; CANCEL returns home
-  bool      _channel_direct_entry = false; // Clock shortcut opened CHANNEL_HIST directly
   char      _reply_prefix[36];   // "@[nick] " built when reply is triggered
   bool      _reply_mode;         // true while composing a reply (prefix is prepended)
-
-  // Fullscreen-message context menu actions. Built per-message: Reply (when
-  // applicable) plus Navigate when the message carries a
-  // location (a {loc} string or a [WAY] share). _fs_act maps each visible row
-  // back to an action so the index math survives the conditional layout.
-  enum FsAct : uint8_t { FS_REPLY, FS_NAV };
-  uint8_t   _fs_act[3];
-  int       _fs_act_n = 0;
-  // Inline navigate-to-location view layered over the fullscreen message.
-  bool      _nav_active = false;
-  int32_t   _nav_lat = 0, _nav_lon = 0;
-  char      _nav_label[24] = "";
 
   // Share-compose mode: launched from elsewhere (e.g. a waypoint) with a
   // prepared message; the user picks a recipient and the text lands prefilled
@@ -146,11 +133,10 @@ class MessagesScreen : public UIScreen {
       gps_valid = true;
     }
 #endif
-    NodePrefs* np = _task->getNodePrefs();
     float batt = (float)board.getBattMilliVolts() / 1000.0f;
+    uint32_t now = rtc_clock.getCurrentTime();
     ::expandMsg(tmpl, out, out_len, lat, lon, gps_valid,
-                rtc_clock.getCurrentTime(),
-                np ? np->tz_offset_hours : 0,
+                now, _task->localOffsetMinutes(now),
                 &sensors, batt);
   }
 
@@ -230,42 +216,22 @@ class MessagesScreen : public UIScreen {
     _phase = KEYBOARD;
   }
 
-  // Build the fullscreen-message options popup: Reply (if allowed) plus
-  // temporary navigation when `body` carries a location. Opens _ctx_menu
-  // only when there's at least one action. Parses the location once here and
-  // stashes it for the action handler.
+  // Build the fullscreen-message options popup when replying is meaningful.
   void buildFsMenu(const char* body, bool reply_allowed) {
-    bool has_loc = geo::parseLatLon(body, _nav_lat, _nav_lon, _nav_label, sizeof(_nav_label));
-    int n = (reply_allowed ? 1 : 0) + (has_loc ? 1 : 0);
-    if (n == 0) return;
-    _fs_act_n = 0;
-    _ctx_menu.begin("Options", n);
-    if (reply_allowed) { _ctx_menu.addItem("Reply");         _fs_act[_fs_act_n++] = FS_REPLY; }
-    if (has_loc)       { _ctx_menu.addItem("Navigate"); _fs_act[_fs_act_n++] = FS_NAV; }
+    (void)body;
+    if (!reply_allowed) return;
+    _ctx_menu.begin("Options", 1);
+    _ctx_menu.addItem("Reply");
   }
 
   // Dispatch the selected fullscreen-options row. `channel` picks which
   // fullscreen view to close when starting a reply.
   void dispatchFsAction(bool channel) {
-    int csel = _ctx_menu.selectedIndex();
-    FsAct a = (FsAct)_fs_act[(csel >= 0 && csel < _fs_act_n) ? csel : 0];
     _ctx_menu.active = false;
     _retry_menu_active = false;
     _participant_picker_active = false;
-    if (a == FS_REPLY) {
-      (channel ? _fs : _dm_fs).active = false;
-      startReply(channel);
-    } else {
-      _nav_active = true;            // keep the message view active underneath
-    }
-  }
-
-  void renderNav(DisplayDriver& display) {
-    int32_t mylat, mylon; bool have = _task->currentLocation(mylat, mylon);
-    int cog; bool cogv = _task->currentCourse(cog);
-    NodePrefs* p = _task->getNodePrefs();
-    navview::draw(display, have, mylat, mylon, _nav_lat, _nav_lon,
-                  _nav_label[0] ? _nav_label : "Msg loc", cogv, cog, p && p->units_imperial);
+    (channel ? _fs : _dm_fs).active = false;
+    startReply(channel);
   }
 
   void setupMsgPick() {
@@ -440,7 +406,12 @@ class MessagesScreen : public UIScreen {
         }
       }
     } else {
-      ok = _history.resendFailedDM(_retry_hist_pos, _sel_contact.id.pub_key);
+      ContactInfo* current = the_mesh.lookupContactByPubKey(_sel_contact.id.pub_key, PUB_KEY_SIZE);
+      uint8_t expected = _sel_contact.type == ADV_TYPE_ROOM ? ADV_TYPE_ROOM : ADV_TYPE_CHAT;
+      if (current && solo::Policy::contactAllowed(_task->getNodePrefs(),
+                                                  _task->isChildModeLocked(), current,
+                                                  expected))
+        ok = _history.resendFailedDM(_retry_hist_pos, _sel_contact.id.pub_key);
     }
     _retry_hist_pos = -1;
     if (!ok) _task->logFailure("Message", "Resend not queued");
@@ -517,8 +488,10 @@ class MessagesScreen : public UIScreen {
     } else {
       // Paths and favourites may have changed since this transcript opened.
       ContactInfo* current = the_mesh.lookupContactByPubKey(_sel_contact.id.pub_key, PUB_KEY_SIZE);
+      uint8_t expected = _sel_contact.type == ADV_TYPE_ROOM ? ADV_TYPE_ROOM : ADV_TYPE_CHAT;
       if (!current || !solo::Policy::contactAllowed(_task->getNodePrefs(),
-                                                    _task->isChildModeLocked(), current))
+                                                    _task->isChildModeLocked(), current,
+                                                    expected))
         return false;
       _sel_contact = *current;
       uint32_t send_ts = rtc_clock.getCurrentTime();
@@ -569,6 +542,10 @@ class MessagesScreen : public UIScreen {
         if (c.type != ADV_TYPE_CHAT &&
             (_task->isChildModeLocked() || (!has_dm_unread && !has_direct_dm))) continue;
         }
+        if (_task->isChildModeLocked() &&
+            !solo::Policy::contactAllowed(p, true, &c,
+                                          _room_mode ? ADV_TYPE_ROOM : ADV_TYPE_CHAT))
+          continue;
         // The user-facing filter is authoritative: All shows every eligible DM
         // contact; Fav shows only upstream-starred eligible DM contacts.
         if (!show_all && !(c.flags & 0x01)) continue;
@@ -610,14 +587,24 @@ class MessagesScreen : public UIScreen {
     NodePrefs* p = _task->getNodePrefs();
     return solo::Policy::channelsVisible(p, _task->isChildModeLocked());
   }
+  bool roomsModeVisible() const {
+    NodePrefs* p = _task->getNodePrefs();
+    return !_task->isChildModeLocked() || (p && p->child_rooms_enabled);
+  }
 
-  int modeOptionCount() const { return channelsModeVisible() ? 3 : 2; }
+  int modeOptionCount() const {
+    return 1 + (channelsModeVisible() ? 1 : 0) + (roomsModeVisible() ? 1 : 0);
+  }
   int modeAtPosition(int pos) const {
-    return channelsModeVisible() ? pos : (pos == 0 ? 0 : 2);
+    if (pos <= 0) return 0;
+    if (channelsModeVisible()) return pos == 1 ? 1 : 2;
+    return 2;
   }
   int modePosition() const {
-    if (channelsModeVisible()) return _mode_sel;
-    return _mode_sel == 2 ? 1 : 0;
+    if (_mode_sel == 0) return 0;
+    if (_mode_sel == 1) return channelsModeVisible() ? 1 : 0;
+    if (!roomsModeVisible()) return 0;
+    return channelsModeVisible() ? 2 : 1;
   }
 
   void buildChannelList() {
@@ -718,7 +705,7 @@ public:
       _hist_sel(0), _hist_scroll(0),
       _unread_at_entry(0), _viewing_max_seen(0),
       _dm_hist_sel(-1), _dm_hist_scroll(0),
-      _ctx_dirty(false), _pin_picker_active(false), _dm_direct_entry(false), _reply_mode(false),
+      _ctx_dirty(false), _pin_picker_active(false), _reply_mode(false),
       _ch_view(task) {
     // The history rings + per-channel unread counters init in MessageHistory.
   }
@@ -913,17 +900,14 @@ public:
     _retry_menu_active = false;
     _participant_picker_active = false;
     _ctx_dirty = false;
-    _nav_active = false;
     _share_mode = false;
     _pick_target = false;
     _pick_bot_channel = false;
     _pick_bot_room = false;
     _pin_picker_active = false;
     _channel_delete_confirm_active = false;
-    _dm_direct_entry = false;
-    _channel_direct_entry = false;
+    _entry_origin = ORIGIN_NORMAL;
     _quick_msgs_bypassed = false;
-    _home_category_entry = false;
     _unread_at_entry = 0;
     _viewing_max_seen = 0;
     _ch_view.reset();
@@ -934,7 +918,7 @@ public:
   // MODE_SELECT landing screen, which remains available to share/picker flows.
   void enterCategory(uint8_t category) {
     reset();
-    _home_category_entry = true;
+    _entry_origin = ORIGIN_HOME_CATEGORY;
     _mode_sel = category <= 2 ? category : 0;
     if (_mode_sel == 1) {
       if (!channelsModeVisible()) _mode_sel = 0;
@@ -1066,7 +1050,7 @@ public:
     _dm_fs.active = false;
     _room_mode = ci.type == ADV_TYPE_ROOM;
     _phase = DM_HIST;
-    _dm_direct_entry = true;
+    _entry_origin = ORIGIN_DIRECT_DM;
   }
 
   // Jump directly into a channel transcript from the Clock shortcut. The
@@ -1081,7 +1065,7 @@ public:
     _channel_transcript.reset();
     _fs.active = false;
     _phase = CHANNEL_HIST;
-    _channel_direct_entry = true;
+    _entry_origin = ORIGIN_DIRECT_CHANNEL;
   }
 
   int channelHistCount(uint8_t channel_idx) const {
@@ -1108,14 +1092,13 @@ public:
     if (_ch_view.active()) return _ch_view.render(display);
 
     // Navigate-to-location view sits over everything else while active.
-    if (_nav_active) { renderNav(display); return 1000; }
 
     int lh      = display.getLineHeight();
     int item_h  = display.lineStep();
     int start_y = display.listStart();
 
     if (_phase == MODE_SELECT) {
-      display.drawCenteredHeader("MESSAGE", true, _ctx_menu.active);
+      display.drawCenteredHeader("Messages", true, _ctx_menu.active);
       const char* opts[] = { "Direct message", "Channels", "Room Servers" };
       int badges[3] = {
         getDMUnreadTotal(),
@@ -1137,7 +1120,7 @@ public:
       if (_ctx_menu.active) _ctx_menu.render(display);
 
     } else if (_phase == CONTACT_PICK) {
-      display.drawCenteredHeader(_room_mode ? "SELECT ROOM" : "SELECT CONTACT", true, _ctx_menu.active);
+      display.drawCenteredHeader(_room_mode ? "Select Room" : "Select Contact", true, _ctx_menu.active);
 
       if (_num_contacts == 0) {
         display.drawTextCentered(display.width()/2, display.height()/2, _room_mode ? "No room servers" : "No favourites");
@@ -1167,12 +1150,12 @@ public:
       if (_ctx_menu.active) _ctx_menu.render(display);
 
     } else if (_phase == ROOM_LOGIN_WAIT) {
-      display.drawCenteredHeader("ROOM LOGIN");
+      display.drawCenteredHeader("Room Login");
       display.drawTextEllipsized(2, start_y, display.width() - 4, _sel_contact.name);
       display.drawTextCentered(display.width() / 2, start_y + item_h * 2, "Logging in...");
 
     } else if (_phase == CHANNEL_PICK) {
-      display.drawCenteredHeader("SELECT CHANNEL", true, _ctx_menu.active);
+      display.drawCenteredHeader("Select Channel", true, _ctx_menu.active);
 
       // "+ Add channel" is a synthetic trailing row — suppressed while picking
       // a channel for the bot, so that picker's list stays unchanged.
@@ -1403,11 +1386,7 @@ public:
     // Channel Add/Edit form consumes all input while active.
     if (_ch_view.active()) return _ch_view.handleInput(c);
 
-    // Navigate view: any back key returns to the message it was opened from.
-    if (_nav_active) {
-      if (c == KEY_CANCEL || c == KEY_ENTER || c == KEY_CONTEXT_MENU) _nav_active = false;
-      return true;
-    }
+    // Navigate view: Back or Enter returns to the message it was opened from.
     if (_phase == MODE_SELECT) {
       // Context menu (Mark-all-read) takes precedence while active.
       if (_ctx_menu.active) {
@@ -1552,11 +1531,12 @@ public:
             ContactInfo ci;
             if (the_mesh.getContactByIdx(_sorted[_contact_sel], ci)) {
               int slot = _ctx_menu.selectedIndex();
-              _task->setFavouriteSlot(slot, ci.id.pub_key);
-              the_mesh.savePrefs();
-              char alert[24];
-              snprintf(alert, sizeof(alert), "Pinned to slot %d", slot + 1);
-              _task->showAlert(alert, 800);
+              if (_task->setFavouriteSlot(slot, ci.id.pub_key)) {
+                the_mesh.savePrefs();
+                char alert[24];
+                snprintf(alert, sizeof(alert), "Pinned to slot %d", slot + 1);
+                _task->showAlert(alert, 800);
+              }
             }
           }
           if (res != PopupMenu::NONE) _pin_picker_active = false;
@@ -1620,7 +1600,7 @@ public:
       }
       if (c == KEY_CANCEL) {
         if (_pick_bot_room) { _pick_bot_room = false; _room_mode = false; _task->gotoBotScreen(); return true; }
-        if (_home_category_entry) { _home_category_entry = false; _task->gotoHomeScreen(); return true; }
+        if (_entry_origin == ORIGIN_HOME_CATEGORY) { _entry_origin = ORIGIN_NORMAL; _task->gotoHomeScreen(); return true; }
         _room_mode = false;
         _phase = MODE_SELECT;
         return true;
@@ -1805,7 +1785,7 @@ public:
       }
       if (c == KEY_CANCEL) {
         if (_pick_bot_channel) { _pick_bot_channel = false; _task->gotoBotScreen(); return true; }
-        if (_home_category_entry) { _home_category_entry = false; _task->gotoHomeScreen(); return true; }
+        if (_entry_origin == ORIGIN_HOME_CATEGORY) { _entry_origin = ORIGIN_NORMAL; _task->gotoHomeScreen(); return true; }
         _phase = MODE_SELECT;
         return true;
       }
@@ -1912,8 +1892,8 @@ public:
         return true;
       }
       if (c == KEY_CANCEL) {
-        if (_dm_direct_entry) {
-          _dm_direct_entry = false;
+        if (_entry_origin == ORIGIN_DIRECT_DM) {
+          _entry_origin = ORIGIN_NORMAL;
           _task->gotoHomeScreen();
         } else {
           _phase = CONTACT_PICK;
@@ -1972,8 +1952,8 @@ public:
         return true;
       }
       if (c == KEY_CANCEL) {
-        if (_channel_direct_entry) {
-          _channel_direct_entry = false;
+        if (_entry_origin == ORIGIN_DIRECT_CHANNEL) {
+          _entry_origin = ORIGIN_NORMAL;
           _task->gotoHomeScreen();
         } else {
           _phase = CHANNEL_PICK;

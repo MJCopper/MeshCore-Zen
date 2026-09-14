@@ -139,7 +139,7 @@ struct PopupMenu {
     // instead of the screen edge since this box floats centred on screen.
     drawScrollIndicator(display, bx + bw - 2, list_y, vis * item_h, _count, vis, _scroll);
     display.setColor(DisplayDriver::LIGHT);
-    return 50;
+    return UI_REFRESH_STATIC_MS;
   }
 
   Result handleInput(char c) {

@@ -180,7 +180,7 @@ public:
     const int step = display.lineStep();
 
     if (_mode == TYPE_PICK) {
-      display.drawCenteredHeader("ADD CHANNEL");
+      display.drawCenteredHeader("Add Channel");
       static const char* TYPE_LABELS[3] = { "Public", "Hashtag", "Private" };
       for (int i = 0; i < 3; i++) {
         int y = top + i * step;
@@ -192,7 +192,7 @@ public:
     }
 
     if (_mode == ADD_HASHTAG) {
-      display.drawCenteredHeader("ADD CHANNEL");
+      display.drawCenteredHeader("Add Channel");
       for (int i = 0; i < 2; i++) {
         int y = top + i * step;
         bool sel = (i == _sel);
@@ -206,7 +206,7 @@ public:
       return 1000;
     }
 
-    display.drawCenteredHeader(_mode == ADD ? "ADD CHANNEL" : "EDIT CHANNEL");
+    display.drawCenteredHeader(_mode == ADD ? "Add Channel" : "Edit Channel");
     for (int i = 0; i < 3; i++) {
       int y = top + i * step;
       bool sel = (i == _sel);

@@ -11,6 +11,7 @@ class PrefsDefaults {
 public:
   static void apply(NodePrefs& prefs) {
     prefs.child_visible_pages = NodePrefs::HP_FAVOURITES;
+    prefs.child_rooms_enabled = 0;
     prefs.quiet_time_start_min = 21 * 60;
     prefs.quiet_time_end_min = 7 * 60;
     prefs.bluetooth_enabled = 1;
@@ -23,6 +24,7 @@ public:
   static void normalize(NodePrefs& prefs) {
     if (prefs.child_mode_enabled > 1) prefs.child_mode_enabled = 0;
     if (prefs.child_channels_enabled > 1) prefs.child_channels_enabled = 0;
+    if (prefs.child_rooms_enabled > 1) prefs.child_rooms_enabled = 0;
     prefs.child_visible_pages &= NodePrefs::HP_FAVOURITES |
                                  NodePrefs::HP_MAP | NodePrefs::HP_SENSORS |
                                  NodePrefs::HP_SHUTDOWN;

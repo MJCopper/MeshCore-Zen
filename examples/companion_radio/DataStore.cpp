@@ -272,7 +272,7 @@ bool DataStore::saveMainIdentity(const mesh::LocalIdentity &identity) {
   return identity_store.save("_main", identity);
 }
 
-void DataStore::loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon) {
+bool DataStore::loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon) {
   bool loaded_primary = false;
   if (_fs->exists("/new_prefs")) {
     loadPrefsInt("/new_prefs", prefs, node_lat, node_lon); // new filename
@@ -289,6 +289,7 @@ void DataStore::loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon) 
   // a downgrade or failed sidecar commit could resurrect an old Child Mode PIN.
   if (!loaded_primary && (solo::Features::CHILD_MODE || solo::Features::QUIET_TIME))
     loadSoloPrefs(prefs);
+  return loaded_primary;
 }
 
 void DataStore::loadSoloPrefs(NodePrefs& prefs) {
@@ -703,6 +704,16 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
   // sentinel left here, so schema zero enters the ordered migration sequence.
   if (file.available() >= (int)(sizeof(_prefs.zen_config_schema) + sizeof(uint32_t)))
     rd(&_prefs.zen_config_schema, sizeof(_prefs.zen_config_schema));
+  // → 0xC0DE002C: automatic city timezone and minute-resolution manual offset.
+  if (file.available() >= (int)(sizeof(_prefs.timezone_mode) + sizeof(_prefs.timezone_city) +
+                               sizeof(_prefs.timezone_manual_min) + sizeof(uint32_t))) {
+    rd(&_prefs.timezone_mode, sizeof(_prefs.timezone_mode));
+    rd(&_prefs.timezone_city, sizeof(_prefs.timezone_city));
+    rd(&_prefs.timezone_manual_min, sizeof(_prefs.timezone_manual_min));
+  }
+  // → 0xC0DE002D: parent-controlled access to favourited room servers.
+  if (file.available() >= (int)(sizeof(_prefs.child_rooms_enabled) + sizeof(uint32_t)))
+    rd(&_prefs.child_rooms_enabled, sizeof(_prefs.child_rooms_enabled));
   // Schema sentinel: bumped on layout changes. Mismatch means an older file
   // (or a different schema); rd() already zero-inits any fields not present,
   // so we just log it — next savePrefs writes the current sentinel.
@@ -940,6 +951,10 @@ bool DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_
     file.write((uint8_t *)&_prefs.bluetooth_enabled, sizeof(_prefs.bluetooth_enabled));
     file.write((uint8_t *)_prefs.channel_melody_overrides, sizeof(_prefs.channel_melody_overrides));
     file.write((uint8_t *)&_prefs.zen_config_schema, sizeof(_prefs.zen_config_schema));
+    file.write((uint8_t *)&_prefs.timezone_mode, sizeof(_prefs.timezone_mode));
+    file.write((uint8_t *)&_prefs.timezone_city, sizeof(_prefs.timezone_city));
+    file.write((uint8_t *)&_prefs.timezone_manual_min, sizeof(_prefs.timezone_manual_min));
+    file.write((uint8_t *)&_prefs.child_rooms_enabled, sizeof(_prefs.child_rooms_enabled));
 
     // Tail sentinel — must be last. See NodePrefs::SCHEMA_SENTINEL. Its write is
     // the one we check: once the flash fills, writes return 0, so a good

@@ -7,7 +7,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v1.32.65**, based on **MeshCore v1.17.1**.
+Current release: **Zen v1.32.87**, based on **MeshCore v1.17.1**.
 
 ## Supported hardware
 
@@ -25,7 +25,7 @@ Both builds support BLE and USB serial. Firmware is available from the
 - Route-aware retries, manual resend and unread-message shortcuts.
 - Predictive T9 and ABC text entry with Australianised, previous-word-aware completion.
 - UTF-8 text, monochrome emoji display and four insertable chat emoji.
-- Clock, unread shortcut, GPS time sync and timed GPS operation.
+- Clock, unread shortcut, GPS time sync, power-aware polling and GPS course-over-ground.
 - Starred contacts, rooms and channels, plus an editable four-contact speed dial.
 - Automatic CardKB support through the Grove I2C port.
 - PIN-protected Child Mode and scheduled Quiet Time.
@@ -79,8 +79,10 @@ connection.
 - [Messages](./docs/zen_features/message_screen/message_screen.md)
 - [Settings](./docs/zen_features/settings_screen/settings_screen.md)
 - [Clock](./docs/zen_features/clock_screen/clock_screen.md)
+- [Time Zone](./docs/zen_features/timezone/timezone.md)
 - [Favourites Dial](./docs/zen_features/favourites_dial/favourites_dial.md)
 - [Radio, GPS, Bluetooth and Adverts](./docs/zen_features/connectivity/connectivity.md)
+- [GPS and Course](./docs/zen_features/gps/gps.md)
 - [Signal Indicator](./docs/zen_features/signal_indicator/signal_indicator.md)
 - [Sensors](./docs/zen_features/sensors/sensors.md)
 - [Quick Replies](./docs/zen_features/quick_replies/quick_replies.md)

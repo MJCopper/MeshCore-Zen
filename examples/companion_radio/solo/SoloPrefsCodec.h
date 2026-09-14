@@ -54,11 +54,12 @@ public:
     uint8_t* payload_start = p;
 
     if (Features::CHILD_MODE) {
-      *p++ = REC_CHILD_MODE; put16(p, 8);
+      *p++ = REC_CHILD_MODE; put16(p, 9);
       *p++ = prefs.child_mode_enabled;
       put32(p, prefs.child_mode_pin_hash);
       put16(p, prefs.child_visible_pages);
       *p++ = prefs.child_channels_enabled;
+      *p++ = prefs.child_rooms_enabled;
     }
 
     if (Features::QUIET_TIME) {
@@ -95,6 +96,7 @@ public:
     uint32_t child_pin_hash = prefs.child_mode_pin_hash;
     uint16_t child_visible_pages = prefs.child_visible_pages;
     uint8_t child_channels_enabled = prefs.child_channels_enabled;
+    uint8_t child_rooms_enabled = prefs.child_rooms_enabled;
     uint8_t quiet_enabled = prefs.quiet_time_enabled;
     uint16_t quiet_start_min = prefs.quiet_time_start_min;
     uint16_t quiet_end_min = prefs.quiet_time_end_min;
@@ -104,11 +106,12 @@ public:
       uint16_t len = get16(p);
       if ((size_t)(payload_end - p) < len) return false;
       const uint8_t* rec_end = p + len;
-      if (Features::CHILD_MODE && id == REC_CHILD_MODE && len == 8) {
+      if (Features::CHILD_MODE && id == REC_CHILD_MODE && (len == 8 || len == 9)) {
         child_enabled = *p++;
         child_pin_hash = get32(p);
         child_visible_pages = get16(p);
         child_channels_enabled = *p++;
+        if (len == 9) child_rooms_enabled = *p++;
       } else if (Features::QUIET_TIME && id == REC_QUIET_TIME && len == 5) {
         quiet_enabled = *p++;
         quiet_start_min = get16(p);
@@ -117,7 +120,7 @@ public:
       p = rec_end; // unknown records are intentionally skipped
     }
 
-    if ((Features::CHILD_MODE && (child_enabled > 1 || child_channels_enabled > 1)) ||
+    if ((Features::CHILD_MODE && (child_enabled > 1 || child_channels_enabled > 1 || child_rooms_enabled > 1)) ||
         (Features::QUIET_TIME && (quiet_enabled > 1 || quiet_start_min >= 1440 ||
                                   quiet_end_min >= 1440))) return false;
 
@@ -127,6 +130,7 @@ public:
       prefs.child_mode_pin_hash = child_pin_hash;
       prefs.child_visible_pages = child_visible_pages;
       prefs.child_channels_enabled = child_channels_enabled;
+      prefs.child_rooms_enabled = child_rooms_enabled;
     }
     if (Features::QUIET_TIME) {
       prefs.quiet_time_enabled = quiet_enabled;

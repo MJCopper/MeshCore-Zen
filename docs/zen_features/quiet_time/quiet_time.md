@@ -10,6 +10,8 @@ Configure **Quiet Time**, **Quiet from** and **Quiet until** under
 **Settings › Sound**. Defaults are Off, 21:00 and 07:00.
 
 The schedule uses the timezone in **Settings › System** and may cross midnight.
+City mode applies daylight-saving changes automatically; see the
+[Time Zone guide](../timezone/timezone.md).
 Equal start and end times disable the interval. Quiet Time remains inactive
 until the clock has valid time.
 

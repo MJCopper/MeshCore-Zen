@@ -191,43 +191,54 @@ public:
       if (status) { display.drawTextEllipsized(0, y, display.width(), status); return; }
       // Wrap long values instead of dropping their last digits. Scroll uses
       // physical lines, including wrapped values, on either display size.
-      char text[64];
-      _lines = 0;
       int rows = the_mesh.sensorTelemetry.rows();
-      for (int i = 0; i < rows + (the_mesh.sensorTelemetry.invalid() ? 1 : 0); i++) {
-        if (i == rows) snprintf(text, sizeof(text), "Unsupported data follows");
-        else the_mesh.sensorTelemetry.format(i, text, sizeof(text));
-        char* start = text;
-        while (*start) {
-          int n = 1;
-          while (start[n]) {
-            char saved = start[n + 1]; start[n + 1] = 0;
-            bool fits = display.getTextWidth(start) <= display.width();
-            start[n + 1] = saved;
-            if (!fits) break;
-            n++;
+      auto telemetryLines = [&](int max_width, bool draw) {
+        int line = 0;
+        char text[64];
+        for (int i = 0; i < rows + (the_mesh.sensorTelemetry.invalid() ? 1 : 0); i++) {
+          if (i == rows) snprintf(text, sizeof(text), "Unsupported data follows");
+          else the_mesh.sensorTelemetry.format(i, text, sizeof(text));
+          char* start = text;
+          while (*start) {
+            int n = 1;
+            while (start[n]) {
+              char saved = start[n + 1]; start[n + 1] = 0;
+              bool fits = display.getTextWidth(start) <= max_width;
+              start[n + 1] = saved;
+              if (!fits) break;
+              n++;
+            }
+            char saved = start[n]; start[n] = 0;
+            if (draw && line >= _row && line < _row + visible)
+              display.drawTextLeftAlign(0, y + (line - _row) * step, start);
+            start[n] = saved;
+            start += n;
+            line++;
           }
-          char saved = start[n]; start[n] = 0;
-          if (_lines >= _row && _lines < _row + visible)
-            display.drawTextLeftAlign(0, y + (_lines - _row) * step, start);
-          start[n] = saved;
-          start += n;
-          _lines++;
         }
-      }
+        return line;
+      };
+      _lines = telemetryLines(display.width(), false);
+      int reserve = scrollIndicatorReserve(display, _lines, visible);
+      if (reserve) _lines = telemetryLines(display.width() - reserve, false);
+      int max_row = _lines > visible ? _lines - visible : 0;
+      if (_row > max_row) _row = max_row;
+      telemetryLines(display.width() - reserve, true);
+      drawScrollIndicator(display, display.width(), y, visible * step,
+                          _lines, visible, _row);
     } else {
       int n = count();
       if (!n) { display.drawTextLeftAlign(0, y, "No sensor nodes"); return; }
       if (_selected >= n) _selected = n - 1;
-      if (_selected < _scroll) _scroll = _selected;
-      if (_selected >= _scroll + visible) _scroll = _selected - visible + 1;
-      ContactInfo contact;
-      for (int i = 0; i < visible && node(_scroll + i, contact); i++) {
+      drawListAt(display, y, n, _selected, _scroll,
+          [&](int index, int row_y, bool selected, int reserve) {
+        ContactInfo contact;
+        if (!node(index, contact)) return;
         char name[33]; memcpy(name, contact.name, 32); name[32] = 0;
-        display.drawSelectionRow(0, y + i * step - 1, display.width(), step - 1, _scroll + i == _selected);
-        display.drawTextEllipsized(2, y + i * step, display.width() - 4, name,
-                                   _scroll + i == _selected);
-      }
+        drawRowSelection(display, row_y, selected, reserve);
+        display.drawTextEllipsized(2, row_y, display.width() - 4 - reserve,
+                                   name, selected);
+      });
     }
   }
 };

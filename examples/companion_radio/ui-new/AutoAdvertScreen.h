@@ -37,10 +37,16 @@ public:
     _dirty = true;
   }
 
+  void onHide() override {
+    _dirty = _prefs->advert_auto_interval_sec != _initial_interval ||
+             _prefs->advert_loc_policy != _initial_loc_policy;
+    _task->savePrefsIfDirty(_dirty);
+  }
+
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
     display.setColor(DisplayDriver::LIGHT);
-    display.drawCenteredHeader("ADVERT");
+    display.drawCenteredHeader("Advert");
 
     drawList(display, 2, _sel, _scroll, [&](int item, int y, bool selected, int reserve) {
       drawRowSelection(display, y, selected, reserve);
@@ -51,21 +57,20 @@ public:
       display.drawTextRightAlign(display.width() - reserve - 2, y, value);
       display.setColor(DisplayDriver::LIGHT);
     });
-    return 500;
+    return UI_REFRESH_STATIC_MS;
   }
 
   bool handleInput(char c) override {
-    if (c == KEY_CANCEL || c == KEY_CONTEXT_MENU) {
-      _dirty = _prefs->advert_auto_interval_sec != _initial_interval ||
-               _prefs->advert_loc_policy != _initial_loc_policy;
-      _task->savePrefsIfDirty(_dirty);
+    if (c == KEY_CANCEL) {
       _task->gotoHomeScreen();
       return true;
     }
-    if (c == KEY_UP)   { _sel = (_sel + 1) % 2; return true; }
-    if (c == KEY_DOWN) { _sel = (_sel + 1) % 2; return true; }
-    bool right = keyIsNext(c) || c == KEY_ENTER;
+    if (c == KEY_CONTEXT_MENU) return true;
+    if (c == KEY_UP)   { _sel = wrapSelection(_sel, 2, -1); return true; }
+    if (c == KEY_DOWN) { _sel = wrapSelection(_sel, 2, +1); return true; }
+    bool right = keyIsNext(c);
     bool left  = keyIsPrev(c);
+    if (c == KEY_ENTER && _sel == 1) right = true;
     if (right || left) {
       if (_sel == 0) {
         int idx = currentIdx();

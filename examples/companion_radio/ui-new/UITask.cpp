@@ -4,6 +4,8 @@
 #include "../solo/NotificationPreferences.h"
 #include "../solo/NotificationPolicy.h"
 #include "../solo/TimeDeadline.h"
+#include "../solo/GpsCourse.h"
+#include "../solo/PinAttemptLimiter.h"
 #include <helpers/TxtDataHelpers.h>
 #include <helpers/UTF8Helpers.h>
 #include "../MyMesh.h"
@@ -33,9 +35,11 @@
 #endif
 
 #if UI_HAS_JOYSTICK
-  #define PRESS_LABEL "press Enter"
+  #define TOGGLE_HINT "Enter: Toggle"
+  #define ADVERT_HINT "Enter: Advert"
 #else
-  #define PRESS_LABEL "long press"
+  #define TOGGLE_HINT "Hold: Toggle"
+  #define ADVERT_HINT "Hold: Advert"
 #endif
 
 #include "icons.h"
@@ -43,11 +47,64 @@
 #include "DigitEditor.h"
 #include "QuietTime.h"
 
+uint32_t UITask::currentUtcTime() const {
+  return rtc_clock.getCurrentTime();
+}
+
 // Blinking status indicators: on for the first half of a 4 s cycle, but e-ink
 // can't repaint fast enough to blink, so it shows them steadily.
 static inline bool blinkOn() {
   return Features::BLINK_INDICATORS ? ((millis() % 4000) < 2000) : true;
 }
+
+#if ENV_INCLUDE_GPS == 1
+// Five compass points span 180 degrees around the current course. The current
+// direction is inverted at the physical centre; pixel dots avoid relying on a
+// text string that cannot fit the 128-pixel OLED at every two-letter heading.
+static void drawGpsCourseTape(DisplayDriver& display, int y, bool available,
+                              long course_millideg, solo::GpsCourse::Source source) {
+  if (!available) {
+    display.setColor(DisplayDriver::LIGHT);
+    display.drawTextCentered(display.width() / 2, y, "No course");
+    return;
+  }
+
+  if (source == solo::GpsCourse::LAST || source == solo::GpsCourse::TRAVEL) {
+    char label[16];
+    snprintf(label, sizeof(label), "%s: %s",
+             source == solo::GpsCourse::TRAVEL ? "Travel" : "Last",
+             solo::GpsCourse::label(solo::GpsCourse::direction(course_millideg)));
+    display.drawTextCentered(display.width() / 2, y, label);
+    return;
+  }
+
+  uint8_t centre = solo::GpsCourse::direction(course_millideg);
+  int xs[5] = {
+    display.getCharWidth(), display.width() / 4, display.width() / 2,
+    display.width() * 3 / 4, display.width() - display.getCharWidth()
+  };
+  for (int i = 0; i < 5; i++) {
+    const char* label = solo::GpsCourse::label(solo::GpsCourse::offset(centre, i - 2));
+    int text_w = display.getTextWidth(label);
+    if (i == 2) {
+      display.setColor(DisplayDriver::LIGHT);
+      display.fillRect(xs[i] - text_w / 2 - 2, y - 1,
+                       text_w + 4, display.getLineHeight() + 1);
+      display.setColor(DisplayDriver::DARK);
+    } else {
+      display.setColor(DisplayDriver::LIGHT);
+    }
+    display.drawTextCentered(xs[i], y, label);
+  }
+  display.setColor(DisplayDriver::LIGHT);
+  for (int gap = 0; gap < 4; gap++) {
+    for (int dot = 1; dot <= 3; dot++) {
+      int x = xs[gap] + (xs[gap + 1] - xs[gap]) * dot / 4;
+      display.fillRect(x, y + display.getLineHeight() / 2, 1, 1);
+    }
+  }
+}
+#endif
 
 class SplashScreen : public UIScreen {
   UITask* _task;
@@ -123,12 +180,13 @@ public:
 class ChildUnlockScreen : public UIScreen {
   UITask* _task;
   DigitEditor _pin;
+  solo::PinAttemptLimiter _limiter;
 public:
   ChildUnlockScreen(UITask* task) : _task(task) {}
   void onShow() override { _pin.begin(0, 0, 999999, 6, 0); }
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
-    display.drawCenteredHeader("PARENT PIN");
+    display.drawCenteredHeader("Parent PIN");
     display.setCursor(4, display.height() / 2 - display.getLineHeight() / 2);
     display.print("PIN:");
     childmode::renderPinEditor(display, _pin, display.valCol(),
@@ -136,14 +194,32 @@ public:
     return 0;
   }
   bool handleInput(char c) override {
+    uint32_t wait = _limiter.remainingSeconds(millis());
+    if (wait) {
+      DigitEditor::Result blocked_input = _pin.handleInput(c);
+      if (blocked_input == DigitEditor::CANCELLED) _task->gotoHomeScreen();
+      else {
+        char message[24];
+        snprintf(message, sizeof(message), "Try again in %lus", (unsigned long)wait);
+        _task->showAlert(message, 900);
+      }
+      return true;
+    }
     DigitEditor::Result r = _pin.handleInput(c);
     if (r == DigitEditor::DONE) {
       NodePrefs* p = _task->getNodePrefs();
       if (p && childmode::pinHash((uint32_t)_pin.value) == p->child_mode_pin_hash) {
         _task->setChildAdminUnlocked(true);
+        _limiter.reset();
         _task->gotoHomeScreen();
       } else {
         _task->logWarning("Child PIN", "Incorrect PIN");
+        uint32_t delay = _limiter.failed(millis());
+        if (delay) {
+          char message[24];
+          snprintf(message, sizeof(message), "Try again in %lus", (unsigned long)delay);
+          _task->showAlert(message, 900);
+        }
         _pin.begin(0, 0, 999999, 6, 0);
       }
       return true;
@@ -172,27 +248,14 @@ public:
 
 // ── Custom screens (separate files to ease upstream merges) ───────────────────
 #include "RingtoneEditorScreen.h"
-#include "BotScreen.h"
 #if SOLO_FEAT_ADMIN
 #include "AdminScreen.h"
 #endif
 #include "NearbyScreen.h"
 #include "AutoAdvertScreen.h"
-#if SOLO_FEAT_NAVIGATION
-#include "LiveShareScreen.h"
-#include "LocatorScreen.h"
-#include "TrailScreen.h"
-#include "CompassScreen.h"
-#endif
 #include "DiagnosticsScreen.h"
 #include "RepeaterScreen.h"
-#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
-#include "GpioScreen.h"
-#endif
 #include "ToolsScreen.h"
-#if SOLO_FEAT_CLOCK_TOOLS
-#include "ClockToolsScreen.h"
-#endif
 
 #ifndef BATT_MIN_MILLIVOLTS
   #define BATT_MIN_MILLIVOLTS 3200
@@ -331,41 +394,68 @@ class HomeScreen : public UIScreen {
     _pin_target_slot = -1;
   }
 
+  void pruneStaleFavouriteSlots() {
+    if (!_node_prefs) return;
+    bool changed = false;
+    for (uint8_t i = 0; i < NodePrefs::FAVOURITES_DIAL_COUNT; i++) {
+      const uint8_t* prefix = _node_prefs->favourite_contacts[i];
+      bool filled = false;
+      for (uint8_t b = 0; b < NodePrefs::FAVOURITE_PREFIX_LEN; b++)
+        if (prefix[b]) { filled = true; break; }
+      if (!filled) continue;
+      bool found = false;
+      for (int index = 0; ; index++) {
+        ContactInfo contact;
+        if (!the_mesh.getContactByIdx(index, contact)) break;
+        if (!memcmp(contact.id.pub_key, prefix, NodePrefs::FAVOURITE_PREFIX_LEN)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        memset(_node_prefs->favourite_contacts[i], 0, NodePrefs::FAVOURITE_PREFIX_LEN);
+        changed = true;
+      }
+    }
+    if (changed) _task->requestPrefsSave();
+  }
+
   template <class LabelFn>
   void renderHomeList(DisplayDriver& display, int content_y, int count,
                       int selected, int& scroll, LabelFn label) {
-    const int step = display.lineStep();
-    int visible = (display.height() - content_y) / step;
-    if (visible < 1) visible = 1;
-    if (selected < scroll) scroll = selected;
-    if (selected >= scroll + visible) scroll = selected - visible + 1;
-    int max_scroll = count > visible ? count - visible : 0;
-    if (scroll > max_scroll) scroll = max_scroll;
-    for (int pos = 0; pos < visible && scroll + pos < count; pos++) {
-      int index = scroll + pos;
-      int y = content_y + pos * step;
-      bool active = index == selected;
-      display.drawSelectionRow(0, y - 1, display.width(), step - 1, active);
-      display.drawTextEllipsized(2, y, display.width() - 4, label(index), active);
-    }
+    drawListAt(display, content_y, count, selected, scroll,
+        [&](int index, int y, bool active, int reserve) {
+      drawRowSelection(display, y, active, reserve);
+      display.drawTextEllipsized(2, y, display.width() - 4 - reserve,
+                                 label(index), active);
+    });
   }
 
   bool messageChannelsVisible() const {
     NodePrefs* p = _task->getNodePrefs();
     return solo::Policy::channelsVisible(p, _task->isChildModeLocked());
   }
-  int messageModeCount() const { return messageChannelsVisible() ? 3 : 2; }
+  bool messageRoomsVisible() const {
+    NodePrefs* p = _task->getNodePrefs();
+    return !_task->isChildModeLocked() || (p && p->child_rooms_enabled);
+  }
+  int messageModeCount() const {
+    return 1 + (messageChannelsVisible() ? 1 : 0) + (messageRoomsVisible() ? 1 : 0);
+  }
   int messageModeAt(int pos) const {
-    return messageChannelsVisible() ? pos : (pos == 0 ? 0 : 2);
+    if (pos <= 0) return 0;
+    if (messageChannelsVisible()) return pos == 1 ? 1 : 2;
+    return 2;
   }
   int messageModePosition() const {
-    if (messageChannelsVisible()) return _msg_mode_sel;
-    return _msg_mode_sel == 2 ? 1 : 0;
+    if (_msg_mode_sel == 0) return 0;
+    if (_msg_mode_sel == 1) return messageChannelsVisible() ? 1 : 0;
+    if (!messageRoomsVisible()) return 0;
+    return messageChannelsVisible() ? 2 : 1;
   }
 
-  // Build the in-place pin picker list for an empty slot. Favourited chat
-  // contacts first (`c.flags & 0x01`), then recent DM contacts deduped
-  // against the favourites list. Up to PIN_PICKER_MAX.
+  // Dial shortcuts are presentation only. The contact-list favourite flag is
+  // the authoritative Child Mode permission, so only approved chats may be pinned.
   void buildPinPicker(int slot) {
     _pin_target_slot = slot;
     _pin_count = 0;
@@ -378,41 +468,6 @@ class HomeScreen : public UIScreen {
       memcpy(_pin_keys[_pin_count], c.id.pub_key, NodePrefs::FAVOURITE_PREFIX_LEN);
       snprintf(_pin_labels[_pin_count], sizeof(_pin_labels[_pin_count]), "%s", c.name);
       _pin_count++;
-    }
-    // 2) Recent DM contacts (deduped).
-    uint8_t recent[PIN_PICKER_MAX][NodePrefs::FAVOURITE_PREFIX_LEN];
-    int rn = _task->getRecentDMContacts(recent, PIN_PICKER_MAX);
-    for (int i = 0; i < rn && _pin_count < PIN_PICKER_MAX; i++) {
-      bool dup = false;
-      for (int j = 0; j < _pin_count; j++)
-        if (memcmp(_pin_keys[j], recent[i], NodePrefs::FAVOURITE_PREFIX_LEN) == 0) { dup = true; break; }
-      if (dup) continue;
-      for (int idx = 0; ; idx++) {
-        ContactInfo c;
-        if (!the_mesh.getContactByIdx(idx, c)) break;
-        if (memcmp(c.id.pub_key, recent[i], NodePrefs::FAVOURITE_PREFIX_LEN) == 0) {
-          if (c.type != ADV_TYPE_CHAT) break;
-          memcpy(_pin_keys[_pin_count], recent[i], NodePrefs::FAVOURITE_PREFIX_LEN);
-          snprintf(_pin_labels[_pin_count], sizeof(_pin_labels[_pin_count]), "%s", c.name);
-          _pin_count++;
-          break;
-        }
-      }
-    }
-    // 3) Fallback: all remaining chat contacts not already in the list.
-    if (_pin_count == 0) {
-      for (int idx = 0; _pin_count < PIN_PICKER_MAX; idx++) {
-        ContactInfo c;
-        if (!the_mesh.getContactByIdx(idx, c)) break;
-        if (c.type != ADV_TYPE_CHAT) continue;
-        bool dup = false;
-        for (int j = 0; j < _pin_count; j++)
-          if (memcmp(_pin_keys[j], c.id.pub_key, NodePrefs::FAVOURITE_PREFIX_LEN) == 0) { dup = true; break; }
-        if (dup) continue;
-        memcpy(_pin_keys[_pin_count], c.id.pub_key, NodePrefs::FAVOURITE_PREFIX_LEN);
-        snprintf(_pin_labels[_pin_count], sizeof(_pin_labels[_pin_count]), "%s", c.name);
-        _pin_count++;
-      }
     }
     if (_pin_count == 0) {
       _task->showAlert("No contacts", 1000);
@@ -481,7 +536,7 @@ class HomeScreen : public UIScreen {
 #endif
     // Bluetooth is also a volatile emergency control; showing it here does
     // not alter its saved home-page visibility or enabled preference.
-    if (page == BLUETOOTH && _task->isEmergencyMode()) return true;
+    if (page == BLUETOOTH && _task->isEmergencyMode() && !_task->isChildModeLocked()) return true;
     if (page == RECENT) return false;  // Recent adverts folded into Nearby Nodes; page retired
     int bit = pageBit(page);
     if (bit < 0) return true;
@@ -642,7 +697,10 @@ public:
      : _task(task), _rtc(rtc), _sensors(sensors), _node_prefs(node_prefs),
        _sensor_page(task), _page(0) {  }
 
-  void onShow() override { noteHomeInteraction(); }
+  void onShow() override {
+    noteHomeInteraction();
+    pruneStaleFavouriteSlots();
+  }
 
   void resetSession() {
     _page = CLOCK;
@@ -747,8 +805,8 @@ public:
         display.drawTextCentered(display.width() / 2, mid_y + step, "Enable GPS or");
         display.drawTextCentered(display.width() / 2, mid_y + step * 2, "connect app");
       } else {
-        int8_t tz = _node_prefs ? _node_prefs->tz_offset_hours : 0;
-        unix_ts += (int32_t)tz * 3600;
+        int16_t tz = _task->localOffsetMinutes(unix_ts);
+        unix_ts += (int32_t)tz * 60;
         time_t t = (time_t)unix_ts;
         struct tm* ti = gmtime(&t);
 
@@ -820,52 +878,72 @@ public:
         char pin_buf[16];
         snprintf(pin_buf, sizeof(pin_buf), "PIN: %d", the_mesh.getBLEPin());
         display.drawTextCentered(display.width() / 2, text_y, pin_buf);
-        display.drawTextCentered(display.width() / 2, text_y + step, "toggle: " PRESS_LABEL);
+        display.drawTextCentered(display.width() / 2, text_y + step, TOGGLE_HINT);
       } else {
-        display.drawTextCentered(display.width() / 2, text_y, "toggle: " PRESS_LABEL);
+        display.drawTextCentered(display.width() / 2, text_y, TOGGLE_HINT);
       }
     } else if (_page == HomePage::ADVERT) {
       display.setColor(DisplayDriver::LIGHT);
       display.drawXbm((display.width() - 32) / 2, content_y, advert_icon, 32, 32);
-      display.drawTextCentered(display.width() / 2, content_y + 32 + 3, "advert: " PRESS_LABEL);
+      display.drawTextCentered(display.width() / 2, content_y + 32 + 3, ADVERT_HINT);
 #if ENV_INCLUDE_GPS == 1
     } else if (_page == HomePage::GPS) {
       LocationProvider* nmea = sensors.getLocationProvider();
       char buf[50];
       int y = content_y;
       bool gps_state = _task->getGPSState();
-      uint8_t gps_mode = _task->getGPSMode();
+      uint8_t polling = solo::GpsMode::pollingFromInterval(
+          _node_prefs ? _node_prefs->gps_interval : 0);
+      snprintf(buf, sizeof(buf), "%s", solo::GpsMode::pollingLabel(polling));
+      display.drawTextLeftAlign(0, y, buf);
+      const char* receiver_state = "Off";
+      char receiver_buf[16];
+      if (nmea != NULL && nmea->isEnabled())
+        receiver_state = nmea->isValid() ? "Fix" : "Search";
+      else if (gps_state) {
+        uint32_t age;
+        if (_task->getGpsFixAgeMs(age)) {
+          uint32_t minutes = age / 60000UL;
+          if (minutes < 1) strcpy(receiver_buf, "Sleep <1m");
+          else if (minutes < 120) snprintf(receiver_buf, sizeof(receiver_buf), "Sleep %lum", (unsigned long)minutes);
+          else snprintf(receiver_buf, sizeof(receiver_buf), "Sleep %luh", (unsigned long)(minutes / 60));
+          receiver_state = receiver_buf;
+        } else receiver_state = "Sleep";
+      }
 #ifdef PIN_GPS_SWITCH
       bool hw_gps_state = digitalRead(PIN_GPS_SWITCH);
-      if (gps_state != hw_gps_state) {
-        strcpy(buf, gps_state ? "gps off(hw)" : "gps off(sw)");
-      } else {
-        snprintf(buf, sizeof(buf), "GPS %s", solo::GpsMode::label(gps_mode));
-      }
-#else
-      snprintf(buf, sizeof(buf), "GPS %s", solo::GpsMode::label(gps_mode));
+      if (gps_state && !hw_gps_state && (nmea == NULL || !nmea->isEnabled()))
+        receiver_state = "HW Off";
 #endif
-      display.drawTextLeftAlign(0, y, buf);
+      display.drawTextRightAlign(display.width()-1, y, receiver_state);
       if (nmea == NULL) {
         y += step;
         display.drawTextLeftAlign(0, y, "Can't access GPS");
       } else {
-        strcpy(buf, !gps_state ? "off" : (nmea->isEnabled() ? (nmea->isValid() ? "fix" : "search") : "sleep"));
+        y += step;
+        const char* pos_label = "Pos";
+        // Keep the label on the common zero-pixel left edge and anchor the
+        // complete coordinate pair to the common right edge. Reduce precision
+        // only until the two regions have one character of separation.
+        int pos_width = display.width() - 1 - display.getTextWidth(pos_label) - display.getCharWidth();
+        double lat = nmea->getLatitude() / 1000000.0;
+        double lon = nmea->getLongitude() / 1000000.0;
+        int precision = 4;
+        do {
+          snprintf(buf, sizeof(buf), "%.*f %.*f", precision, lat, precision, lon);
+        } while (precision > 1 && display.getTextWidth(buf) > pos_width && --precision);
+        display.drawTextLeftAlign(0, y, pos_label);
         display.drawTextRightAlign(display.width()-1, y, buf);
         y += step;
-        display.drawTextLeftAlign(0, y, "sat");
-        snprintf(buf, sizeof(buf),"%d", nmea->satellitesCount());
+        display.drawTextLeftAlign(0, y, "Alt");
+        snprintf(buf, sizeof(buf), "%.1f", nmea->getAltitude() / 1000.);
+        display.drawTextLeftAlign(display.getCharWidth() * 4, y, buf);
+        snprintf(buf, sizeof(buf), "Sat %ld", nmea->satellitesCount());
         display.drawTextRightAlign(display.width()-1, y, buf);
         y += step;
-        display.drawTextLeftAlign(0, y, "pos");
-        snprintf(buf, sizeof(buf),"%.4f %.4f",
-          nmea->getLatitude()/1000000., nmea->getLongitude()/1000000.);
-        display.drawTextRightAlign(display.width()-1, y, buf);
-        y += step;
-        display.drawTextLeftAlign(0, y, "alt");
-        snprintf(buf, sizeof(buf),"%.2f", nmea->getAltitude()/1000.);
-        display.drawTextRightAlign(display.width()-1, y, buf);
-        y += step;
+        long course = LONG_MIN;
+        solo::GpsCourse::Source source = _task->getGpsCourse(course);
+        drawGpsCourseTape(display, y, source != solo::GpsCourse::NONE, course, source);
       }
 #endif
     } else if (_page == HomePage::SETTINGS) {
@@ -956,7 +1034,6 @@ public:
 
       if (_fav_sel >= NodePrefs::FAVOURITES_DIAL_COUNT) _fav_sel = 0;
 
-      bool fav_changed = false;   // a stale (gone) slot was pruned this pass → persist once after the loop
       for (uint8_t i = 0; i < NodePrefs::FAVOURITES_DIAL_COUNT; i++) {
         int cx  = 0;
         int cy  = grid_y + i * cell_h;
@@ -981,17 +1058,12 @@ public:
               ci = c; has_contact = true; break;
             }
           }
-          if (!has_contact && _node_prefs) {
-            // Pinned contact is gone — prefs outlived the contact list (e.g. a
-            // wiped /contacts3; onContactRemoved only catches a live delete).
-            // Clear the stale slot so it renders as an empty "+" tile (below)
-            // instead of "(gone)". Persisted once after the loop.
-            memset(_node_prefs->favourite_contacts[i], 0, NodePrefs::FAVOURITE_PREFIX_LEN);
-            fav_changed = true;
-          }
         }
 
-        if (has_contact) {
+        bool allowed_contact = has_contact &&
+            solo::Policy::contactAllowed(_node_prefs, _task->isChildModeLocked(),
+                                         &ci, ADV_TYPE_CHAT);
+        if (allowed_contact) {
           // Reserve space for the unread badge so the name's ellipsis lands
           // before it instead of underneath. Badge and name share one baseline.
           uint8_t unread = _task->getDMUnread(ci.id.pub_key);
@@ -1009,10 +1081,6 @@ public:
         }
         if (sel) display.setColor(DisplayDriver::LIGHT);
       }
-      // Persist any pruned slots once, outside the loop — a render pass can clear
-      // several gone tiles but only one flash write is needed. Self-healing: once
-      // cleared, the slot is empty next frame so this can't re-fire per frame.
-      if (fav_changed) the_mesh.savePrefs();
       if (_pin_menu.active) _pin_menu.render(display);
       if (_fav_menu.active) _fav_menu.render(display);
     }
@@ -1116,12 +1184,14 @@ public:
               changed = true;
             }
             if (changed) {
-              _task->setFavouriteSlot(_pin_target_slot, _pin_keys[idx]);
-              the_mesh.savePrefs();
+              changed = _task->setFavouriteSlot(_pin_target_slot, _pin_keys[idx]);
+              if (changed) the_mesh.savePrefs();
             }
-            char alert[24];
-            snprintf(alert, sizeof(alert), "Pinned to slot %d", _pin_target_slot + 1);
-            _task->showAlert(alert, 800);
+            if (changed) {
+              char alert[24];
+              snprintf(alert, sizeof(alert), "Pinned to slot %d", _pin_target_slot + 1);
+              _task->showAlert(alert, 800);
+            }
           }
         }
         if (res != PopupMenu::NONE) _pin_target_slot = -1;
@@ -1256,9 +1326,16 @@ public:
       return true;
     }
 
+    // Back on Clock blanks the display. The wake path consumes the Back press
+    // that turns it on, so one press can never immediately wake and re-sleep it.
+    if (c == KEY_CANCEL && _page == HomePage::CLOCK) {
+      _task->sleepDisplay();
+      return true;
+    }
+
     // Treat Clock as the carousel's home page: Back/Escape from any other
-    // home card jumps straight there when it is enabled. Active popups consume
-    // Cancel above first, so closing a menu never unexpectedly changes pages.
+    // home card jumps straight there. Active popups consume Cancel above first,
+    // so closing a menu never unexpectedly changes pages.
     if (c == KEY_CANCEL && _page != HomePage::CLOCK && isPageVisible(HomePage::CLOCK)) {
       _page = HomePage::CLOCK;
       return true;
@@ -1272,7 +1349,20 @@ public:
       _page = navPage(_page, +1);
       return true;
     }
+    if (c == KEY_CONTEXT_MENU && _page == HomePage::RADIO) {
+      _task->gotoRadioSettings();
+      return true;
+    }
+    if (c == KEY_CONTEXT_MENU && _page == HomePage::BLUETOOTH) {
+      _task->gotoBluetoothSettings();
+      return true;
+    }
     if (c == KEY_ENTER && _page == HomePage::BLUETOOTH) {
+      if (_task->isChildModeLocked()) {
+        _task->logWarning("Child Mode", "Bluetooth unavailable");
+        return true;
+      }
+      bool was_enabled = _task->isBluetoothEnabled();
       if (_task->isLowPowerMode() && !_task->isEmergencyMode()) {
         _task->logWarning("Bluetooth", "Enable Emergency");
       } else if (_task->isBluetoothEnabled()) {
@@ -1284,6 +1374,14 @@ public:
         if (!_task->isBluetoothEnabled())
           _task->logFailure("Bluetooth", "Enable failed");
       }
+      if (_task->isBluetoothEnabled() == was_enabled)
+        return true;
+      _task->notify(UIEventType::ack);
+      _task->showAlert(_task->isBluetoothEnabled() ? "Bluetooth: On" : "Bluetooth: Off", 900);
+      return true;
+    }
+    if (c == KEY_CONTEXT_MENU && _page == HomePage::ADVERT) {
+      _task->gotoAutoAdvertScreen();
       return true;
     }
     if (c == KEY_ENTER && _page == HomePage::ADVERT) {
@@ -1296,6 +1394,10 @@ public:
       return true;
     }
 #if ENV_INCLUDE_GPS == 1
+    if (c == KEY_CONTEXT_MENU && _page == HomePage::GPS) {
+      _task->gotoGpsPollingSettings();
+      return true;
+    }
     if (c == KEY_ENTER && _page == HomePage::GPS) {
       _task->toggleGPS();
       return true;
@@ -1377,41 +1479,39 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
   _ping_snr_back_x4 = 0;
   _ping_rtt_ms = 0;
 
-  splash = new SplashScreen(this);
-  home = new HomeScreen(this, &rtc_clock, sensors, node_prefs);
-  settings = new SettingsScreen(this, &_kb);
-  messages_screen = new MessagesScreen(this, &_kb);
-  child_unlock = new ChildUnlockScreen(this);
-  tools_screen  = new ToolsScreen(this);
-  ringtone_edit = new RingtoneEditorScreen(this, node_prefs);
-#if SOLO_FEAT_REMOTE_BOT
-  bot_screen    = new BotScreen(this, node_prefs, &_kb);
-#endif
+  // Screens live for the firmware lifetime. Static ownership avoids heap
+  // fragmentation and makes allocation failure impossible on the nRF52840.
+  static SplashScreen splash_instance(this);
+  static HomeScreen home_instance(this, &rtc_clock, sensors, node_prefs);
+  static SettingsScreen settings_instance(this, &_kb);
+  static MessagesScreen messages_instance(this, &_kb);
+  static ChildUnlockScreen child_unlock_instance(this);
+  static ToolsScreen tools_instance(this);
+  static RingtoneEditorScreen ringtone_instance(this, node_prefs);
+  splash = &splash_instance;
+  home = &home_instance;
+  settings = &settings_instance;
+  messages_screen = &messages_instance;
+  child_unlock = &child_unlock_instance;
+  tools_screen = &tools_instance;
+  ringtone_edit = &ringtone_instance;
 #if SOLO_FEAT_ADMIN
-  admin_screen  = new AdminScreen(this);
+  static AdminScreen admin_instance(this);
+  admin_screen = &admin_instance;
 #endif
-  nearby_screen = new NearbyScreen(this);
-  auto_advert_screen = new AutoAdvertScreen(this, node_prefs);
-#if SOLO_FEAT_NAVIGATION
-  live_share_screen = new LiveShareScreen(this, node_prefs);
-  locator_screen  = new LocatorScreen(this, node_prefs);
-  trail_screen       = new TrailScreen(this, nullptr);
-  compass_screen     = new CompassScreen(this);
-#endif
-  diag_screen        = new DiagnosticsScreen(this);
+  static NearbyScreen nearby_instance(this);
+  static AutoAdvertScreen advert_instance(this, node_prefs);
+  nearby_screen = &nearby_instance;
+  auto_advert_screen = &advert_instance;
+  static DiagnosticsScreen diagnostics_instance(this);
+  diag_screen = &diagnostics_instance;
 #if SOLO_FEAT_REPEATER
-  repeater_screen    = new RepeaterScreen(this);
-#endif
-#if SOLO_FEAT_CLOCK_TOOLS
-  clock_tools        = new ClockToolsScreen(this, node_prefs);
-#endif
-#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
-  gpio_screen        = new GpioScreen(this, node_prefs);
+  static RepeaterScreen repeater_instance(this);
+  repeater_screen = &repeater_instance;
 #endif
   applyBrightness();
   applyRotation();
   applyFullRefreshInterval();
-  applyAllGpioModes();   // restore persisted pin modes to hardware before any UI/bot use
   setCurrScreen(splash);
 }
 
@@ -1469,13 +1569,26 @@ void UITask::openSettingsSection(int index) {
   ((SettingsScreen*)settings)->openSection(index);
   setCurrScreen(settings);
 }
+void UITask::gotoRadioSettings() {
+  ((SettingsScreen*)settings)->openRadioSettings();
+  setCurrScreen(settings);
+}
+void UITask::gotoBluetoothSettings() {
+  ((SettingsScreen*)settings)->openBluetoothSettings();
+  setCurrScreen(settings);
+}
+#if ENV_INCLUDE_GPS == 1
+void UITask::gotoGpsPollingSettings() {
+  ((SettingsScreen*)settings)->openGpsPolling();
+  setCurrScreen(settings);
+}
+#endif
 void UITask::gotoChildUnlockScreen() { setCurrScreen(child_unlock); }
 void UITask::setChildAdminUnlocked(bool unlocked) {
   bool was_unlocked = _solo.parentUnlocked();
   _solo.setParentUnlocked(unlocked);
   if (was_unlocked && isChildModeLocked()) {
     // No privileged screen, modal or queued input survives the parent session.
-    ((SettingsScreen*)settings)->onShow();
     ((MessagesScreen*)messages_screen)->reset();
     ((HomeScreen*)home)->resetSession();
     char discarded;
@@ -1496,7 +1609,11 @@ void UITask::applyChildMode() {
     memset(_room_unread_table, 0, sizeof(_room_unread_table));
     _alert_expiry = 0;
   }
-  if (child_locked) disableSerial();
+  if (child_locked) {
+    disableSerial();
+    disableBluetooth();
+    ((MessagesScreen*)messages_screen)->cancelDmResends();
+  }
   else {
     enableSerial();                 // restore USB and the other transports
     if (_low_power_mode) disableBluetooth();
@@ -1505,22 +1622,22 @@ void UITask::applyChildMode() {
   _next_refresh = 0;
 }
 void UITask::gotoToolsScreen() {
-  if (_tool_home_entry) {
-    _tool_home_entry = false;
-    setCurrScreen(home);
-  } else {
-    setCurrScreen(tools_screen);
-  }
+  UIScreen* destination = popScreenReturn();
+  setCurrScreen(destination ? destination : tools_screen);
 }
 int UITask::getToolsItemCount() const { return ToolsScreen::itemCount(); }
 const char* UITask::getToolsItemLabel(int index) const {
   return ToolsScreen::itemLabel(index);
 }
 void UITask::openToolsItem(int index) {
-  _tool_home_entry = true;
+  pushScreenReturn(home);
   ((ToolsScreen*)tools_screen)->openItem(index);
 }
-void UITask::gotoBotScreen()       { if (solo::Features::REMOTE_BOT) setCurrScreen(bot_screen); }
+void UITask::gotoBotScreen() {
+#if SOLO_FEAT_REMOTE_BOT
+  setCurrScreen(bot_screen);
+#endif
+}
 void UITask::gotoNearbyScreen()    { setCurrScreen(nearby_screen); }
 void UITask::gotoDiscoverScreen() {
   setCurrScreen(nearby_screen);
@@ -1544,19 +1661,38 @@ void UITask::returnFromAdmin() {
   ((NearbyScreen*)nearby_screen)->resumeFromAdmin();
   setCurrScreen(nearby_screen);
 }
-void UITask::gotoTrailScreen()     { if (solo::Features::NAVIGATION) setCurrScreen(trail_screen); }
-void UITask::gotoCompassScreen()   { if (solo::Features::NAVIGATION) setCurrScreen(compass_screen); }
-void UITask::gotoDiagnosticsScreen() { setCurrScreen(diag_screen); }
-void UITask::gotoRepeaterScreen()  { if (solo::Features::REPEATER) setCurrScreen(repeater_screen); }
-void UITask::gotoClockTools()      { if (solo::Features::CLOCK_TOOLS) setCurrScreen(clock_tools); }
-void UITask::gotoGpioScreen() {
-#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
-  setCurrScreen(gpio_screen);
+#if SOLO_FEAT_NAVIGATION
+void UITask::gotoTrailScreen() {
+#if SOLO_FEAT_NAVIGATION
+  setCurrScreen(trail_screen);
 #endif
 }
-void UITask::gotoLiveShareScreen() { if (solo::Features::NAVIGATION) setCurrScreen(live_share_screen); }
+void UITask::gotoCompassScreen() {
+#if SOLO_FEAT_NAVIGATION
+  setCurrScreen(compass_screen);
+#endif
+}
+#endif
+void UITask::gotoDiagnosticsScreen() { setCurrScreen(diag_screen); }
+void UITask::gotoRepeaterScreen()  { if (solo::Features::REPEATER) setCurrScreen(repeater_screen); }
+#if SOLO_FEAT_CLOCK_TOOLS
+void UITask::gotoClockTools() {
+  setCurrScreen(clock_tools);
+}
+#endif
+#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
+void UITask::gotoGpioScreen() {
+  setCurrScreen(gpio_screen);
+}
+#endif
+void UITask::gotoLiveShareScreen() {
+#if SOLO_FEAT_NAVIGATION
+  setCurrScreen(live_share_screen);
+#endif
+}
 
 // ── Clock tools engine (alarm / countdown / ring) ───────────────────────────
+#if SOLO_FEAT_CLOCK_TOOLS
 // Lives here, not in ClockToolsScreen, so it fires regardless of the current
 // screen. The melody overrides mute (playMelody → buzzer.playForced); the ring
 // auto-stops after CLOCK_RING_MS if no key dismisses it (see UITask::loop).
@@ -1576,8 +1712,8 @@ void UITask::wakeForAlarm() {
 // is set (struct tm's tm_wday convention, same as the mask) — today counts
 // only if its time hasn't already passed.
 uint32_t UITask::computeAlarmNextFire(uint32_t now_wall) const {
-  int tz = _node_prefs ? _node_prefs->tz_offset_hours : 0;
-  int64_t now_local = (int64_t)now_wall + (int64_t)tz * 3600;
+  int16_t tz = localOffsetMinutes(now_wall);
+  int64_t now_local = (int64_t)now_wall + (int64_t)tz * 60;
   time_t t = (time_t)now_local;
   struct tm* ti = gmtime(&t);
   int64_t sod = ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec;  // secs since local midnight
@@ -1588,7 +1724,7 @@ uint32_t UITask::computeAlarmNextFire(uint32_t now_wall) const {
     for (int d = 0; d < 7; d++) {
       if (mask & (1 << ((ti->tm_wday + d) % 7))) {
         int64_t target = midnight + (int64_t)d * 86400 + time_of_day;
-        if (target > now_local) return (uint32_t)(target - (int64_t)tz * 3600);
+        if (target > now_local) return (uint32_t)(target - (int64_t)tz * 60);
       }
     }
     // Mask had no bit set (shouldn't happen — the UI only offers non-empty
@@ -1596,7 +1732,7 @@ uint32_t UITask::computeAlarmNextFire(uint32_t now_wall) const {
   }
   int64_t target = midnight + time_of_day;
   if (target <= now_local) target += 86400;
-  return (uint32_t)(target - (int64_t)tz * 3600);
+  return (uint32_t)(target - (int64_t)tz * 60);
 }
 
 void UITask::fireClockAlert(const char* label) {
@@ -1652,6 +1788,7 @@ void UITask::tickClockTools() {
   // Alarm (wall clock — absolute schedule for sync robustness).
   evaluateAlarm();
 }
+#endif
 
 // Ringtone takes a slot argument that onShow() can't carry — pass it after the
 // reset (setCurrScreen's onShow runs first, then this layers the slot on top).
@@ -1660,9 +1797,14 @@ void UITask::gotoRingtoneEditor(int slot) {
   ((RingtoneEditorScreen*)ringtone_edit)->selectSlot(slot);
 }
 
+#if SOLO_FEAT_NAVIGATION
 void UITask::gotoMapScreen() {}
-
-void UITask::gotoLocatorScreen()    { if (solo::Features::NAVIGATION) setCurrScreen(locator_screen); }
+void UITask::gotoLocatorScreen() {
+#if SOLO_FEAT_NAVIGATION
+  setCurrScreen(locator_screen);
+#endif
+}
+#endif
 void UITask::gotoAutoAdvertScreen() { setCurrScreen(auto_advert_screen); }
 
 // Public method to handle ping result callback
@@ -1765,9 +1907,33 @@ void UITask::gotoMessagesCategory(uint8_t category) {
 }
 
 void UITask::openContactDM(const ContactInfo& ci) {
+  if (!allowOnDeviceContactMessage(ci)) {
+    logWarning("Child Mode", "Contact not allowed");
+    return;
+  }
   ((MessagesScreen*)messages_screen)->reset();
   ((MessagesScreen*)messages_screen)->enterDM(ci);
   setCurrScreen(messages_screen);
+}
+
+bool UITask::allowOnDeviceChannelMessage(uint8_t index) const {
+  if (!isChildModeLocked()) return true;
+  ChannelDetails channel;
+  if (!_node_prefs || !the_mesh.getChannel(index, channel)) return false;
+  return solo::Policy::channelAllowed(_node_prefs, true, index,
+                                      channel.name, channel.channel.secret);
+}
+
+bool UITask::setFavouriteSlot(int slot, const uint8_t* pub_key) {
+  if (!_node_prefs || slot < 0 || slot >= NodePrefs::FAVOURITES_DIAL_COUNT || !pub_key)
+    return false;
+  ContactInfo* contact = the_mesh.lookupContactByPubKey(pub_key, NodePrefs::FAVOURITE_PREFIX_LEN);
+  if (!contact || contact->type != ADV_TYPE_CHAT || !solo::Policy::favouriteContact(*contact)) {
+    logWarning("Favourites", "Favourite contact first");
+    return false;
+  }
+  memcpy(_node_prefs->favourite_contacts[slot], pub_key, NodePrefs::FAVOURITE_PREFIX_LEN);
+  return true;
 }
 
 void UITask::openPreferredTranscript() {
@@ -2506,19 +2672,21 @@ void UITask::renderAlertOverlay() {
     _display->drawTextCentered(_display->width() / 2, box_y + pad + i * lh, s_wrap_lines[i]);
 }
 
+void UITask::pushScreenReturn(UIScreen* screen) {
+  _screen_history.push(screen);
+}
+
+UIScreen* UITask::popScreenReturn() {
+  return _screen_history.pop();
+}
+
 void UITask::setCurrScreen(UIScreen* c) {
   // Fail safe on a null target: a screen pointer left uninitialised (member
   // declared + navigator wired, but the `new XScreen()` line forgotten in
   // begin()) stays nullptr thanks to the in-class initialisers. Bail here so
   // that mistake is an inert no-op instead of a null deref in render()/poll().
-  if (!c) return;
-#if SOLO_FEAT_ADMIN
-  if (curr == admin_screen && c != admin_screen)
-    ((AdminScreen*)admin_screen)->closeSession();
-#endif
-  curr = c;
-  c->onShow();          // central per-visit reset hook (see UIScreen::onShow)
-  _next_refresh = 100;
+  if (ScreenTransition::apply(curr, c))
+    _next_refresh = 100;
 }
 
 bool UITask::savePrefsIfDirty(bool& dirty) {
@@ -2529,6 +2697,11 @@ bool UITask::savePrefsIfDirty(bool& dirty) {
   if (!the_mesh.savePrefs()) return false;
   dirty = false;
   return true;
+}
+
+void UITask::requestPrefsSave() {
+  _deferred_prefs_save = true;
+  _deferred_prefs_save_ms = millis() + 1000;
 }
 
 /*
@@ -2731,6 +2904,25 @@ void UITask::loop() {
   if (_emergency_window.active() && !_emergency_window.update(millis()))
     setEmergencyMode(false);
   tickBootTimeSync();
+#if ENV_INCLUDE_GPS == 1
+  if ((int32_t)(millis() - _next_gps_course_sample_ms) >= 0) {
+    _next_gps_course_sample_ms = millis() + 1000UL;
+    LocationProvider* location = _sensors ? _sensors->getLocationProvider() : nullptr;
+    if (location) {
+      bool receiver_active = location->isEnabled();
+      if (receiver_active && location->isValid()) {
+        _last_gps_fix_ms = millis();
+        _has_gps_fix_age = true;
+      }
+      bool periodic = _node_prefs && _node_prefs->gps_enabled && _node_prefs->gps_interval > 0;
+      _gps_course.update(millis(), receiver_active, periodic,
+                         _node_prefs ? _node_prefs->gps_interval : 0,
+                         location->isValid(),
+                         (int32_t)location->getLatitude(), (int32_t)location->getLongitude(),
+                         location->getCourse(), location->getSpeed(), location->getHDOP());
+    }
+  }
+#endif
   if (home) ((HomeScreen*)home)->tickSensor();
   solo::NodeLoginCoordinator::Attempt login_timeout;
   if (_node_login.takeTimeout(millis(), login_timeout)) {
@@ -2848,14 +3040,6 @@ void UITask::loop() {
   }
 #endif
 
-  // A ringing alarm/timer is dismissed by any key, and the queued keys are
-  // swallowed so they do not also act on the current screen.
-  if (_kq_head != _kq_tail && isRinging()) {
-    dismissRing();
-    _kq_head = _kq_tail = 0;
-    _next_refresh = 0;
-  }
-
   if (_kq_head != _kq_tail) {
     if (curr) {
       // Apply the whole queued burst, then redraw once — N taps captured during
@@ -2940,7 +3124,7 @@ void UITask::loop() {
     }
 #endif
     if ((_notification_wake_active || autoOffMillis() > 0) &&
-        (int32_t)(millis() - _auto_off) >= 0 && !isRinging()) {
+        (int32_t)(millis() - _auto_off) >= 0) {
       turnDisplayOff();
 #ifdef PIN_LED
       digitalWrite(PIN_LED, LOW);  // turn off status LED with display to save power
@@ -3108,11 +3292,13 @@ void UITask::loop() {
 // else the last-advertised GPS fix. Not everyone keeps live-sharing on, so the
 // fallback lets a rarely-updating but stationary node (a repeater, or someone
 // who shared a fix once) still work as a target.
+#if SOLO_FEAT_LOCATION_TOOLS
 bool UITask::resolvePersonPos(const uint8_t* key, int32_t& lat, int32_t& lon,
                               bool* live, uint32_t* ts) const {
   if (live) *live = false;
   if (ts)   *ts   = 0;
   if (!key) return false;
+#if SOLO_FEAT_LOCATION_TOOLS
   const LiveTrackStore::Entry* e =
       _livetrack.activeByKey(key, (uint32_t)rtc_clock.getCurrentTime());
   if (e) {
@@ -3121,6 +3307,7 @@ bool UITask::resolvePersonPos(const uint8_t* key, int32_t& lat, int32_t& lon,
     if (ts)   *ts   = e->ts;
     return true;
   }
+#endif
   ContactInfo* c = the_mesh.lookupContactByPubKey(key, NodePrefs::FAVOURITE_PREFIX_LEN);
   if (c && (c->gps_lat != 0 || c->gps_lon != 0)) {
     lat = c->gps_lat; lon = c->gps_lon;
@@ -3213,12 +3400,13 @@ void UITask::clearTargetIfWaypoint(int32_t lat_1e6, int32_t lon_1e6) {
   clearTarget();
   the_mesh.savePrefs();
 }
+#endif
 
 // CONTRACT: every NodePrefs field that keys on a contact pubkey/prefix is
 // cleared here, so a removed contact can't leave a dangling reference. If you
 // add such a field, add its cleanup below (and mark the field in NodePrefs.h).
-// Currently covered: favourite_contacts, locator_key, loc_share_dm_prefix,
-// dm_notif[], dm_melody[]. Also clears _dm_unread_table (RAM-only, not a
+// Currently covered: favourite_contacts, dm_notif[], dm_melody[]. Also clears
+// _dm_unread_table (RAM-only, not a
 // NodePrefs field, so no savePrefs() needed for it) -- same 4-byte-prefix
 // shape and same 16-slot starvation risk as dm_notif/dm_melody above. Called
 // for both explicit removal and silent auto-eviction (see MyMesh
@@ -3232,26 +3420,6 @@ void UITask::onContactRemoved(const uint8_t* pub_key) {
   int slot = findFavouriteSlot(pub_key);
   if (slot >= 0) { clearFavouriteSlot(slot); changed = true; }
 
-  if (_node_prefs->locator_has_target && _node_prefs->locator_target_kind == 1
-      && memcmp(_node_prefs->locator_key, pub_key, NodePrefs::FAVOURITE_PREFIX_LEN) == 0) {
-    clearTarget();
-    changed = true;
-  }
-  // Fail closed rather than guess a new recipient: a contact target that's
-  // gone just turns auto-share off, it doesn't fall back to some other target.
-  if (_node_prefs->loc_share_target_type == 1
-      && memcmp(_node_prefs->loc_share_dm_prefix, pub_key, NodePrefs::FAVOURITE_PREFIX_LEN) == 0) {
-    _node_prefs->loc_share_enabled = 0;
-    changed = true;
-  }
-  // Same fail-closed rule for the room bot's target: the room contact is
-  // gone, disable it rather than risk a re-added contact silently inheriting
-  // the old bot config.
-  if (_node_prefs->bot_room_enabled
-      && memcmp(_node_prefs->bot_room_prefix, pub_key, NodePrefs::FAVOURITE_PREFIX_LEN) == 0) {
-    _node_prefs->bot_room_enabled = 0;
-    changed = true;
-  }
   // Per-contact mute/melody overrides — only 16 slots shared across every
   // contact, so an orphaned entry isn't just stale, it can eventually starve
   // new overrides for contacts that still exist. Keyed by a 4-byte prefix
@@ -3264,21 +3432,12 @@ void UITask::onContactRemoved(const uint8_t* pub_key) {
 // CONTRACT: every NodePrefs field that keys on a channel index is cleared here,
 // so a channel re-added at a freed slot can't inherit the old one's settings.
 // If you add such a field, add its cleanup below (and mark it in NodePrefs.h).
-// Currently covered: bot_channel_idx, loc_share_channel_idx, ch_notif_melody_*,
-// ch_notif_override/ch_notif_muted, ch_fav_bitmask.
+// Currently covered: ch_notif_melody_*, ch_notif_override/ch_notif_muted and
+// ch_fav_bitmask.
 void UITask::onChannelRemoved(uint8_t channel_idx) {
   if (!_node_prefs) return;
   bool changed = false;
 
-  if (_node_prefs->bot_channel_enabled && _node_prefs->bot_channel_idx == channel_idx) {
-    _node_prefs->bot_channel_enabled = 0;
-    changed = true;
-  }
-  // Fail closed, same policy as onContactRemoved()'s Live Share case.
-  if (_node_prefs->loc_share_target_type == 0 && _node_prefs->loc_share_channel_idx == channel_idx) {
-    _node_prefs->loc_share_enabled = 0;
-    changed = true;
-  }
   uint64_t mask = 1ULL << channel_idx;
   changed |= solo::NotificationPreferences::removeChannel(_node_prefs, channel_idx);
   if (_node_prefs->ch_fav_bitmask & mask) {
@@ -3295,6 +3454,7 @@ void UITask::onChannelRemoved(uint8_t channel_idx) {
 // radius. The beeper has its own toggle (locator_beeper), so turning it on is
 // an explicit "I want to hear this" — it deliberately overrides the global
 // buzzer mute (playMelody → buzzer.playForced ignores the quiet flag).
+#if SOLO_FEAT_LOCATION_TOOLS
 void UITask::locatorProximityBeeper() {
   static const uint32_t BEEP_MIN_MS = 150;    // fastest cadence (at the target)
   static const uint32_t BEEP_MAX_MS = 2000;   // slowest cadence (at the edge)
@@ -3363,6 +3523,7 @@ bool UITask::currentCourse(int& deg_out) const {
   deg_out = _cog_deg;
   return true;
 }
+#endif
 
 bool UITask::currentLocation(int32_t& lat, int32_t& lon) const {
   LocationProvider* loc = _sensors ? _sensors->getLocationProvider() : nullptr;
@@ -3377,11 +3538,16 @@ bool UITask::currentLocation(int32_t& lat, int32_t& lon) const {
 // A peer broadcast its position via a [LOC] message (parsed in MyMesh). Record
 // it in the live-track table for the Nearby "Live" view / map. Gated on the
 // user preference so it stays opt-in.
+#if SOLO_FEAT_LOCATION_TOOLS
 void UITask::onSharedLocation(const uint8_t* pub_key, const char* name,
                               int32_t lat_1e6, int32_t lon_1e6,
                               uint32_t ts, bool verified) {
+#if SOLO_FEAT_LOCATION_TOOLS
   if (!_node_prefs || !_node_prefs->track_shared_loc) return;
   _livetrack.update(pub_key, name, lat_1e6, lon_1e6, ts, verified);
+#else
+  (void)pub_key; (void)name; (void)lat_1e6; (void)lon_1e6; (void)ts; (void)verified;
+#endif
 }
 
 bool UITask::sendLocationShare(int32_t lat, int32_t lon) {
@@ -3427,6 +3593,7 @@ void UITask::quickShareMyLocation() {
   snprintf(text, sizeof(text), LOCATION_MSG_TAG "%.5f,%.5f", lat / 1e6, lon / 1e6);
   shareToMessage(text);
 }
+#endif
 
 char UITask::checkDisplayOn(char c, bool allow_wake) {
   if (_display != NULL) {
@@ -3569,37 +3736,21 @@ void UITask::toggleGPS() {
     _next_refresh = 0;
     return;
   }
-  setGPSMode((getGPSMode() + 1) % solo::GpsMode::COUNT);
-}
+  if (!_sensors) {
+    logFailure("GPS", "Setting unavailable");
+    return;
+  }
 
-// Bot commands retain their binary contract: "on" selects continuous GPS and
-// "off" selects Off. The device UI exposes the additional periodic modes.
-void UITask::applyGpsState(bool on) {
-  setGPSMode(on ? 1 : 0);
-}
-
-void UITask::botSetGPS(bool on) {
-  applyGpsState(on);
-}
-
-// Bot !buzz [seconds] -- a find-me signal, so it deliberately uses
-// playForced() (bypasses the buzzer_quiet mute) rather than play(): a
-// find-me beep that respects mute defeats its own purpose. Builds a simple
-// repeating beep/rest RTTTL string sized to the requested duration into the
-// persistent _bot_buzz_buf -- the nRF52 RTTTL player keeps a raw pointer into
-// whatever buffer it's given and reads from it across loop() calls for the
-// whole playback (same constraint as _notif_mel_buf), so this can't be a
-// local/stack buffer.
-void UITask::botBuzz(int seconds) {
-#if defined(PIN_BUZZER)
-  if (seconds < 1) seconds = 5;
-  if (seconds > 30) seconds = 30;
-  int pairs = seconds * 2;   // b=120: an "8c,8p," pair is 250+250 = 500ms
-  int n = snprintf(_bot_buzz_buf, sizeof(_bot_buzz_buf), "Buzz:b=120:");
-  for (int i = 0; i < pairs && n < (int)sizeof(_bot_buzz_buf) - 7; i++)
-    n += snprintf(_bot_buzz_buf + n, sizeof(_bot_buzz_buf) - n, "8c,8p,");
-  buzzer.playForced(_bot_buzz_buf);
-#endif
+  // The home-page toggle is intentionally session-only. Persistent GPS power
+  // and polling changes are staged and written exclusively by Settings.
+  bool enable = !getGPSState();
+  if (!_sensors->setSettingValue("gps", enable ? "1" : "0")) {
+    logFailure("GPS", "Apply failed");
+    return;
+  }
+  notify(UIEventType::ack);
+  showAlert(enable ? "GPS: On" : "GPS: Off", 900);
+  _next_refresh = 0;
 }
 
 #if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
@@ -3698,6 +3849,7 @@ static uint16_t readAnalogMv(uint32_t psel) {
 // 4=Analog), apply it to the actual pin, and persist. The Off->In->Out->...
 // cycling itself lives in GpioScreen; the bot's !gpioN on/off and boot
 // restore also route through here.
+#if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
 void UITask::setGpioMode(int idx, uint8_t mode) {
 #if defined(PIN_GPIO1) && SOLO_FEAT_GPIO
   if (!_node_prefs) return;
@@ -3778,6 +3930,7 @@ bool UITask::botGetGPIOAnalog(int idx, int& millivolts) {
   return false;
 #endif
 }
+#endif
 
 void UITask::applyTxPower() {
   if (_node_prefs == NULL || _low_power_mode) return;
@@ -3843,8 +3996,7 @@ void UITask::toggleBuzzer() {
     if (_node_prefs) _node_prefs->buzzer_quiet = buzzer.isQuiet();
     showAlert(buzzer.isQuiet() ? "Buzzer: OFF" : "Buzzer: ON", 800);
     _next_refresh = 0;
-    _deferred_prefs_save = true;
-    _deferred_prefs_save_ms = millis() + 1000;
+    requestPrefsSave();
   #endif
 }
 
@@ -3857,11 +4009,11 @@ int UITask::getBuzzerMode() {
 #endif
 }
 
-void UITask::cycleBuzzerMode() {
+void UITask::cycleBuzzerMode(int direction) {
 #ifdef PIN_BUZZER
   if (!_node_prefs) return;
   int mode = getBuzzerMode();
-  mode = (mode + 1) % 3;  // ON(0) → OFF(1) → Auto(2) → ON
+  mode = wrapSelection(mode, 3, direction);
   _node_prefs->buzzer_auto = (mode == 2) ? 1 : 0;
   if (mode == 0) { buzzer.quiet(false); _node_prefs->buzzer_quiet = 0; notify(UIEventType::ack); }
   if (mode == 1) { buzzer.quiet(true);  _node_prefs->buzzer_quiet = 1; }

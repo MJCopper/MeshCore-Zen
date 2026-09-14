@@ -56,7 +56,7 @@ class AdminScreen : public UIScreen {
     _neighbour_count = 0;
     _reply_title = title;
     StrHelper::strncpy(_reply, text, sizeof(_reply));
-    _view.begin();
+    _view.begin(false);
     _phase = REPLY;
   }
   static int hexNibble(char c) {
@@ -123,10 +123,12 @@ class AdminScreen : public UIScreen {
       int right = d.width() - reserve - 2;
       int metric_width = d.getTextWidth(metrics);
       int name_right = metrics[0] ? right - metric_width - 4 : right;
-      d.drawTextEllipsized(2, y, name_right, name, selected);
+      int name_width = name_right - 2;
+      if (name_width < d.getCharWidth()) name_width = d.getCharWidth();
+      d.drawTextEllipsized(2, y, name_width, name, selected);
       if (metrics[0]) d.drawTextRightAlign(right, y, metrics);
     });
-    return 100;
+    return UI_REFRESH_STATIC_MS;
   }
   void login() {
     ContactInfo* current = the_mesh.lookupContactByPubKey(_target.id.pub_key, PUB_KEY_SIZE);
@@ -272,6 +274,7 @@ public:
     _neighbour_count = 0;
     kb().begin("", 15);
   }
+  void onHide() override { closeSession(); }
   void onNodeLoginResult(const uint8_t* key, bool success, uint8_t permissions) {
     if (!_login_waiting || _phase != LOGIN || memcmp(key, _target.id.pub_key, 4)) return;
     _login_waiting = false;
@@ -369,7 +372,7 @@ public:
       d.print(_field->label);
       int y = d.listStart() + d.lineStep();
       if (_field->kind == solo::admin::FREQUENCY) {
-        d.drawSelectionRow(0, y - 1, d.width(), d.lineStep(), true);
+        drawRowSelection(d, y, true, 0);
         _frequency.render(d, 2, y);
       } else {
         char val[24];
@@ -392,7 +395,8 @@ public:
       });
     }
     if (_confirm.active) _confirm.render(d);
-    return 500;
+    return (_phase == LOGIN || _phase == WAIT) ? UI_REFRESH_ACTIVE_MS
+                                                : UI_REFRESH_STATIC_MS;
   }
   bool handleInput(char c) override {
     if (!allowed()) { leave(); return true; }

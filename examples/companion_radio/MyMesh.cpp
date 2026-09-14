@@ -595,7 +595,7 @@ void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packe
 #ifdef DISPLAY_CLASS
   // we only want to show text messages on display, not cli data
   bool should_display = txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN;
-  if (should_display && _ui) {
+  if (should_display && _ui && _ui->allowOnDeviceContactMessage(from)) {
     // Add to the on-device conversation history. Room servers (ADV_TYPE_ROOM) are
     // viewed through the same history list as chat contacts (keyed by the server's
     // pubkey), so their posts must be stored too — otherwise an incoming room
@@ -734,13 +734,6 @@ void MyMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t 
   markConnectionActive(from); // in case this is from a server, and we have a connection
   queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, NULL, 0, text);
 
-  // Live position share: a verified DM, so key the track by the sender's pubkey.
-  int32_t loc_lat, loc_lon;
-  if (_ui && childAllowsContact(from, ADV_TYPE_CHAT) &&
-      geo::parseLocShare(text, loc_lat, loc_lon)) {
-    _ui->onSharedLocation(from.id.pub_key, from.name, loc_lat, loc_lon, sender_timestamp, true);
-  }
-
   // hop count of the received message. getPathHashCount() (low 6 bits of path_len)
   // is the number of repeaters traversed — the same value the mesh uses for flood
   // retransmit priority. 0 = heard directly. (Raw path_len is a size/count
@@ -773,18 +766,6 @@ void MyMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uin
   // from.sync_since change needs to be persisted
   dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
   queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
-
-  // Live position share inside a room (mirrors the DM and channel paths). The
-  // post's author is the signed sender_prefix, not the room server `from`, so
-  // resolve that 4-byte prefix to a contact name and track by name. Unverified:
-  // we only hold a 4-byte prefix here, not the full pubkey LiveTrack keys on.
-  int32_t loc_lat, loc_lon;
-  if (_ui && childAllowsContact(from, ADV_TYPE_ROOM) &&
-      geo::parseLocShare(text, loc_lat, loc_lon)) {
-    ContactInfo* sc = sender_prefix ? lookupContactByPubKey(sender_prefix, 4) : nullptr;
-    const char* who = (sc && sc->name[0]) ? sc->name : from.name;
-    _ui->onSharedLocation(nullptr, who, loc_lat, loc_lon, sender_timestamp, false);
-  }
 
   // Room-server auto-reply bot — only ever fires for the room server contact
   // itself (signed posts are how a room relays its members' messages back to
@@ -841,32 +822,16 @@ void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packe
     _serial->writeFrame(frame, 1);
   }
 #ifdef DISPLAY_CLASS
-  if (_ui) _ui->addChannelMsg(channel_idx, text, timestamp);
+  bool show_on_device = _ui && _ui->allowOnDeviceChannelMessage(channel_idx);
+  if (show_on_device) _ui->addChannelMsg(channel_idx, text, timestamp);
   const char *channel_name = "Unknown";
   ChannelDetails channel_details;
   if (getChannel(channel_idx, channel_details)) {
     channel_name = channel_details.name;
   }
-  if (_ui) _ui->incomingMessage(UIEventType::channelMessage, path_len, channel_name,
+  if (show_on_device) _ui->incomingMessage(UIEventType::channelMessage, path_len, channel_name,
                                 text, offline_queue_len, 0, nullptr, channel_idx);
 
-  // Live position share on a channel. The sender's identity here is only the
-  // unsigned "name: msg" prefix (no pubkey), so track it by name — best-effort
-  // and unverified. parseLocShare requires an explicit [LOC] tag, so ordinary
-  // chatter is ignored.
-  int32_t loc_lat, loc_lon;
-  if (_ui && childAllowsChannel(channel_idx) &&
-      geo::parseLocShare(text, loc_lat, loc_lon)) {
-    char sender[32] = {0};
-    const char* sep = strstr(text, ": ");
-    if (sep && sep > text) {
-      int n = (int)(sep - text);
-      if (n > (int)sizeof(sender) - 1) n = sizeof(sender) - 1;
-      memcpy(sender, text, n);
-      sender[n] = '\0';
-    }
-    _ui->onSharedLocation(nullptr, sender[0] ? sender : "?", loc_lat, loc_lon, timestamp, false);
-  }
 #endif
 
   // hop count for !hops (see onMessageRecv); not the wire path_len above.
@@ -1573,12 +1538,13 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _last_relay_seq = 0;
   offline_queue_len = 0;
   app_target_ver = 0;
+  _next_auto_advert_ms = 0;
+  _advert_indicator_until_ms = 0;
+#if SOLO_FEAT_REMOTE_BOT
   _bot_last_ch_reply_ms = 0;
   _bot_last_room_reply_ms = 0;
   memset(_bot_dm_log, 0, sizeof(_bot_dm_log));
   _bot_reply_count = 0;
-  _next_auto_advert_ms = 0;
-  _advert_indicator_until_ms = 0;
   _loc_fix.active = false;
   _locfix_requested = false;
   _locfix_requested_timeout_ms = LOCFIX_TIMEOUT_MS;
@@ -1586,6 +1552,7 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _bot_buzz_action_secs = 0;
   _bot_advert_action_pending = false;
   for (int i = 0; i < 4; i++) _bot_gpio_action[i] = -1;
+#endif
   clearPendingReqs();
   next_ack_idx = 0;
   sign_data = NULL;
@@ -1646,6 +1613,9 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.clock_hide_seconds = Features::CLOCK_HIDE_SECONDS_DEFAULT ? 1 : 0;
   _prefs.clock_12h = 1;        // 12-hour clock with AM/PM by default
   _prefs.tz_offset_hours = 0;  // UTC by default
+  _prefs.timezone_mode = solo::TimezonePolicy::MANUAL;
+  _prefs.timezone_city = solo::TimezonePolicy::DEFAULT_CITY;
+  _prefs.timezone_manual_min = 0;
   _prefs.low_batt_mv = 0;  // reserved legacy field; ignored by BatteryPolicy
   _prefs.batt_display_mode = 0; // icon by default
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
@@ -1693,7 +1663,7 @@ void MyMesh::begin(bool has_display) {
 #endif
 
   // load persisted prefs
-  _store->loadPrefs(_prefs, sensors.node_lat, sensors.node_lon);
+  bool prefs_loaded = _store->loadPrefs(_prefs, sensors.node_lat, sensors.node_lon);
 
   // sanitise bad pref values. NaN/inf must be reset BEFORE constrain(): constrain
   // is a min/max macro and NaN compares false against both bounds, so it would
@@ -1712,7 +1682,14 @@ void MyMesh::begin(bool has_display) {
   _prefs.tx_power_dbm = constrain(_prefs.tx_power_dbm, -9, MAX_LORA_TX_POWER);
   _prefs.gps_enabled = constrain(_prefs.gps_enabled, 0, 1);  // Ensure boolean 0 or 1
   _prefs.gps_interval = constrain(_prefs.gps_interval, 0, 86400);  // Max 24 hours
-  if (solo::ConfigMaintenance::apply(_prefs)) {
+  bool prefs_changed = solo::ConfigMaintenance::apply(_prefs);
+  if (!prefs_loaded) {
+    _prefs.timezone_mode = solo::TimezonePolicy::DEFAULT_MODE;
+    _prefs.timezone_city = solo::TimezonePolicy::DEFAULT_CITY;
+    _prefs.timezone_manual_min = 0;
+    prefs_changed = true;
+  }
+  if (prefs_changed) {
     _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
   }
 
@@ -3235,4 +3212,6 @@ bool MyMesh::hasPendingWork() const {
   return _mgr->getOutboundTotal() > 0 || dirty_contacts_expiry != 0;
 }
 
+#if SOLO_FEAT_REMOTE_BOT
 #include "MyMeshBot.h"
+#endif

@@ -492,10 +492,10 @@ inline void drawScrollIndicator(DisplayDriver& d, int right_x, int top_y, int tr
 // using `reserve` to keep right-aligned content clear of the indicator. Returns
 // the visible row count (callers cache it for input handling).
 template <class RenderRow>
-inline int drawList(DisplayDriver& d, int total, int sel, int& scroll, RenderRow row) {
+inline int drawListAt(DisplayDriver& d, int start_y, int total, int sel,
+                      int& scroll, RenderRow row) {
   const int item_h  = d.lineStep();
-  const int start_y = d.listStart();
-  int visible = d.listVisible(item_h);
+  int visible = (d.height() - start_y) / item_h;
   if (visible < 1) visible = 1;
   if (sel < scroll)            scroll = sel;
   if (sel >= scroll + visible) scroll = sel - visible + 1;
@@ -505,6 +505,27 @@ inline int drawList(DisplayDriver& d, int total, int sel, int& scroll, RenderRow
     row(scroll + i, start_y + i * item_h, scroll + i == sel, reserve);
   drawScrollIndicator(d, start_y, visible * item_h, total, visible, scroll);
   return visible;
+}
+
+template <class RenderRow>
+inline int drawList(DisplayDriver& d, int total, int sel, int& scroll, RenderRow row) {
+  return drawListAt(d, d.listStart(), total, sel, scroll, row);
+}
+
+// Standard single-line label/value row. The value owns the space after the
+// measured label and is ellipsized inside that region, so a long value can
+// never overwrite its label or the scroll indicator.
+inline void drawLabelValueRow(DisplayDriver& d, int y, const char* label,
+                              const char* value, int reserve = 0,
+                              bool selected = false) {
+  const int x = 2;
+  const int gap = d.getCharWidth();
+  int value_x = x + d.getTextWidth(label) + gap;
+  int right = d.width() - reserve - 2;
+  d.setCursor(x, y);
+  d.print(label);
+  if (value_x < right)
+    d.drawTextEllipsized(value_x, y, right - value_x, value, selected);
 }
 
 // Canonical selection bar for a drawList() row: spans the row width minus the
