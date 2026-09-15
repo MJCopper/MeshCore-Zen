@@ -31,7 +31,9 @@ power behaviour, acquisition quality, retry backoff and course-over-ground
 operation.
 
 The GPS home page shows polling mode, receiver state, position, altitude,
-satellites and an eight-point course-over-ground tape. The first row keeps the
+satellites and a scrolling course-over-ground tape. Eight named directions and
+the three 11.25° dot increments between each direction form 32 positions. The
+first row keeps the
 power and polling states separate: the left side always shows the configured
 polling cadence, while the right side shows **Off**, **Sleep**, **Search** or
 **Fix** from the actual receiver state. Temporary time-sync acquisitions therefore
@@ -58,15 +60,20 @@ four seconds of acceptable quality. Once movement is detected, its 25-second
 capture window starts at that detection and remains latched. Completion requires
 HDOP 4.0 or better, or at least eight satellites when HDOP is unavailable.
 After consecutive 90-second failures, only the runtime retry delay backs off to
-2× and then 4×, capped at six hours; the configured polling selection is not
-changed, and the normal interval resumes immediately after a successful fix.
+2×, capped at two hours; it never exceeds twice the configured interval. The
+configured polling selection is not changed, and the normal interval resumes
+immediately after a successful fix.
+A physical Back-button wake clears a pending failure backoff and makes one retry
+due immediately. Notification and alarm wakes do not affect GPS polling.
 
 This is not a magnetic heading. Press Enter to turn GPS on or off for the
 current session without writing to flash. Hold Enter to open
 **Settings › System › GPS Polling**.
 
 Saved GPS power and polling are separate settings. Polling can be Continuous,
-2 min, 5 min, 15 min, 30 min, 1 h, 3 h or 6 h. Timed polling obtains a stable
+Adaptive, 2 min, 5 min, 15 min, 30 min or 1 h. Adaptive remains continuous
+while it has a good fix, then uses short retry windows after sustained loss.
+Timed polling obtains a stable
 fix, sleeps the receiver, then repeats after the selected interval. Settings
 changes are staged and applied and saved only when leaving Settings.
 

@@ -1584,7 +1584,8 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.cr = LORA_CR;
   _prefs.tx_power_dbm = LORA_TX_POWER;
   _prefs.gps_enabled = 0;       // GPS disabled by default
-  _prefs.gps_interval = 0;      // No automatic GPS updates by default
+  _prefs.gps_interval = 0;      // Adaptive uses the continuous interval value
+  _prefs.gps_adaptive = 1;      // Retain Adaptive while GPS power defaults off
   _prefs.display_brightness = 4; // full brightness (level 5 in the UI) by default
   _prefs.buzzer_volume = 4;      // max volume by default
   _prefs.ringtone_bpm_idx = 2;   // 120 bpm default
@@ -2625,6 +2626,7 @@ void MyMesh::handleCmdFrame(size_t len) {
         } else if (strcmp(sp, "gps_interval") == 0) {
           uint32_t interval_seconds = atoi(np);
           _prefs.gps_interval = constrain(interval_seconds, 0, 86400);
+          if (_prefs.gps_interval != 0) _prefs.gps_adaptive = 0;
           savePrefs();
         }
         #endif

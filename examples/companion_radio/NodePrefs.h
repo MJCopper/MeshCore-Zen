@@ -370,10 +370,10 @@ struct NodePrefs {  // persisted to file
   uint8_t  gpio3_mode;
   uint8_t  gpio4_mode;
 
-  // Retained as a reserved byte so existing Solo preference files keep their
-  // binary layout. CardKB presence now selects Compact automatically and this
-  // value is intentionally ignored by the UI.
-  uint8_t  keyboard_cardkb_compact;
+  // Reuses the retired CardKB display-toggle byte so the established preference
+  // layout remains unchanged. Schema migration clears its old meaning before
+  // it is interpreted as the Adaptive GPS-mode selector.
+  uint8_t  gps_adaptive;
 
   // Parent-controlled child UI. The PIN stores a small non-cryptographic hash:
   // this is a practical on-device UI lock, not protection against reflashing.
@@ -547,7 +547,7 @@ struct NodePrefs {  // persisted to file
 //   3. clamp it on load (an upgrader's file lacks it → stray bytes)
 //   4. bump SCHEMA_SENTINEL's low byte
 // (Padding can also shift sizeof; a "false" trip just means re-check + rebump.)
-// keyboard_cardkb_compact (0xC0DE0023) also landed in existing tail padding --
+// gps_adaptive reuses keyboard_cardkb_compact (0xC0DE0023) in existing tail padding --
 // confirmed via a real build -- leaving sizeof unchanged at 2720.
 // Child Mode fields through child_channels_enabled (0xC0DE0024/25) grow the
 // struct by 16 bytes including alignment padding, confirmed via a real build.

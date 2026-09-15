@@ -628,6 +628,7 @@ class SettingsScreen : public UIScreen {
       NodePrefs* p = _task->getNodePrefs();
       p->gps_enabled = _gps_pending_enabled;
       p->gps_interval = solo::GpsMode::pollingInterval(_gps_pending_polling);
+      p->gps_adaptive = solo::GpsMode::pollingIsAdaptive(_gps_pending_polling);
       _task->applyGpsPrefs();
     }
 #endif
@@ -659,6 +660,7 @@ public:
       NodePrefs* p = _task->getNodePrefs();
       p->gps_enabled = _gps_pending_enabled;
       p->gps_interval = solo::GpsMode::pollingInterval(_gps_pending_polling);
+      p->gps_adaptive = solo::GpsMode::pollingIsAdaptive(_gps_pending_polling);
     }
     _gps_dirty = false;
 #endif
@@ -676,7 +678,8 @@ public:
     _gps_dirty = false;
     _gps_initial_enabled = p && p->gps_enabled;
     _gps_pending_enabled = _gps_initial_enabled;
-    _gps_initial_polling = solo::GpsMode::pollingFromInterval(p ? p->gps_interval : 0);
+    _gps_initial_polling = solo::GpsMode::pollingFromPrefs(
+        p ? p->gps_interval : 0, p && p->gps_adaptive);
     _gps_pending_polling = _gps_initial_polling;
 #endif
     _bluetooth_dirty = false;

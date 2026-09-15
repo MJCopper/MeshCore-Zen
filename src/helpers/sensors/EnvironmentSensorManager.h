@@ -3,6 +3,7 @@
 #include <Mesh.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
+#include <helpers/sensors/GpsAdaptivePolicy.h>
 
 class EnvironmentSensorManager : public SensorManager {
 protected:
@@ -22,6 +23,8 @@ protected:
   bool     gps_detected = false;
   bool     gps_configured = false;
   bool     gps_active = false;
+  bool     gps_adaptive = false;
+  bool     gps_force_active = false;
   uint32_t gps_update_interval_sec = 0;  // 0 = continuous; non-zero = fix cadence
   uint32_t gps_next_acquire_ms = 0;
   uint32_t gps_acquire_deadline_ms = 0;
@@ -30,6 +33,7 @@ protected:
   uint32_t gps_movement_since_ms = 0;
   uint8_t  gps_consecutive_failures = 0;
   uint32_t gps_next_cache_ms = 0;
+  GpsAdaptivePolicy gps_adaptive_policy;
 
   #if ENV_INCLUDE_GPS
   LocationProvider* _location;
@@ -59,4 +63,6 @@ public:
   const char* getSettingName(int i) const override;
   const char* getSettingValue(int i) const override;
   bool setSettingValue(const char* name, const char* value) override;
+  void onUserDisplayWake() override;
+  bool getGpsAdaptiveRetry(uint32_t& remaining_ms) const override;
 };

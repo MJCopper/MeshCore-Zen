@@ -24,7 +24,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.32.87"
+#define FIRMWARE_VERSION "v1.32.93"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -398,6 +398,7 @@ public:
     // Apply cadence first so enabling a timed mode cannot briefly start GPS in
     // continuous mode during boot or preference reload.
     sensors.setSettingValue("gps_interval", interval_str);
+    sensors.setSettingValue("gps_adaptive", _prefs.gps_adaptive ? "1" : "0");
     sensors.setSettingValue("gps", _prefs.gps_enabled ? "1" : "0");
   }
 #endif

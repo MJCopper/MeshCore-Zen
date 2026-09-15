@@ -58,9 +58,8 @@ static inline bool blinkOn() {
 }
 
 #if ENV_INCLUDE_GPS == 1
-// Five compass points span 180 degrees around the current course. The current
-// direction is inverted at the physical centre; pixel dots avoid relying on a
-// text string that cannot fit the 128-pixel OLED at every two-letter heading.
+// Scroll a 32-point tape around the live course. Named points occupy every
+// fourth slot and each intervening dot represents another 11.25° increment.
 static void drawGpsCourseTape(DisplayDriver& display, int y, bool available,
                               long course_millideg, solo::GpsCourse::Source source) {
   if (!available) {
@@ -78,31 +77,29 @@ static void drawGpsCourseTape(DisplayDriver& display, int y, bool available,
     return;
   }
 
-  uint8_t centre = solo::GpsCourse::direction(course_millideg);
-  int xs[5] = {
-    display.getCharWidth(), display.width() / 4, display.width() / 2,
-    display.width() * 3 / 4, display.width() - display.getCharWidth()
-  };
-  for (int i = 0; i < 5; i++) {
-    const char* label = solo::GpsCourse::label(solo::GpsCourse::offset(centre, i - 2));
+  const int pitch = display.getCharWidth() * 2 - 1;
+  int visible = (display.width() - display.getCharWidth()) / pitch;
+  if (visible > 31) visible = 31;
+  if ((visible & 1) == 0) visible--;
+  if (visible < 5) visible = 5;
+  int half = visible / 2;
+  uint8_t centre = solo::GpsCourseTape::index(course_millideg);
+  for (int i = -half; i <= half; i++) {
+    const char* label = solo::GpsCourseTape::label(
+        solo::GpsCourseTape::offset(centre, (int8_t)i));
+    int x = display.width() / 2 + i * pitch;
     int text_w = display.getTextWidth(label);
-    if (i == 2) {
+    if (i == 0) {
       display.setColor(DisplayDriver::LIGHT);
-      display.fillRect(xs[i] - text_w / 2 - 2, y - 1,
+      display.fillRect(x - text_w / 2 - 2, y - 1,
                        text_w + 4, display.getLineHeight() + 1);
       display.setColor(DisplayDriver::DARK);
     } else {
       display.setColor(DisplayDriver::LIGHT);
     }
-    display.drawTextCentered(xs[i], y, label);
+    display.drawTextCentered(x, y, label);
   }
   display.setColor(DisplayDriver::LIGHT);
-  for (int gap = 0; gap < 4; gap++) {
-    for (int dot = 1; dot <= 3; dot++) {
-      int x = xs[gap] + (xs[gap + 1] - xs[gap]) * dot / 4;
-      display.fillRect(x, y + display.getLineHeight() / 2, 1, 1);
-    }
-  }
 }
 #endif
 
@@ -892,8 +889,9 @@ public:
       char buf[50];
       int y = content_y;
       bool gps_state = _task->getGPSState();
-      uint8_t polling = solo::GpsMode::pollingFromInterval(
-          _node_prefs ? _node_prefs->gps_interval : 0);
+      uint8_t polling = solo::GpsMode::pollingFromPrefs(
+          _node_prefs ? _node_prefs->gps_interval : 0,
+          _node_prefs && _node_prefs->gps_adaptive);
       snprintf(buf, sizeof(buf), "%s", solo::GpsMode::pollingLabel(polling));
       display.drawTextLeftAlign(0, y, buf);
       const char* receiver_state = "Off";
@@ -901,6 +899,13 @@ public:
       if (nmea != NULL && nmea->isEnabled())
         receiver_state = nmea->isValid() ? "Fix" : "Search";
       else if (gps_state) {
+        uint32_t retry_ms;
+        if (_sensors && _sensors->getGpsAdaptiveRetry(retry_ms)) {
+          uint32_t minutes = (retry_ms + 59999UL) / 60000UL;
+          if (minutes < 1) minutes = 1;
+          snprintf(receiver_buf, sizeof(receiver_buf), "Retry %lum", (unsigned long)minutes);
+          receiver_state = receiver_buf;
+        } else {
         uint32_t age;
         if (_task->getGpsFixAgeMs(age)) {
           uint32_t minutes = age / 60000UL;
@@ -909,6 +914,7 @@ public:
           else snprintf(receiver_buf, sizeof(receiver_buf), "Sleep %luh", (unsigned long)(minutes / 60));
           receiver_state = receiver_buf;
         } else receiver_state = "Sleep";
+        }
       }
 #ifdef PIN_GPS_SWITCH
       bool hw_gps_state = digitalRead(PIN_GPS_SWITCH);
@@ -2914,7 +2920,8 @@ void UITask::loop() {
         _last_gps_fix_ms = millis();
         _has_gps_fix_age = true;
       }
-      bool periodic = _node_prefs && _node_prefs->gps_enabled && _node_prefs->gps_interval > 0;
+      bool periodic = _node_prefs && _node_prefs->gps_enabled &&
+                      (_node_prefs->gps_interval > 0 || _node_prefs->gps_adaptive);
       _gps_course.update(millis(), receiver_active, periodic,
                          _node_prefs ? _node_prefs->gps_interval : 0,
                          location->isValid(),
@@ -3605,6 +3612,7 @@ char UITask::checkDisplayOn(char c, bool allow_wake) {
       if (!allow_wake) return 0;
       turnDisplayOn();
       the_mesh.onUserDisplayWake();
+      if (_sensors) _sensors->onUserDisplayWake();
 #ifdef PIN_LED
       digitalWrite(PIN_LED, LOW);  // ensure LED is off when waking display (userLedHandler takes over)
 #endif
@@ -3665,7 +3673,8 @@ uint8_t UITask::getGPSMode() const {
   if (_low_power_mode) return _emergency_gps_on ? 1 : 0;
   if (!_node_prefs) return 0;
   return solo::GpsMode::fromPrefs(_node_prefs->gps_enabled != 0,
-                                  _node_prefs->gps_interval);
+                                  _node_prefs->gps_interval,
+                                  _node_prefs->gps_adaptive != 0);
 }
 
 void UITask::setGPSMode(uint8_t mode) {
@@ -3676,6 +3685,7 @@ void UITask::setGPSMode(uint8_t mode) {
 
   _node_prefs->gps_enabled = mode == 0 ? 0 : 1;
   _node_prefs->gps_interval = solo::GpsMode::interval(mode);
+  _node_prefs->gps_adaptive = solo::GpsMode::isAdaptive(mode);
 
   applyGpsPrefs();
   notify(UIEventType::ack);
@@ -3692,9 +3702,11 @@ void UITask::applyGpsPrefs() {
   char interval_str[12];
   snprintf(interval_str, sizeof(interval_str), "%u", _node_prefs->gps_interval);
   bool interval_ok = _sensors->setSettingValue("gps_interval", interval_str);
+  bool adaptive_ok = _sensors->setSettingValue(
+      "gps_adaptive", _node_prefs->gps_adaptive ? "1" : "0");
   bool state_ok = _sensors->setSettingValue(
       "gps", (!_low_power_mode && _node_prefs->gps_enabled) ? "1" : "0");
-  if (!interval_ok || !state_ok)
+  if (!interval_ok || !adaptive_ok || !state_ok)
     reportEvent(solo::DiagnosticLog::ERROR, "GPS", "Apply failed", true);
   _next_refresh = 0;
 }

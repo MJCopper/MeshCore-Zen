@@ -28,10 +28,19 @@ do not create flash writes.
 
 ## Polling and power
 
-GPS polling can be Continuous, 2 min, 5 min, 15 min, 30 min, 1 h, 3 h or 6 h.
+GPS polling can be Continuous, Adaptive, 2 min, 5 min, 15 min, 30 min or 1 h.
+The factory default is GPS power Off with Adaptive selected, so enabling GPS
+uses Adaptive without requiring another settings change.
 Continuous keeps the receiver powered. A timed mode powers it only for an
 acquisition and then returns it to standby for the selected interval. The next
 interval begins after the receiver returns to standby.
+
+Adaptive starts with a five-minute acquisition allowance. Once it has a good
+fix, it remains continuous while that fix is useful. If fix quality remains poor
+for five minutes, it changes to 90-second searches separated by two-minute
+standby periods. After 15 minutes in backoff, standby increases to five minutes.
+A good fix returns immediately to continuous tracking. The backoff state is held
+only in RAM and does not write preferences.
 
 A timed acquisition ends when one of these conditions is met:
 
@@ -45,10 +54,20 @@ into Continuous mode.
 
 A completed fix requires HDOP 4.0 or better. If HDOP is unavailable, eight or
 more satellites are accepted as the fallback quality test. After consecutive
-90-second failures, Zen delays subsequent attempts by 2× and then 4× the chosen
-interval, with a maximum delay of six hours. A successful fix immediately clears
-the backoff. This is runtime behaviour only; the saved polling selection never
-changes.
+90-second failures, Zen delays the second and subsequent retries to 2× the
+chosen interval. Backoff never exceeds 2× and the absolute delay remains capped
+at two hours. A successful fix immediately clears the backoff. This is runtime
+behaviour only; the saved polling selection never changes.
+
+If the display is off, pressing Back to wake it clears a pending failure backoff
+and starts an acquisition immediately. Timed modes receive one normal retry;
+Adaptive receives a fresh five-minute search allowance. If Adaptive is already
+searching, the receiver is not restarted and only its deadline is extended.
+Notification and alarm wakes do not reset GPS backoff.
+
+During Low Power, GPS remains disabled. GPS enabled manually for the ten-minute
+Emergency window stays continuous and bypasses Adaptive backoff until that
+window ends. The GPS page shows `Retry Xm` while Adaptive is in standby.
 
 Timed modes usually consume much less power than Continuous because the GPS
 hardware is in standby between acquisitions. The receiver uses its normal
@@ -61,12 +80,15 @@ The bottom line is a course-over-ground display. It calculates direction from
 GPS movement and is not a magnetic compass, so it cannot determine which way the
 device is pointing while stationary.
 
-While moving, five compass points are shown around the current direction. The
-inverted centre point is the direction of travel. Zen accepts live course after
+While moving, a 32-position tape scrolls around the current direction. The eight
+named points are separated by three dots, with every dot representing another
+11.25° course increment. The inverted centre label or dot is the direction of
+travel. Zen accepts live course after
 approximately 10 m of plausible movement at 0.8 knots or faster. Moderate HDOP
 raises the required movement to reduce GPS jitter. It smooths the five most
-recent course samples and applies direction-boundary hysteresis so the display
-does not continually jump between adjacent points.
+recent course samples and applies boundary hysteresis so the tape does not
+continually scroll between adjacent increments. The finer display is an
+approximate course indication rather than a claim of 11.25° GPS accuracy.
 
 Brief loss of fix or a short speed drop is tolerated. When movement stops, the
 last live direction is shown as `Last: NE` for up to 15 minutes. It then changes
@@ -81,7 +103,8 @@ to 30 m. Several shorter moves can accumulate from the previous accepted anchor.
 
 Travel is the straight-line bearing between the fixes, not the route travelled.
 Its lifetime is twice the selected polling interval, with a minimum of 15 minutes
-and a maximum of 12 hours. A failed acquisition retains the previous Travel
+and a maximum of two hours with the available polling choices. A failed
+acquisition retains the previous Travel
 result. A successful acquisition without enough movement clears the displayed
 Travel result while retaining the anchor for later accumulated movement.
 
@@ -111,9 +134,10 @@ off initially but may be enabled manually from the emergency or GPS home page.
 
 - Move outdoors with a clear view of the sky if Search persists or acquisitions
   repeatedly reach 90 seconds.
+- If polling is waiting in failure backoff, turn the screen off and wake it with
+  Back to request an immediate new acquisition.
 - Check the Wio Tracker hardware GPS switch if `HW Off` is displayed.
 - A valid position without a direction is normal when stationary or before the
   minimum movement distance has been reached.
 - Long polling intervals provide lower power consumption but make Travel updates
   less frequent.
-

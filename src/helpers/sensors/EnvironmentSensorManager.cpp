@@ -716,10 +716,14 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
     if (strcmp(value, "0") == 0) {
       gps_configured = false;
       gps_consecutive_failures = 0;
+      gps_adaptive_policy.setEnabled(millis(), false, gps_active);
       stop_gps();
     } else {
       gps_configured = true;
-      if (gps_update_interval_sec == 0) start_gps();
+      if (gps_adaptive) {
+        gps_adaptive_policy.setEnabled(millis(), true, gps_active);
+        start_gps();
+      } else if (gps_update_interval_sec == 0) start_gps();
       else start_periodic_gps();
     }
     return true;
@@ -727,18 +731,29 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
   if (strcmp(name, "gps_interval") == 0) {
     uint32_t interval_seconds = atoi(value);
     gps_update_interval_sec = interval_seconds;
+    if (interval_seconds != 0) gps_adaptive = false;
     gps_consecutive_failures = 0;
     if (gps_configured) {
-      if (gps_update_interval_sec == 0) start_gps();
+      gps_adaptive_policy.setEnabled(millis(), gps_adaptive, gps_active);
+      if (gps_adaptive || gps_update_interval_sec == 0) start_gps();
       else start_periodic_gps();
     }
+    return true;
+  }
+  if (strcmp(name, "gps_adaptive") == 0) {
+    gps_adaptive = strcmp(value, "0") != 0 && gps_update_interval_sec == 0;
+    gps_adaptive_policy.setEnabled(millis(), gps_configured && gps_adaptive,
+                                  gps_active);
+    if (gps_configured && gps_update_interval_sec == 0) start_gps();
     return true;
   }
   // Temporary hardware claim used by boot-time clock synchronisation. Unlike
   // the public "gps" setting, this deliberately leaves the saved user intent
   // and periodic schedule unchanged.
   if (strcmp(name, "gps_power") == 0) {
-    if (strcmp(value, "0") == 0) stop_gps();
+    gps_force_active = strcmp(value, "0") != 0;
+    if (gps_force_active) start_gps();
+    else if (!gps_configured || gps_update_interval_sec > 0) stop_gps();
     else start_gps();
     return true;
   }
@@ -920,6 +935,37 @@ void EnvironmentSensorManager::start_periodic_gps() {
 }
 #endif // ENV_INCLUDE_GPS
 
+void EnvironmentSensorManager::onUserDisplayWake() {
+#if ENV_INCLUDE_GPS
+  if (gps_configured && gps_adaptive) {
+    GpsAdaptivePolicy::Action action =
+        gps_adaptive_policy.onUserWake(millis(), gps_active);
+    if (action == GpsAdaptivePolicy::START) start_gps();
+    return;
+  }
+  if (!GpsPollingPolicy::retryOnUserWake(
+          gps_configured, gps_active, gps_update_interval_sec,
+          gps_consecutive_failures)) return;
+
+  // A deliberate wake is evidence that conditions may have changed (for
+  // example, the device was carried outdoors). Clear the RAM-only failure
+  // history and make one acquisition due on the next sensor loop. Normal
+  // successful polling remains on its configured cadence.
+  gps_consecutive_failures = 0;
+  gps_next_acquire_ms = millis();
+#endif
+}
+
+bool EnvironmentSensorManager::getGpsAdaptiveRetry(uint32_t& remaining_ms) const {
+#if ENV_INCLUDE_GPS
+  return gps_configured && gps_adaptive &&
+         gps_adaptive_policy.retryRemaining(millis(), remaining_ms);
+#else
+  (void)remaining_ms;
+  return false;
+#endif
+}
+
 #if ENV_INCLUDE_GPS || defined(ENV_INCLUDE_BME680_BSEC)
 void EnvironmentSensorManager::loop() {
 
@@ -928,7 +974,8 @@ void EnvironmentSensorManager::loop() {
     _location->loop();
   }
   uint32_t now = millis();
-  if (gps_configured && gps_update_interval_sec > 0 && !gps_active &&
+  if (gps_configured && !gps_force_active && !gps_adaptive &&
+      gps_update_interval_sec > 0 && !gps_active &&
       (int32_t)(now - gps_next_acquire_ms) >= 0) {
     start_periodic_gps();
   }
@@ -955,7 +1002,8 @@ void EnvironmentSensorManager::loop() {
       gps_fix_stable_since_ms = 0;
     }
 
-    if (gps_configured && gps_update_interval_sec > 0) {
+    if (gps_configured && !gps_force_active && !gps_adaptive &&
+        gps_update_interval_sec > 0) {
       // A moving receiver stays awake long enough to establish a useful
       // walking course. Stationary polling retains the original four-second
       // stable-fix window and therefore its existing power cost.
@@ -981,6 +1029,17 @@ void EnvironmentSensorManager::loop() {
         gps_movement_since_ms = 0;
       }
     }
+
+    if (gps_configured && gps_adaptive) {
+      GpsAdaptivePolicy::Action action = gps_adaptive_policy.update(
+          now, quality_good, gps_active, gps_force_active);
+      if (action == GpsAdaptivePolicy::START) start_gps();
+      else if (action == GpsAdaptivePolicy::STOP) stop_gps();
+    }
+  } else if (gps_configured && gps_adaptive) {
+    GpsAdaptivePolicy::Action action = gps_adaptive_policy.update(
+        now, false, false, gps_force_active);
+    if (action == GpsAdaptivePolicy::START) start_gps();
   }
   #endif
   #if ENV_INCLUDE_BME680_BSEC

@@ -33,6 +33,7 @@ TEST(ConfigMaintenance, RepairsActiveValuesAfterMigration) {
   prefs.ringtone_len = 31;
   prefs.quiet_time_start_min = 2000;
   prefs.ble_pin = 42;
+  prefs.gps_interval = 21600;
 
   EXPECT_TRUE(solo::ConfigMaintenance::apply(prefs));
   EXPECT_EQ(prefs.notif_melody_ch, solo::BuiltinMelodies::KERPLOP);
@@ -40,6 +41,28 @@ TEST(ConfigMaintenance, RepairsActiveValuesAfterMigration) {
   EXPECT_EQ(prefs.ringtone_len, solo::RingtoneModel::MAX_NOTES);
   EXPECT_EQ(prefs.quiet_time_start_min, 21 * 60);
   EXPECT_EQ(prefs.ble_pin, 0U);
+  EXPECT_EQ(prefs.gps_interval, 3600U);
+}
+
+TEST(ConfigMaintenance, MigratesRemovedLongGpsPollingToOneHour) {
+  NodePrefs prefs{};
+  prefs.zen_config_schema = 4;
+  prefs.gps_interval = 10800;
+
+  EXPECT_TRUE(solo::ConfigMaintenance::apply(prefs));
+  EXPECT_EQ(prefs.zen_config_schema, solo::ConfigMaintenance::CURRENT_SCHEMA);
+  EXPECT_EQ(prefs.gps_interval, 3600U);
+  EXPECT_FALSE(solo::ConfigMaintenance::apply(prefs));
+}
+
+TEST(ConfigMaintenance, ClearsRetiredCardKbByteBeforeAdaptiveGpsUse) {
+  NodePrefs prefs{};
+  prefs.zen_config_schema = 5;
+  prefs.gps_adaptive = 1;
+
+  EXPECT_TRUE(solo::ConfigMaintenance::apply(prefs));
+  EXPECT_EQ(prefs.zen_config_schema, solo::ConfigMaintenance::CURRENT_SCHEMA);
+  EXPECT_EQ(prefs.gps_adaptive, 0);
 }
 
 TEST(ConfigMaintenance, MigratesLegacyTimezoneWithoutChangingLocalTime) {

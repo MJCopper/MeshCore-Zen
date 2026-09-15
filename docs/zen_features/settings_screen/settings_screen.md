@@ -100,7 +100,7 @@ validated digit editor.
 | Name | Up to 31 characters |
 | Time Zone | Opens the City / Fixed UTC editor |
 | GPS | On / Off |
-| GPS Polling | Continuous / 2 min / 5 min / 15 min / 30 min / 1 h / 3 h / 6 h |
+| GPS Polling | Continuous / Adaptive / 2 min / 5 min / 15 min / 30 min / 1 h |
 | Units | Metric / Imperial |
 | Reboot | Save pending changes and restart |
 

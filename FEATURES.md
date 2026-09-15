@@ -1,6 +1,6 @@
 # Zen features
 
-Zen v1.32.87 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
+Zen v1.32.93 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
 The features below are provided by Zen in addition to the standard MeshCore
 companion protocol and radio operation.
 
@@ -14,7 +14,7 @@ companion protocol and radio operation.
 | Emoji | Monochrome common emoji, diamond fallback and an insertable chat emoji picker |
 | CardKB | Startup detection, direct input, automatic compact editor and screen-aware polling through Grove I2C |
 | Clock and time | Permanent first page, unread count, selectable city daylight-saving rules or fixed UTC offset, 12/24-hour display and background GPS/companion time synchronisation ([guide](./docs/zen_features/timezone/timezone.md)) |
-| GPS | Session-only power toggle, cached-fix age, quality-controlled Continuous or timed 2 min–6 h polling, temporary clock synchronisation and eight-point live/timed course-over-ground ([guide](./docs/zen_features/gps/gps.md)) |
+| GPS | Session-only power toggle, cached-fix age, Continuous, Adaptive or timed polling, temporary clock synchronisation and a 32-position scrolling course-over-ground tape ([guide](./docs/zen_features/gps/gps.md)) |
 | Sensors | Sensor-node carousel with authenticated, on-demand multi-channel telemetry and line scrolling |
 | Favourites | Four editable contact shortcuts with unread badges, plus starred contact, room and channel ordering |
 | Child Mode | Parent PIN, favourite-only direct messages, optional favourite rooms/private channels and disabled companion access while locked |

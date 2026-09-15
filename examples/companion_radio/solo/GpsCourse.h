@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "GpsCourseTape.h"
 
 namespace solo {
 
@@ -17,7 +18,7 @@ class GpsCourse {
   float _movement_metres = 0;
   long _samples[COURSE_SAMPLES] = {};
   uint8_t _sample_count = 0, _sample_head = 0;
-  int8_t _stable_direction = -1;
+  int8_t _stable_tape_index = -1;
   long _course_millideg = LONG_MIN;
   uint32_t _last_course_ms = 0;
 
@@ -60,7 +61,7 @@ class GpsCourse {
     _candidate = _live = _have_segment_fix = false;
     _movement_metres = 0;
     _sample_count = _sample_head = 0;
-    _stable_direction = -1;
+    _stable_tape_index = -1;
   }
   long smoothedCourse(long course) {
     _samples[_sample_head] = course;
@@ -73,15 +74,8 @@ class GpsCourse {
     }
     long mean = (long)(atan2f(sy, sx) * 57295.7795f);
     if (mean < 0) mean += 360000L;
-    uint8_t proposed = direction(mean);
-    if (_stable_direction < 0) _stable_direction = proposed;
-    else if (proposed != (uint8_t)_stable_direction) {
-      long delta = mean - (long)_stable_direction * 45000L;
-      while (delta > 180000L) delta -= 360000L;
-      while (delta < -180000L) delta += 360000L;
-      if (labs(delta) >= 27500L) _stable_direction = proposed;
-    }
-    return (long)_stable_direction * 45000L;
+    _stable_tape_index = (int8_t)GpsCourseTape::stabilise(_stable_tape_index, mean);
+    return GpsCourseTape::course((uint8_t)_stable_tape_index);
   }
 
 public:

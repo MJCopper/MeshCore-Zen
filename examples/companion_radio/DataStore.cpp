@@ -646,10 +646,10 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
   rd(&_prefs.gpio4_mode, sizeof(_prefs.gpio4_mode));
   if (_prefs.gpio4_mode > 3) _prefs.gpio4_mode = 0;
 
-  // → 0xC0DE0023: reserved former external-keyboard display toggle. Keep
-  // reading the byte so later fields and existing preference files stay aligned.
-  rd(&_prefs.keyboard_cardkb_compact, sizeof(_prefs.keyboard_cardkb_compact));
-  if (_prefs.keyboard_cardkb_compact > 1) _prefs.keyboard_cardkb_compact = 0;
+  // → 0xC0DE0023: Adaptive GPS selector, reusing the former external-keyboard
+  // display-toggle byte so later fields and existing preference files stay aligned.
+  rd(&_prefs.gps_adaptive, sizeof(_prefs.gps_adaptive));
+  if (_prefs.gps_adaptive > 1) _prefs.gps_adaptive = 0;
 
     // The original combined branch predates the eight upstream bytes above.
     // Rewind over the bytes just consumed from its Child Mode tail, then keep
@@ -658,7 +658,7 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
       file.seek(file.position() - soloprefs::NEWER_UPSTREAM_TAIL_BYTES);
       _prefs.bot_actions_dm = _prefs.bot_actions_ch = _prefs.bot_actions_room = 0;
       _prefs.gpio1_mode = _prefs.gpio2_mode = _prefs.gpio3_mode = _prefs.gpio4_mode = 0;
-      _prefs.keyboard_cardkb_compact = 0;
+      _prefs.gps_adaptive = 0;
     }
 
     // The standalone Quiet Time branch has only its five data bytes here.
@@ -937,7 +937,7 @@ bool DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_
     file.write((uint8_t *)&_prefs.gpio2_mode, sizeof(_prefs.gpio2_mode));
     file.write((uint8_t *)&_prefs.gpio3_mode, sizeof(_prefs.gpio3_mode));
     file.write((uint8_t *)&_prefs.gpio4_mode, sizeof(_prefs.gpio4_mode));
-    file.write((uint8_t *)&_prefs.keyboard_cardkb_compact, sizeof(_prefs.keyboard_cardkb_compact));
+    file.write((uint8_t *)&_prefs.gps_adaptive, sizeof(_prefs.gps_adaptive));
     file.write((uint8_t *)&_prefs.child_mode_enabled, sizeof(_prefs.child_mode_enabled));
     file.write((uint8_t *)&_prefs.child_mode_pin_hash, sizeof(_prefs.child_mode_pin_hash));
     file.write((uint8_t *)&_prefs.child_visible_pages, sizeof(_prefs.child_visible_pages));

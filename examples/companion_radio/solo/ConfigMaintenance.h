@@ -126,6 +126,21 @@ class ConfigMaintenance {
           prefs.zen_config_schema = 4;
           changed = true;
           break;
+        case 4:
+          // Three- and six-hour GPS polling were removed because their cached
+          // location and Travel results are too stale for Zen's use. Preserve
+          // timed operation while moving either legacy selection to one hour.
+          if (prefs.gps_interval > 3600) prefs.gps_interval = 3600;
+          prefs.zen_config_schema = 5;
+          changed = true;
+          break;
+        case 5:
+          // The byte now used by Adaptive GPS previously held a retired CardKB
+          // display preference. Clear that old meaning exactly once.
+          prefs.gps_adaptive = 0;
+          prefs.zen_config_schema = 6;
+          changed = true;
+          break;
         default:
           // A future firmware may encounter an unrecognised older schema. Move
           // it to the current version; active-value validation still runs below.
@@ -138,7 +153,7 @@ class ConfigMaintenance {
   }
 
 public:
-  enum : uint16_t { CURRENT_SCHEMA = 4 };
+  enum : uint16_t { CURRENT_SCHEMA = 6 };
 
   static bool migrateMelodySchema(NodePrefs& prefs, uint32_t file_schema) {
     if (file_schema >= 0xC0DE002A) return false;
@@ -162,6 +177,12 @@ public:
 
   static bool apply(NodePrefs& prefs) {
     bool changed = false;
+    if (prefs.gps_interval > 3600) { prefs.gps_interval = 3600; changed = true; }
+    if (prefs.gps_adaptive > 1) { prefs.gps_adaptive = 0; changed = true; }
+    if (prefs.gps_interval != 0 && prefs.gps_adaptive) {
+      prefs.gps_adaptive = 0;
+      changed = true;
+    }
     if (prefs.timezone_mode > TimezonePolicy::CITY) { prefs.timezone_mode = TimezonePolicy::MANUAL; changed = true; }
     if (prefs.timezone_city >= TimezonePolicy::CITY_COUNT) { prefs.timezone_city = 0; changed = true; }
     if (prefs.timezone_manual_min < -720 || prefs.timezone_manual_min > 840) {
