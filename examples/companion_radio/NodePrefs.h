@@ -404,6 +404,8 @@ struct NodePrefs {  // persisted to file
   uint8_t timezone_city;       // TimezonePolicy city index
   int16_t timezone_manual_min; // signed fixed UTC offset, minute resolution
   uint8_t child_rooms_enabled; // allow favourited room servers while Child Mode is locked
+  uint8_t notification_screen_wake; // 0=Off, 1=On (mode-dependent), 2=Always
+  uint8_t notif_melody_new_contact; // separate alert for a contact added by an advert
 
   // Single source of truth for the live-share option tables (shared by the Map
   // UI labels and the auto-send engine in UITask).
@@ -467,7 +469,7 @@ struct NodePrefs {  // persisted to file
   // adding/removing/reordering fields in DataStore::savePrefs/loadPrefsInt so
   // older saves are detected on load and skipped (zero-init defaults kept).
   // High 24 bits identify the file format; low byte is the schema revision.
-  static const uint32_t SCHEMA_SENTINEL = 0xC0DE002D;
+  static const uint32_t SCHEMA_SENTINEL = 0xC0DE002F;
 
   // Bit-index for each home page. Used by page_order (entries store bit+1) and
   // by home_pages_mask. Single source of truth — both HomeScreen::pageBit/bitToPage
@@ -563,6 +565,11 @@ struct NodePrefs {  // persisted to file
 // timezone mode, city and manual minutes (0xC0DE002C) are appended together;
 // alignment grows the Wio Tracker layout to 2792 bytes. child_rooms_enabled
 // (0xC0DE002D) consumes existing tail padding, so the size remains unchanged.
+// notification_screen_wake (0xC0DE002E) follows child_rooms_enabled and
+// consumes existing tail padding; older records default to enabled on load.
+// notif_melody_new_contact (0xC0DE002F) follows screen wake and defaults to
+// None for older records. It uses existing tail padding; the Wio Tracker
+// layout remains 2792 bytes on both display builds.
 // keyboard_main_alphabet (added in an earlier bump) landed in existing tail
 // padding -- confirmed via a real build's sizeof() -- so that bump left the
 // size unchanged. bot_actions_dm/ch/room and gpio1..4_mode (the last two

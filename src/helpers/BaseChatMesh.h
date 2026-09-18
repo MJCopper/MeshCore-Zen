@@ -111,6 +111,9 @@ protected:
   virtual bool shouldOverwriteWhenFull() const { return false; }
   virtual uint8_t getAutoAddMaxHops() const { return 0; }  // 0 = no limit, 1 = direct (0 hops), N = up to N-1 hops
   virtual void onContactOverwrite(const uint8_t* pub_key) {};
+  // Called only when an incoming advert has allocated a real contact slot.
+  // Kept separate from onDiscoveredContact's existing is_new/app semantics.
+  virtual void onContactAdded(const ContactInfo& contact) { (void)contact; }
   virtual void onDiscoveredContact(ContactInfo& contact, bool is_new, uint8_t path_len, const uint8_t* path) = 0;
   virtual void onDiscoveredAdvert(bool was_flood) {}
   virtual ContactInfo* processAck(const uint8_t *data) = 0;

@@ -9,6 +9,7 @@
 #include "solo/SensorTelemetry.h"
 #include "solo/RepeaterSignalMonitor.h"
 #include "solo/TimezonePolicy.h"
+#include "solo/PrefsSaveTracker.h"
 #include <helpers/ui/DisplayDriver.h>
 
 // Forward declaration for UITask
@@ -24,7 +25,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.32.93"
+#define FIRMWARE_VERSION "v1.32.103"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -150,6 +151,8 @@ public:
 
   const char *getNodeName();
   NodePrefs *getNodePrefs();
+  bool hasMeshCorePrefs() const;
+  bool restoreMeshCorePrefs();
   uint32_t getBLEPin();
 
   void loop();
@@ -222,6 +225,7 @@ protected:
   uint8_t getAutoAddMaxHops() const override;
   void onContactsFull() override;
   void onContactOverwrite(const uint8_t* pub_key) override;
+  void onContactAdded(const ContactInfo& contact) override;
   bool onContactPathRecv(ContactInfo& from, uint8_t* in_path, uint8_t in_path_len, uint8_t* out_path, uint8_t out_path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len) override;
   void onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len, const uint8_t* path) override;
   void onDiscoveredAdvert(bool was_flood) override;
@@ -364,7 +368,9 @@ public:
   }
 
   bool savePrefs() {
+    if (!_prefs_save_tracker.needsSave(_prefs, sensors.node_lat, sensors.node_lon)) return true;
     bool ok = _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
+    if (ok) _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
     if (!ok && _ui) _ui->onOperationFailure("Settings", "Save failed");
     return ok;
   }
@@ -474,6 +480,7 @@ private:
 
   DataStore* _store;
   NodePrefs _prefs;
+  solo::PrefsSaveTracker _prefs_save_tracker;
   uint32_t pending_login;
   bool _low_power_mode = false;
   bool _emergency_mode = false;

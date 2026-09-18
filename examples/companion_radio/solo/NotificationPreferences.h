@@ -78,7 +78,7 @@ class NotificationPreferences {
   }
 
 public:
-  // Notification state: 0=global, 1=muted, 2=force-on.
+  // Notification state: 0=global, 1=no local alert, 2=local alert in Auto.
   static uint8_t dmState(const NodePrefs* prefs, const uint8_t* pub_key) {
     return prefs ? tableGet(prefs->dm_notif, NodePrefs::DM_NOTIF_TABLE_MAX,
                             pub_key, &NodePrefs::DmNotifEntry::state) : 0;

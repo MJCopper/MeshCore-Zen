@@ -9,6 +9,11 @@ value.
 Zen tracks a separate semantic configuration schema alongside the preference
 file layout. Boot applies any outstanding ordered migrations, normalises active
 settings and compacts override tables, then saves only when stored data changed.
+On a first UF2 upgrade from MeshCore v1.17.1, Zen imports shared settings from
+`/prefs.json` before creating defaults. The original file is kept. If Zen has
+already booted without those settings, **System › Import MeshCore** offers a
+confirmed one-time recovery; it keeps Zen-only options and restarts to apply
+the imported radio settings.
 
 ## Display
 
@@ -42,17 +47,43 @@ resume. The card always shows Radio, GPS and Bluetooth status. While active,
 Enter opens a confirmation to end Emergency Mode early. The battery display
 reaches 0% and shuts down at 3.3 V.
 
+## Notifications
+
+Mode controls notification sound: On sounds even when a phone or USB client is
+connected; Off is silent; Auto sounds when no client is connected. Changing
+Mode updates its row without a sound or popup, and saves on exit. Messages are
+still received and counted in every mode. Eligible message and new-contact
+popups appear whenever the display is on, regardless of Mode, Quiet Time or
+DND. A source set to Off or blocked by Child Mode has no local alert.
+
+Screen Wake controls a sleeping display: Off never wakes for these alerts; On
+wakes when Mode permits a local alert; Always wakes even with Mode Off, a
+connected client in Auto, Quiet Time or DND. It defaults to On. A notification
+wake lasts five seconds unless a button is pressed. Routine adverts and
+acknowledgements do not wake the screen. Low Battery may wake with On or Always,
+independently of Mode.
+Triple-press Back to toggle RAM-only DND with the same sound policy as Quiet
+Time. The crossed-speaker icon shows the default notification-audio state;
+Local overrides in Auto and manual previews may still sound. Neither DND nor
+the passage of Quiet Time writes preferences to flash.
+Low-battery and diagnostic warnings remain visible even when message
+notifications are Off. The Low Battery beep follows Mode, Quiet Time and DND.
+
 ## Sound
 
-Buzzer mode, volume, DM/channel/advert melodies, advert sound scope, and Quiet
-Time schedule. Notification sounds can use Message, Kerplop, Chime, Ripple,
-Beacon, Cheer, Orbit, Alert, Custom1, Custom2 or None. Any sound can be assigned
+Volume, DM/channel/new-contact/advert melodies and advert sound scope.
+**New Sound** defaults to None and applies only when an advert adds a contact
+to the local table. It is independent of **AD Sound**, which applies to routine
+adverts. Requested Discover results do not play AD Sound. Notification sounds
+can use Message, Kerplop, Chime, Ripple, Beacon, Cheer, Orbit, Alert, Custom1,
+Custom2 or None. Any sound can be assigned
 globally or to an individual contact or channel. Custom melodies are edited in
 **Tools › Ringtone Editor**. Each supports up to 16 notes or pauses, chromatic
 pitches from C through B, octaves 4–7, four note lengths and five tempos.
 Accidentals are shown as sharps; use the enharmonic sharp for a flat note.
-Use Left/Right to select a melody and Enter to preview it. Preview is silent
-when Buzzer is Off and does not save the selection; settings save on Back.
+Use Left/Right to select a melody and Enter to preview it. Manual previews also
+play during Notifications Off, Quiet Time and DND; selecting None remains silent.
+Preview does not save the selection; settings save on Back.
 
 ## Advert
 

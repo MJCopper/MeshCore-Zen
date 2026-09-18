@@ -20,8 +20,9 @@ channel and room histories and use the same delivery markers.
   **Resend anyway** when no echo was heard.
 
 Unread messages are cleared only when their transcript is visible while the
-display is awake. A notification that wakes the display turns it off again
-after five seconds unless a Tracker button is pressed.
+display is awake. When Screen Wake permits a message to wake
+the display, it turns off again after five seconds unless a Tracker button is
+pressed.
 
 ## Delivery markers
 
@@ -77,6 +78,12 @@ sent. Hold Enter on a room to log in again or log out.
 ## Lists and context actions
 
 Contact and channel menus provide read state, notification and melody controls.
+Notification choices are Default, Off and Local. Off suppresses that source's
+local alert without discarding messages or unread counts. Local permits an
+alert even when Auto has a connected phone or USB client. Global Notifications
+Off suppresses the alert; Quiet Time and DND suppress its sound but retain any
+permitted visual alert and screen wake. Melody previews play on request even
+while notifications are silent.
 Contacts, rooms and channels can be starred and are sorted first in their lists.
 Contacts can separately be pinned to the four-slot Favourites Dial. Channels can
 also be edited or deleted, and the Channels list can add Public, hashtag or

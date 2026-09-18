@@ -154,6 +154,7 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   }
 
   bool is_new = false; // true = not in contacts[], false = exists in contacts[]
+  bool contact_added = false;
   if (from == NULL) {
     if (!shouldAutoAddContactType(parser.getType())) {
       ContactInfo ci;
@@ -187,6 +188,7 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
     populateContactFromAdvert(*from, id, parser, timestamp);
     from->sync_since = 0;
     from->shared_secret_valid = false;
+    contact_added = true;
   }
 
   // update
@@ -200,8 +202,10 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   from->last_advert_timestamp = timestamp;
   from->lastmod = getRTCClock()->getCurrentTime();
 
+  if (contact_added) onContactAdded(*from);
   onDiscoveredContact(*from, is_new, packet->path_len, packet->path);       // let UI know
-  onDiscoveredAdvert(packet->isRouteFlood());
+  // One packet must not trigger both the new-contact and routine-advert alert.
+  if (!contact_added) onDiscoveredAdvert(packet->isRouteFlood());
 }
 
 int BaseChatMesh::searchPeersByHash(const uint8_t* hash) {

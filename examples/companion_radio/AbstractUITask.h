@@ -21,6 +21,7 @@ enum class UIEventType {
     roomMessage,
     advertReceivedFlood,
     advertReceivedZeroHop,
+    newContact,
     ack
 };
 
@@ -76,6 +77,7 @@ public:
   // (see AdminScreen). pub_key is the contact's key prefix (>=4 bytes valid).
   virtual void onAdminReply(const uint8_t* pub_key, const char* text) { (void)pub_key; (void)text; }
   virtual void onSensorTelemetry() { }
+  virtual void onNewContact(const ContactInfo& contact) { (void)contact; }
   // True only when a BLE central is actually bonded/connected. On a dual
   // (BLE+USB) interface hasConnection() is always true (USB counts), so use
   // this for BLE-specific UI like the pairing-PIN prompt.

@@ -7,7 +7,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v1.32.93**, based on **MeshCore v1.17.1**.
+Current release: **Zen v1.32.103**, based on **MeshCore v1.17.1**.
 
 ## Supported hardware
 
@@ -28,7 +28,7 @@ Both builds support BLE and USB serial. Firmware is available from the
 - Clock, unread shortcut, GPS time sync, power-aware polling and GPS course-over-ground.
 - Starred contacts, rooms and channels, plus an editable four-contact speed dial.
 - Automatic CardKB support through the Grove I2C port.
-- PIN-protected Child Mode and scheduled Quiet Time.
+- PIN-protected Child Mode, configurable notifications, RAM-only DND and scheduled Quiet Time.
 - On-device radio, advert, notification and home-page settings.
 - Low-battery protection, emergency mode and learned runtime estimation.
 - Node discovery, companion repeater mode, ringtone editor and RAM event log.
@@ -44,11 +44,13 @@ See [FEATURES.md](./FEATURES.md) for the complete Zen feature summary.
 
 ## Flashing
 
-For a first installation, back up anything you want to keep so it can be
-restored after flashing. If the Wio Tracker is running different firmware,
-erase its flash with the
-[MeshCore Flasher](https://meshcore.io/flasher) before installing Zen. Erasing
-removes the stored identity, contacts, channels, messages and settings.
+For a first installation, back up anything you want to keep. A normal UF2
+upgrade from MeshCore v1.17.1 keeps the existing filesystem; Zen imports its
+shared settings from `/prefs.json` on first boot. Do not erase the device if
+you want to keep its identity, contacts, channels and messages. If an erase is
+needed for another firmware or a damaged filesystem, use the
+[MeshCore Flasher](https://meshcore.io/flasher), then restore your backup.
+Erasing removes the stored identity, contacts, channels, messages and settings.
 
 1. Download the correct `.uf2` for your OLED or E-ink Wio Tracker from the
    [releases page](https://github.com/MJCopper/MeshCore-Zen/releases).
@@ -63,8 +65,14 @@ removes the stored identity, contacts, channels, messages and settings.
    completed.
 6. If the bootloader drive does not appear, check that the cable supports data,
    reconnect it, and repeat the quick double-press of **Reset**.
-7. If this is your first Zen installation, use your companion app to restore
-   the backup you created before flashing.
+7. Check the radio settings after first boot. If you erased the device, use
+   your companion app to restore the backup you created before flashing.
+
+If Zen was already installed before settings import was available, open
+**Settings → System → Import MeshCore** to restore shared settings from the
+original `/prefs.json`. The action asks for confirmation and restarts the
+device; Zen-only settings are retained. If the file is absent or invalid, use
+your companion-app backup instead.
 
 For later Zen updates, repeat the numbered steps. An erase is normally only
 needed when changing from another firmware or when troubleshooting damaged

@@ -44,19 +44,23 @@ class SettingsScreen : public UIScreen {
 #if FEAT_FULL_REFRESH_SETTING
     EINK_FULL_REFRESH,
 #endif
-    // Sound section
-    SECTION_SOUND,
-    BUZZER,
-    BUZZER_VOLUME,
-    DM_MELODY,
-    CH_MELODY,
-    AD_SOUND,
-    AD_SOUND_SCOPE,
+    // Notification presentation is separate from sound selection.
+    SECTION_NOTIFICATIONS,
+    NOTIFICATION_MODE,
+    NOTIFICATION_SCREEN_WAKE,
 #if SOLO_FEAT_QUIET_TIME
     QUIET_TIME,
     QUIET_FROM,
     QUIET_UNTIL,
 #endif
+    // Sound section
+    SECTION_SOUND,
+    BUZZER_VOLUME,
+    DM_MELODY,
+    CH_MELODY,
+    NEW_CONTACT_MELODY,
+    AD_SOUND,
+    AD_SOUND_SCOPE,
     // Home pages section
     SECTION_HOME_PAGES,
     HOME_QUICK_MSG, HOME_FAVOURITES, HOME_SENSORS,
@@ -78,6 +82,7 @@ class SettingsScreen : public UIScreen {
     GPS_POLLING,
 #endif
     UNITS,
+    IMPORT_MESHCORE,
     REBOOT,
     // Bluetooth section
     SECTION_BLUETOOTH,
@@ -119,7 +124,7 @@ class SettingsScreen : public UIScreen {
   bool _bluetooth_dirty = false; // staged with GPS; applied and saved on exit
   uint8_t _bluetooth_initial = 1;
 
-  static const int NUM_SECTIONS = 9 + SOLO_FEAT_CHILD_MODE;
+  static const int NUM_SECTIONS = 10 + SOLO_FEAT_CHILD_MODE;
   static const int MAX_PER_SEC  = 16;
   uint8_t _sec_items[NUM_SECTIONS][MAX_PER_SEC]; // SettingItem per (section, row)
   uint8_t _sec_count[NUM_SECTIONS];
@@ -198,7 +203,8 @@ class SettingsScreen : public UIScreen {
 
 
   bool isSection(int item) const {
-    return item == SECTION_DISPLAY || item == SECTION_SOUND ||
+    return item == SECTION_DISPLAY || item == SECTION_NOTIFICATIONS ||
+           item == SECTION_SOUND ||
            item == SECTION_HOME_PAGES ||
            item == SECTION_RADIO   || item == SECTION_SYSTEM ||
            item == SECTION_BLUETOOTH ||
@@ -212,6 +218,7 @@ class SettingsScreen : public UIScreen {
 
   const char* sectionName(int item) const {
     if (item == SECTION_DISPLAY)    return "Display";
+    if (item == SECTION_NOTIFICATIONS) return "Notifications";
     if (item == SECTION_SOUND)      return "Sound";
     if (item == SECTION_HOME_PAGES) return "Home Pages";
     if (item == SECTION_RADIO)      return "Radio";
@@ -341,16 +348,18 @@ class SettingsScreen : public UIScreen {
       renderBar(display, valCol(display), y, (p ? p->display_brightness : 2) + 1, 5);
     } else
 #endif
-    if (item == BUZZER) {
-      display.print("Buzzer");
+    if (item == NOTIFICATION_MODE) {
+      display.print("Mode");
       display.setCursor(valCol(display), y);
-#ifdef PIN_BUZZER
       { static const char* labels[] = { "On", "Off", "Auto" };
-        int m = _task->getBuzzerMode();
+        int m = _task->getNotificationMode();
         display.print(labels[m < 3 ? m : 0]); }
-#else
-      display.print("N/A");
-#endif
+    } else if (item == NOTIFICATION_SCREEN_WAKE) {
+      display.print("Screen Wake");
+      display.setCursor(valCol(display), y);
+      { static const char* labels[] = { "Off", "On", "Always" };
+        uint8_t wake = p ? p->notification_screen_wake : 1;
+        display.print(labels[wake < 3 ? wake : 1]); }
     } else if (item == BUZZER_VOLUME) {
       display.print("Volume");
 #ifdef PIN_BUZZER
@@ -368,6 +377,11 @@ class SettingsScreen : public UIScreen {
       display.print("Ch Sound");
       display.setCursor(valCol(display), y);
       { uint8_t v = p ? p->notif_melody_ch : 0;
+        display.print(solo::BuiltinMelodies::label(v)); }
+    } else if (item == NEW_CONTACT_MELODY) {
+      display.print("New Sound");
+      display.setCursor(valCol(display), y);
+      { uint8_t v = p ? p->notif_melody_new_contact : solo::BuiltinMelodies::NONE;
         display.print(solo::BuiltinMelodies::label(v)); }
     } else if (item == AD_SOUND) {
       display.print("AD Sound");
@@ -508,6 +522,8 @@ class SettingsScreen : public UIScreen {
       int vx = valCol(display);
       display.drawTextEllipsized(vx, y, display.width() - vx - _reserve,
                                  the_mesh.getNodeName(), sel);
+    } else if (item == IMPORT_MESHCORE) {
+      display.print("Import MeshCore");
     } else if (item == REBOOT) {
       display.print("Reboot");   // action row: Enter reboots this device
     } else if (item == KEYBOARD_TYPE) {
@@ -616,6 +632,8 @@ class SettingsScreen : public UIScreen {
   bool _child_pin_confirming = false;
   bool _child_warning_active = false;
   bool _child_warning_enable = false;
+  bool _import_warning_active = false;
+  bool _import_warning_yes = false;
   TimeOfDayEditor _quiet_editor;
   TimezoneEditor _timezone_editor;
   int _quiet_edit_item = -1;
@@ -695,6 +713,7 @@ public:
     _child_pin_confirming = false;
     _child_pin_first_hash = 0;
     _child_warning_active = false;
+    _import_warning_active = false;
     _quiet_edit_item = -1;
     _quiet_editor.editing = false;
     _timezone_editor.close();
@@ -780,6 +799,21 @@ public:
       display.setColor(DisplayDriver::LIGHT);
       return 0;
     }
+    if (_import_warning_active) {
+      display.drawCenteredHeader("Import MeshCore");
+      int y = display.listStart();
+      display.drawTextCentered(display.width() / 2, y, "Restore MeshCore");
+      display.drawTextCentered(display.width() / 2, y + display.lineStep(), "radio and device");
+      display.drawTextCentered(display.width() / 2, y + display.lineStep() * 2, "Zen options kept.");
+      int oy = display.height() - display.lineStep();
+      int half = display.width() / 2;
+      display.drawSelectionRow(0, oy - 1, half - 1, display.getLineHeight() + 1, _import_warning_yes);
+      display.drawTextCentered(half / 2, oy, "Import");
+      display.drawSelectionRow(half, oy - 1, half - 1, display.getLineHeight() + 1, !_import_warning_yes);
+      display.drawTextCentered(half + half / 2, oy, "Cancel");
+      display.setColor(DisplayDriver::LIGHT);
+      return 0;
+    }
     if (_child_pin.active) {
       display.drawCenteredHeader(_child_pin_confirming ? "Confirm PIN" : "Set Child PIN");
       childmode::renderPinEditor(display, _child_pin, display.valCol(), display.height() / 2);
@@ -809,6 +843,25 @@ public:
   bool handleInput(char c) override {
     if (_task->isChildModeLocked()) {
       _task->gotoHomeScreen();
+      return true;
+    }
+    if (_import_warning_active) {
+      if (keyIsPrev(c) || keyIsNext(c) || c == KEY_UP || c == KEY_DOWN) {
+        _import_warning_yes = !_import_warning_yes;
+      } else if (c == KEY_ENTER) {
+        _import_warning_active = false;
+        if (_import_warning_yes) {
+          commitStagedChanges();
+          if (the_mesh.restoreMeshCorePrefs()) {
+            _task->showAlert("Settings imported", 900);
+            _task->shutdown(true); // apply imported radio and device settings
+          } else {
+            _task->logWarning("MeshCore import", "Invalid or unavailable prefs");
+          }
+        }
+      } else if (c == KEY_CANCEL) {
+        _import_warning_active = false;
+      }
       return true;
     }
     if (_child_warning_active) {
@@ -1013,8 +1066,16 @@ public:
       return right || left;
     }
 #endif
-    if (_selected == BUZZER && (left || right)) {
-      _task->cycleBuzzerMode(left ? -1 : 1);
+    if (_selected == NOTIFICATION_MODE && (left || right)) {
+      // Mode changes behave like the other settings rows: redraw the value,
+      // apply it immediately, and save the final difference on exit.
+      _task->cycleNotificationMode(left ? -1 : 1);
+      _dirty = true;
+      return true;
+    }
+    if (_selected == NOTIFICATION_SCREEN_WAKE && p && (left || right || enter)) {
+      uint8_t wake = p->notification_screen_wake < 3 ? p->notification_screen_wake : 1;
+      p->notification_screen_wake = left ? (wake + 2) % 3 : (wake + 1) % 3;
       _dirty = true;
       return true;
     }
@@ -1038,6 +1099,15 @@ public:
       if (enter) _task->previewMelody(p->notif_melody_ch, solo::BuiltinMelodies::KERPLOP);
       else {
         p->notif_melody_ch = (p->notif_melody_ch + (left ? solo::BuiltinMelodies::COUNT - 1 : 1)) % solo::BuiltinMelodies::COUNT;
+        _dirty = true;
+      }
+      return true;
+    }
+    if (_selected == NEW_CONTACT_MELODY && p && (left || right || enter)) {
+      if (enter) _task->previewMelody(p->notif_melody_new_contact, solo::BuiltinMelodies::NONE);
+      else {
+        p->notif_melody_new_contact = (p->notif_melody_new_contact +
+            (left ? solo::BuiltinMelodies::COUNT - 1 : 1)) % solo::BuiltinMelodies::COUNT;
         _dirty = true;
       }
       return true;
@@ -1168,6 +1238,15 @@ public:
     if (_selected == REBOOT && enter) {
       _task->showAlert("Rebooting...", 800);
       _task->shutdown(true);
+      return true;
+    }
+    if (_selected == IMPORT_MESHCORE && enter) {
+      if (!the_mesh.hasMeshCorePrefs()) {
+        _task->logWarning("MeshCore import", "No /prefs.json found");
+      } else {
+        _import_warning_active = true;
+        _import_warning_yes = false;
+      }
       return true;
     }
     if (_selected == KEYBOARD_TYPE && p && (left || right || enter)) {

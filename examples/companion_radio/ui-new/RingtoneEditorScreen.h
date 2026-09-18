@@ -41,8 +41,9 @@ class RingtoneEditorScreen : public UIScreen {
     solo::RingtoneModel::buildRTTTL(&note, 1, 4, _play_buf, sizeof(_play_buf));
     _task->playMelody(_play_buf);
   }
-  void saveCurrent() {
-    if (!_prefs || !dirty()) return;
+  bool saveCurrent() {
+    if (!_prefs) return false;
+    if (!dirty()) return true;
     uint8_t* stored = _slot ? _prefs->ringtone2_notes : _prefs->ringtone_notes;
     memset(stored, 0, solo::RingtoneModel::STORAGE_NOTES);
     memcpy(stored, _notes, _len);
@@ -53,8 +54,9 @@ class RingtoneEditorScreen : public UIScreen {
       _prefs->ringtone_bpm_idx = _bpm_idx;
       _prefs->ringtone_len = _len;
     }
-    the_mesh.savePrefs();
+    if (!the_mesh.savePrefs()) return false;
     snapshot();
+    return true;
   }
   void leaveEditor() { _task->stopMelody(); _task->gotoToolsScreen(); }
   void confirmExit() {
@@ -173,7 +175,7 @@ public:
         ConfirmAction action = _confirm_action;
         _confirm_action = CA_NONE;
         if (action == CA_EXIT && choice == 0) leaveEditor();
-        else if (action == CA_SWITCH && choice == 0) { saveCurrent(); selectSlot(1 - _slot); }
+        else if (action == CA_SWITCH && choice == 0 && saveCurrent()) selectSlot(1 - _slot);
         else if (action == CA_SWITCH && choice == 1) selectSlot(1 - _slot);
       } else if (result == PopupMenu::CANCELLED) _confirm_action = CA_NONE;
       return true;
@@ -222,7 +224,7 @@ public:
               clampScroll();
             }
             break;
-          case MI_SAVE: saveCurrent(); leaveEditor(); break;
+          case MI_SAVE: if (saveCurrent()) leaveEditor(); break;
           case MI_DISCARD: confirmExit(); break;
         }
       }

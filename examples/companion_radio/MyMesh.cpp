@@ -396,6 +396,10 @@ void MyMesh::onContactsFull() {
   }
 }
 
+void MyMesh::onContactAdded(const ContactInfo& contact) {
+  if (_ui) _ui->onNewContact(contact);
+}
+
 void MyMesh::onDiscoveredAdvert(bool was_flood) {
   if (_ui) _ui->notify(was_flood ? UIEventType::advertReceivedFlood : UIEventType::advertReceivedZeroHop);
 }
@@ -1358,7 +1362,6 @@ void MyMesh::onControlDataRecv(mesh::Packet *packet) {
         memcpy(r.pub_key, pub_key, PUB_KEY_SIZE);
         r.timestamp = getRTCClock()->getCurrentTime();
       }
-      if (_ui) _ui->notify(packet->isRouteFlood() ? UIEventType::advertReceivedFlood : UIEventType::advertReceivedZeroHop);
       return;  // our discover — don't forward to BLE app
     }
   }
@@ -1594,6 +1597,8 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.notif_melody_dm = solo::BuiltinMelodies::MESSAGE;
   _prefs.notif_melody_ch = solo::BuiltinMelodies::KERPLOP;
   _prefs.notif_melody_ad = solo::BuiltinMelodies::NONE;
+  _prefs.notif_melody_new_contact = solo::BuiltinMelodies::NONE;
+  _prefs.notification_screen_wake = 1; // message wakes are enabled by default
   _prefs.advert_sound_scope = ADVERT_SOUND_SCOPE_ALL;  // apply to all adverts when a sound is selected
   _prefs.home_pages_mask = NodePrefs::HP_ALL;  // all available carousel pages visible by default
   solo::PrefsDefaults::apply(_prefs);
@@ -1664,7 +1669,11 @@ void MyMesh::begin(bool has_display) {
 #endif
 
   // load persisted prefs
-  bool prefs_loaded = _store->loadPrefs(_prefs, sensors.node_lat, sensors.node_lon);
+  bool imported_meshcore_prefs = false;
+  bool prefs_loaded = _store->loadPrefs(_prefs, sensors.node_lat, sensors.node_lon,
+                                        &imported_meshcore_prefs);
+  if (prefs_loaded && !imported_meshcore_prefs)
+    _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
 
   // sanitise bad pref values. NaN/inf must be reset BEFORE constrain(): constrain
   // is a min/max macro and NaN compares false against both bounds, so it would
@@ -1684,14 +1693,14 @@ void MyMesh::begin(bool has_display) {
   _prefs.gps_enabled = constrain(_prefs.gps_enabled, 0, 1);  // Ensure boolean 0 or 1
   _prefs.gps_interval = constrain(_prefs.gps_interval, 0, 86400);  // Max 24 hours
   bool prefs_changed = solo::ConfigMaintenance::apply(_prefs);
-  if (!prefs_loaded) {
+  if (!prefs_loaded || imported_meshcore_prefs) {
     _prefs.timezone_mode = solo::TimezonePolicy::DEFAULT_MODE;
     _prefs.timezone_city = solo::TimezonePolicy::DEFAULT_CITY;
     _prefs.timezone_manual_min = 0;
     prefs_changed = true;
   }
-  if (prefs_changed) {
-    _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
+  if (prefs_changed || imported_meshcore_prefs) {
+    savePrefs();
   }
 
 #ifdef BLE_PIN_CODE // 123456 by default
@@ -1726,6 +1735,25 @@ void MyMesh::begin(bool has_display) {
   radio_driver.setRxBoostedGainMode(_prefs.rx_boosted_gain);
   MESH_DEBUG_PRINTLN("RX Boosted Gain Mode: %s",
                      radio_driver.getRxBoostedGainMode() ? "Enabled" : "Disabled");
+}
+
+bool MyMesh::hasMeshCorePrefs() const {
+  return _store->hasMeshCorePrefs();
+}
+
+bool MyMesh::restoreMeshCorePrefs() {
+  // Deliberate recovery for a device that already booted Zen. Preserve all
+  // Zen-only preferences and do not alter the live settings unless the
+  // imported record has been safely committed.
+  NodePrefs candidate = _prefs;
+  double lat = sensors.node_lat, lon = sensors.node_lon;
+  if (!_store->importMeshCorePrefs(candidate, lat, lon)) return false;
+  if (!_store->savePrefs(candidate, lat, lon)) return false;
+  _prefs = candidate;
+  sensors.node_lat = lat;
+  sensors.node_lon = lon;
+  _prefs_save_tracker.markSaved(_prefs, lat, lon);
+  return true;
 }
 
 void MyMesh::applyRadioParams() {

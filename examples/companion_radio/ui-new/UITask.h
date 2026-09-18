@@ -54,7 +54,7 @@ class UITask : public AbstractUITask {
   solo::EmergencyWindow _emergency_window;
   bool _low_power_mode = false;
   bool _emergency_gps_on = false;
-  void wakeForNotification();
+  void wakeForNotification(bool allow_wake = true);
   void notifyLowBattery();
   void setLowPowerMode(bool active);
   void setEmergencyMode(bool active);
@@ -70,6 +70,7 @@ class UITask : public AbstractUITask {
 #endif
   bool _deferred_prefs_save = false;
   uint32_t _deferred_prefs_save_ms = 0;
+  bool _dnd_active = false; // manual notification silence; RAM only
   char _alert[80];
   char _notif_mel_buf[220];  // persistent RTTTL buffer for custom notification melodies
   KeyboardWidget _kb;        // shared across all screens — only one active at a time
@@ -282,7 +283,7 @@ public:
   void logFailure(const char* operation, const char* reason);
   void logWarning(const char* operation, const char* reason);
   void reportEvent(solo::DiagnosticLog::Severity severity, const char* operation,
-                   const char* reason, bool background = false);
+                   const char* reason, bool background = false, bool screen_wake = true);
   void onOperationFailure(const char* operation, const char* reason) override {
     reportEvent(solo::DiagnosticLog::ERROR, operation, reason, true);
   }
@@ -294,9 +295,12 @@ public:
   void presentNotification(UIEventType event, bool play_sound, bool vibrate);
   void handleNewMsg(uint8_t path_len, const char* from_name, const char* text,
                     int msgcount, uint8_t contact_type, const uint8_t* pub_key,
-                    bool present);
+                    bool present, bool wake_screen);
   bool notificationQuietAffected(UIEventType event) const;
   bool isQuietTimeActive() const;
+  bool isNotificationQuietActive() const;
+  bool isNotificationAudioMuted() const;
+  void notifyHomeAction(); // UI feedback, unlike delivery ACKs, follows silence policy
   bool isLowPowerMode() const { return _low_power_mode; }
   bool isEmergencyMode() const { return _emergency_window.active(); }
   uint32_t emergencyRemainingSeconds() const {
@@ -415,9 +419,8 @@ public:
 #endif
   }
 
-  void toggleBuzzer();
-  void cycleBuzzerMode(int direction = 1); // Left/Right step Off/On/Auto
-  int  getBuzzerMode(); // 0=ON, 1=OFF, 2=Auto
+  void cycleNotificationMode(int direction = 1); // Left/Right step On/Off/Auto
+  int  getNotificationMode() const; // 0=On, 1=Off, 2=Auto
   bool getGPSState();
   uint8_t getGPSMode() const;
   void setGPSMode(uint8_t mode);
@@ -467,6 +470,7 @@ public:
                        uint8_t contact_type = 0, const uint8_t* pub_key = nullptr,
                        int channel_idx = -1) override;
   void notify(UIEventType t = UIEventType::none) override;
+  void onNewContact(const ContactInfo& contact) override;
   void loop() override;
 
   void shutdown(bool restart = false);

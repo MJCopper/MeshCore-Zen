@@ -1,6 +1,6 @@
 # Zen features
 
-Zen v1.32.93 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
+Zen v1.32.94 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
 The features below are provided by Zen in addition to the standard MeshCore
 companion protocol and radio operation.
 
@@ -18,7 +18,8 @@ companion protocol and radio operation.
 | Sensors | Sensor-node carousel with authenticated, on-demand multi-channel telemetry and line scrolling |
 | Favourites | Four editable contact shortcuts with unread badges, plus starred contact, room and channel ordering |
 | Child Mode | Parent PIN, favourite-only direct messages, optional favourite rooms/private channels and disabled companion access while locked |
-| Quiet Time | Daily local-time sound suppression while visual alerts, message reception and unread state continue |
+| Notifications | On/Off/Auto presentation, optional five-second message screen wake and independent sound choices; unread messages are retained |
+| Quiet Time | Daily local-time sound suppression while permitted visual alerts, message reception and unread state continue |
 | Notifications | Per-contact/channel tones, eight built-in melodies, two editable chromatic tones and five-second notification wake |
 | Advert | Manual and Off/1 h/3 h/6 h automatic adverts with shared GPS privacy control and timed status icon |
 | Repeater Mode | Companion repeating with current radio settings, MeshCore repeater timing, Yield x2 and duplicate suppression |

@@ -636,7 +636,7 @@ class MessagesScreen : public UIScreen {
     return true;
   }
 
-  // Returns per-channel notification state: 0=follow global, 1=muted, 2=force-on
+  // Returns per-channel notification state: 0=follow global, 1=off, 2=local in Auto
   // Per-contact/channel notification + melody overrides share two storage
   // shapes, so the eight accessors below are thin wrappers over two primitives:
   //
@@ -1494,7 +1494,7 @@ public:
           }
           bool right = keyIsNext(c) || (c == KEY_ENTER && (value_sel == 1 || value_sel == 3));
           if (left || right) {
-            static const char* NOTIF_LABELS[] = { "Default", "Off", "On" };
+            static const char* NOTIF_LABELS[] = { "Default", "Off", "Local" };
             ContactInfo ci;
             if (the_mesh.getContactByIdx(_sorted[_contact_sel], ci)) {
               int sel = _ctx_menu.selectedIndex();
@@ -1669,7 +1669,7 @@ public:
         return true;
       }
       if (c == KEY_CONTEXT_MENU && _num_contacts > 0 && !_room_mode && !_task->isChildModeLocked()) {
-        static const char* NOTIF_LABELS[] = { "Default", "Off", "On" };
+        static const char* NOTIF_LABELS[] = { "Default", "Off", "Local" };
         ContactInfo ci;
         the_mesh.getContactByIdx(_sorted[_contact_sel], ci);
         snprintf(_ctx_notif_item, sizeof(_ctx_notif_item), "Notif: %s",
@@ -1709,7 +1709,7 @@ public:
           bool right = keyIsNext(c) ||
                        (c == KEY_ENTER && (value_sel == 1 || value_sel == 3));
           if (left || right) {
-            static const char* NOTIF_LABELS[] = { "Default", "Off", "On" };
+            static const char* NOTIF_LABELS[] = { "Default", "Off", "Local" };
             uint8_t ch_idx = _ctx_ch_idx;   // frozen at menu open — see declaration
             int sel = _ctx_menu.selectedIndex();
             if (sel == 1) {
@@ -1830,7 +1830,7 @@ public:
           !_task->isChildModeLocked()) {
         uint8_t ch_idx = _channel_indices[_channel_sel];
         _ctx_ch_idx = ch_idx;   // freeze the menu's target channel
-        static const char* NOTIF_LABELS[] = { "Default", "Off", "On" };
+        static const char* NOTIF_LABELS[] = { "Default", "Off", "Local" };
         snprintf(_ctx_notif_item, sizeof(_ctx_notif_item), "Notif: %s",
                  NOTIF_LABELS[chNotifState(ch_idx)]);
         snprintf(_ctx_melody_item, sizeof(_ctx_melody_item), "Melody: %s",

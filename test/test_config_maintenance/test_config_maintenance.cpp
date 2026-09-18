@@ -34,6 +34,8 @@ TEST(ConfigMaintenance, RepairsActiveValuesAfterMigration) {
   prefs.quiet_time_start_min = 2000;
   prefs.ble_pin = 42;
   prefs.gps_interval = 21600;
+  prefs.notification_screen_wake = 255;
+  prefs.notif_melody_new_contact = 255;
 
   EXPECT_TRUE(solo::ConfigMaintenance::apply(prefs));
   EXPECT_EQ(prefs.notif_melody_ch, solo::BuiltinMelodies::KERPLOP);
@@ -42,6 +44,16 @@ TEST(ConfigMaintenance, RepairsActiveValuesAfterMigration) {
   EXPECT_EQ(prefs.quiet_time_start_min, 21 * 60);
   EXPECT_EQ(prefs.ble_pin, 0U);
   EXPECT_EQ(prefs.gps_interval, 3600U);
+  EXPECT_EQ(prefs.notification_screen_wake, 1);
+  EXPECT_EQ(prefs.notif_melody_new_contact, solo::BuiltinMelodies::NONE);
+}
+
+TEST(ConfigMaintenance, PreservesAlwaysScreenWake) {
+  NodePrefs prefs{};
+  prefs.zen_config_schema = solo::ConfigMaintenance::CURRENT_SCHEMA;
+  prefs.notification_screen_wake = 2;
+  EXPECT_FALSE(solo::ConfigMaintenance::apply(prefs));
+  EXPECT_EQ(prefs.notification_screen_wake, 2);
 }
 
 TEST(ConfigMaintenance, MigratesRemovedLongGpsPollingToOneHour) {

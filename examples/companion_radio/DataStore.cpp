@@ -5,6 +5,7 @@
 #include "solo/BuiltinMelodies.h"
 #include "solo/NotificationPreferences.h"
 #include "solo/ConfigMaintenance.h"
+#include "solo/MeshCorePrefsImport.h"
 #include "Features.h"   // FEAT_JOYSTICK_ROTATION_SETTING (else `#if !FEAT_…` is always true)
 
 #if defined(EXTRAFS) || defined(QSPIFLASH)
@@ -272,10 +273,47 @@ bool DataStore::saveMainIdentity(const mesh::LocalIdentity &identity) {
   return identity_store.save("_main", identity);
 }
 
-bool DataStore::loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon) {
+bool DataStore::hasMeshCorePrefs() const {
+  return _fs->exists("/prefs.json");
+}
+
+bool DataStore::importMeshCorePrefs(NodePrefs& prefs, double& node_lat, double& node_lon) {
+  File file = openRead(_fs, "/prefs.json");
+  if (!file || !file.size() || file.size() > 4096) {
+    if (file) file.close();
+    return false;
+  }
+  solo::MeshCorePrefsImport source;
+  bool valid = source.read(file);
+  file.close();
+  if (valid) source.apply(prefs, node_lat, node_lon);
+  return valid;
+}
+
+bool DataStore::loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon, bool* imported) {
+  if (imported) *imported = false;
   bool loaded_primary = false;
+  // A Zen record has a schema sentinel at its tail. Upstream MeshCore may
+  // leave a stale, short /new_prefs after migrating to /prefs.json; it must
+  // not take precedence over the current upstream settings on first install.
+  bool zen_prefs = false;
   if (_fs->exists("/new_prefs")) {
+    File file = openRead(_fs, "/new_prefs");
+    if (file && file.size() >= 200 && file.seek(file.size() - sizeof(uint32_t))) {
+      uint32_t sentinel = 0;
+      zen_prefs = file.read((uint8_t*)&sentinel, sizeof(sentinel)) == sizeof(sentinel) &&
+                  (sentinel & 0xFFFFFF00u) == 0xC0DE0000u;
+    }
+    if (file) file.close();
+  }
+  if (zen_prefs) {
     loadPrefsInt("/new_prefs", prefs, node_lat, node_lon); // new filename
+    loaded_primary = true;
+  } else if (hasMeshCorePrefs() && importMeshCorePrefs(prefs, node_lat, node_lon)) {
+    if (imported) *imported = true; // caller saves once after schema maintenance
+    loaded_primary = true;
+  } else if (_fs->exists("/new_prefs")) {
+    loadPrefsInt("/new_prefs", prefs, node_lat, node_lon);
     loaded_primary = true;
   } else if (_fs->exists("/node_prefs")) {
     loadPrefsInt("/node_prefs", prefs, node_lat, node_lon);
@@ -714,6 +752,16 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
   // → 0xC0DE002D: parent-controlled access to favourited room servers.
   if (file.available() >= (int)(sizeof(_prefs.child_rooms_enabled) + sizeof(uint32_t)))
     rd(&_prefs.child_rooms_enabled, sizeof(_prefs.child_rooms_enabled));
+  // → 0xC0DE002E: optional message-notification screen wake. Old records keep
+  // the default-On value seeded before load; never consume their sentinel.
+  if (file.available() >= (int)(sizeof(_prefs.notification_screen_wake) + sizeof(uint32_t)))
+    rd(&_prefs.notification_screen_wake, sizeof(_prefs.notification_screen_wake));
+  // → 0xC0DE002F: independent sound for a newly stored contact. Old saves
+  // keep the default None value, leaving routine advert sound unchanged.
+  if (file.available() >= (int)(sizeof(_prefs.notif_melody_new_contact) + sizeof(uint32_t)))
+    rd(&_prefs.notif_melody_new_contact, sizeof(_prefs.notif_melody_new_contact));
+  _prefs.notif_melody_new_contact = solo::BuiltinMelodies::validate(
+      _prefs.notif_melody_new_contact, solo::BuiltinMelodies::NONE);
   // Schema sentinel: bumped on layout changes. Mismatch means an older file
   // (or a different schema); rd() already zero-inits any fields not present,
   // so we just log it — next savePrefs writes the current sentinel.
@@ -955,6 +1003,8 @@ bool DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_
     file.write((uint8_t *)&_prefs.timezone_city, sizeof(_prefs.timezone_city));
     file.write((uint8_t *)&_prefs.timezone_manual_min, sizeof(_prefs.timezone_manual_min));
     file.write((uint8_t *)&_prefs.child_rooms_enabled, sizeof(_prefs.child_rooms_enabled));
+    file.write((uint8_t *)&_prefs.notification_screen_wake, sizeof(_prefs.notification_screen_wake));
+    file.write((uint8_t *)&_prefs.notif_melody_new_contact, sizeof(_prefs.notif_melody_new_contact));
 
     // Tail sentinel — must be last. See NodePrefs::SCHEMA_SENTINEL. Its write is
     // the one we check: once the flash fills, writes return 0, so a good

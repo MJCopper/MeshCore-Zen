@@ -626,7 +626,7 @@ class HomeScreen : public UIScreen {
     // after it is dropped too (the list is ordered high→low). A blinking icon
     // still reserves its slot while off, so the name width doesn't flicker.
     //
-    // Priority: BT > GPS fix > alarm > mute > auto-advert > live-share >
+    // Priority: mute > BT > GPS fix > alarm > auto-advert > live-share >
     // repeater. Battery remains ahead of the signal indicator. The background modes
     // (advert / live-share / repeater) stay outside any BT gate — they
     // keep running with Bluetooth off, so their cue must not vanish with it.
@@ -634,19 +634,16 @@ class HomeScreen : public UIScreen {
     // Reflect the receiver's live power state, including temporary boot-time
     // sync and periodic acquisition windows while the configured mode sleeps.
     bool gps_on  = loc && loc->isEnabled();
-    bool mute_on = false;
-#ifdef PIN_BUZZER
-    mute_on = _task->isBuzzerQuiet();
-#endif
+    bool mute_on = _task->isNotificationAudioMuted();
     bool advert_visible = the_mesh.advertIndicatorActive();
     struct Sicon { bool active; const MiniIcon* icon; bool boxed; bool blink; };
     const Sicon icons[] = {
+      { mute_on,                                                   &ICON_MUTE,        true, false },
       { _task->isBluetoothEnabled(),
                                   &ICON_BLUETOOTH, _task->isBLEConnected(), false },
       { gps_on,                   &ICON_GPS,        gps_on && loc->isValid(),                            false },
       { solo::Features::CLOCK_TOOLS && _node_prefs && _node_prefs->alarm_on,
                                                                     &ICON_ALARM,       true, false },
-      { mute_on,                                                   &ICON_MUTE,        true, false },
       { advert_visible,                                             &ICON_ADVERT,      true, false },
       { _node_prefs && _node_prefs->loc_share_enabled,             &ICON_MAP_CONTACT, true, true  },
       { _node_prefs && _node_prefs->client_repeat,                 &ICON_REPEATER,    true, true  },
@@ -1382,7 +1379,7 @@ public:
       }
       if (_task->isBluetoothEnabled() == was_enabled)
         return true;
-      _task->notify(UIEventType::ack);
+      _task->notifyHomeAction();
       _task->showAlert(_task->isBluetoothEnabled() ? "Bluetooth: On" : "Bluetooth: Off", 900);
       return true;
     }
@@ -1391,8 +1388,8 @@ public:
       return true;
     }
     if (c == KEY_ENTER && _page == HomePage::ADVERT) {
-      _task->notify(UIEventType::ack);
       if (the_mesh.advert()) {
+        _task->notifyHomeAction();
         _task->showAlert("Advert sent", 1000);
       } else {
         _task->logFailure("Advert", "Send failed");
@@ -1868,18 +1865,15 @@ bool UITask::startPing(const uint8_t* pub_key) {
 
 void UITask::playMelody(const char* melody) {
 #ifdef PIN_BUZZER
+  // The ringtone editor shares the deliberate-preview bypass with melody
+  // selection; it must not clear Quiet Time, DND or Notifications Off.
   buzzer.playForced(melody);
 #endif
 }
 
 void UITask::previewMelody(uint8_t selection, uint8_t empty_fallback) {
 #ifdef PIN_BUZZER
-  // An explicit Off remains authoritative. Auto mode may be quiet because a
-  // client is connected, but a user-requested preview should still be audible.
-  if (getBuzzerMode() == 1) {
-    buzzer.stop();
-    return;
-  }
+  // Manual previews are deliberate playback, independent of notification mute.
   SoundNotifier sn(buzzer, _node_prefs, _notif_mel_buf, sizeof(_notif_mel_buf));
   sn.preview(selection, empty_fallback);
 #else
@@ -2312,7 +2306,7 @@ void UITask::logWarning(const char* operation, const char* reason) {
 
 void UITask::reportEvent(solo::DiagnosticLog::Severity severity,
                          const char* operation, const char* reason,
-                         bool background) {
+                         bool background, bool screen_wake) {
   uint32_t now = isTimeSyncPending() ? 0 : rtc_clock.getCurrentTime();
   const solo::DiagnosticLog::Entry* previous = _diagnostic_log.newest(0);
   bool repeated_recently = background && previous &&
@@ -2321,7 +2315,9 @@ void UITask::reportEvent(solo::DiagnosticLog::Severity severity,
       (now == 0 || previous->timestamp == 0 || now - previous->timestamp < 300);
   _diagnostic_log.add(now, severity, operation, reason);
   if (severity < solo::DiagnosticLog::WARNING || repeated_recently) return;
-  if (_display && !_display->isOn()) wakeForNotification();
+  // Diagnostic warnings are safety/status exceptions to routine notification
+  // settings, including client-connected suppression.
+  if (_display && !_display->isOn()) wakeForNotification(screen_wake);
   char message[80];
   snprintf(message, sizeof(message), "%s: %s\n%s",
            severity == solo::DiagnosticLog::ERROR ? "Error" : "Warning",
@@ -2334,7 +2330,8 @@ bool UITask::notificationAllowed(UIEventType event, uint8_t contact_type,
   if (!isChildModeLocked()) return true;
 
   if (event == UIEventType::advertReceivedFlood ||
-      event == UIEventType::advertReceivedZeroHop)
+      event == UIEventType::advertReceivedZeroHop ||
+      event == UIEventType::newContact)
     return solo::Policy::advertNotificationAllowed(true);
 
   if (event == UIEventType::contactMessage || event == UIEventType::roomMessage) {
@@ -2362,6 +2359,27 @@ bool UITask::isQuietTimeActive() const {
          quiettime::active(_node_prefs, rtc_clock.getCurrentTime(), !isTimeSyncPending());
 }
 
+bool UITask::isNotificationQuietActive() const {
+  return _dnd_active || isQuietTimeActive();
+}
+
+bool UITask::isNotificationAudioMuted() const {
+#ifdef PIN_BUZZER
+  return solo::NotificationPolicy::audioMuted(
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      isNotificationQuietActive());
+#else
+  return false;
+#endif
+}
+
+void UITask::notifyHomeAction() {
+  // Homepage control feedback is optional audio, not a delivery ACK. Leave
+  // message/routing acknowledgements unchanged while honoring Silent, Quiet
+  // Time, Notifications Off and connected Auto here.
+  if (!isNotificationAudioMuted()) notify(UIEventType::ack);
+}
+
 bool UITask::notificationQuietAffected(UIEventType event) const {
   switch (event) {
     case UIEventType::contactMessage:
@@ -2369,6 +2387,7 @@ bool UITask::notificationQuietAffected(UIEventType event) const {
     case UIEventType::roomMessage:
     case UIEventType::advertReceivedFlood:
     case UIEventType::advertReceivedZeroHop:
+    case UIEventType::newContact:
       return true;
     case UIEventType::ack:
     case UIEventType::none:
@@ -2381,9 +2400,30 @@ void UITask::notify(UIEventType event) {
   // Context-free message calls cannot satisfy the child allow-list. Receive
   // paths use incomingMessage(), which supplies the required identity.
   solo::NotificationDecision decision = solo::NotificationPolicy::decide(
-      notificationAllowed(event), isQuietTimeActive(), notificationQuietAffected(event));
+      notificationAllowed(event), isNotificationQuietActive(), notificationQuietAffected(event),
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      solo::NotificationPolicy::screenWake(_node_prefs ? _node_prefs->notification_screen_wake : 1), false);
   if (decision.present())
     presentNotification(event, decision.play_sound, decision.vibrate);
+}
+
+void UITask::onNewContact(const ContactInfo& contact) {
+  // This callback only follows successful insertion into the contact table.
+  // It is separate from routine adverts and requested Discover replies.
+  solo::NotificationDecision decision = solo::NotificationPolicy::decide(
+      notificationAllowed(UIEventType::newContact), isNotificationQuietActive(), true,
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      solo::NotificationPolicy::screenWake(_node_prefs ? _node_prefs->notification_screen_wake : 1), true);
+  if (!decision.present()) return;
+  char alert[80];
+  snprintf(alert, sizeof(alert), "New contact: %.30s", contact.name);
+  if (decision.show_visual) {
+    showAlert(alert, 5000);
+    // Also refresh an already-on display when Screen Wake is disabled.
+    wakeForNotification(decision.wake_screen);
+  }
+  if (decision.play_sound || decision.vibrate)
+    presentNotification(UIEventType::newContact, decision.play_sound, decision.vibrate);
 }
 
 void UITask::presentNotification(UIEventType t, bool play_sound, bool vibrate) {
@@ -2406,8 +2446,11 @@ if (play_sound) {
   case UIEventType::advertReceivedZeroHop:
     sn.playAD(t == UIEventType::advertReceivedFlood);
     break;
+  case UIEventType::newContact:
+    sn.playNewContact();
+    break;
   case UIEventType::ack:
-    buzzer.play("ack:d=32,o=8,b=120:c");
+    buzzer.playForced("ack:d=32,o=8,b=120:c");
     break;
   case UIEventType::none:
   default:
@@ -2445,20 +2488,33 @@ void UITask::msgRead(int msgcount) {
 
 void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount, uint8_t contact_type, const uint8_t* pub_key) {
   // Legacy callers split message presentation and sound into newMsg()/notify().
-  // Quiet Time therefore belongs to notify(); the visual message path remains.
-  handleNewMsg(path_len, from_name, text, msgcount, contact_type, pub_key, true);
+  // Apply the same presentation decision; delivery/unread state remains intact.
+  solo::NotificationDecision decision = solo::NotificationPolicy::decide(
+      true, isNotificationQuietActive(), true,
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      solo::NotificationPolicy::screenWake(_node_prefs ? _node_prefs->notification_screen_wake : 1), true);
+  handleNewMsg(path_len, from_name, text, msgcount, contact_type, pub_key,
+               decision.show_visual, decision.wake_screen);
 }
 
 void UITask::incomingMessage(UIEventType event, uint8_t path_len,
                              const char* from_name, const char* text, int msgcount,
                              uint8_t contact_type, const uint8_t* pub_key,
                              int channel_idx) {
+  uint8_t source_state = 0;
+  if (event == UIEventType::contactMessage && pub_key)
+    source_state = solo::NotificationPreferences::dmState(_node_prefs, pub_key);
+  else if (event == UIEventType::channelMessage && channel_idx >= 0 && channel_idx < 64)
+    source_state = solo::NotificationPreferences::channelState(_node_prefs, channel_idx);
   solo::NotificationDecision decision = solo::NotificationPolicy::decide(
       notificationAllowed(event, contact_type, pub_key, channel_idx),
-      isQuietTimeActive(), notificationQuietAffected(event));
+      isNotificationQuietActive(), notificationQuietAffected(event),
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      solo::NotificationPolicy::screenWake(_node_prefs ? _node_prefs->notification_screen_wake : 1), true,
+      (solo::NotificationPolicy::Source)source_state);
   if (decision.record_unread)
     handleNewMsg(path_len, from_name, text, msgcount, contact_type, pub_key,
-                 decision.show_visual);
+                 decision.show_visual, decision.wake_screen);
   if (decision.play_sound || decision.vibrate) {
     presentNotification(event, decision.play_sound, decision.vibrate);
   } else {
@@ -2469,7 +2525,7 @@ void UITask::incomingMessage(UIEventType event, uint8_t path_len,
 
 void UITask::handleNewMsg(uint8_t path_len, const char* from_name, const char* text,
                           int msgcount, uint8_t contact_type, const uint8_t* pub_key,
-                          bool present) {
+                          bool present, bool wake_screen) {
   (void)path_len;
   (void)text;
 
@@ -2534,12 +2590,12 @@ void UITask::handleNewMsg(uint8_t path_len, const char* from_name, const char* t
   snprintf(alert_buf, sizeof(alert_buf), "Msg: %.20s", from_name);
   showAlert(alert_buf, 3000);
 
-  wakeForNotification();
+  wakeForNotification(wake_screen);
 }
 
-void UITask::wakeForNotification() {
+void UITask::wakeForNotification(bool allow_wake) {
   if (_display != NULL) {
-    if (!_display->isOn() && !isClientConnected()) {   // wake for the msg unless an app (BLE/USB) is already showing it
+    if (!_display->isOn() && allow_wake) {
       turnDisplayOn();
       _notification_wake_active = true;
     }
@@ -2558,18 +2614,24 @@ void UITask::wakeForNotification() {
 void UITask::notifyLowBattery() {
   // System warning: no sender/unread state, but the same Quiet Time sound
   // policy and screen lifetime as message notifications.
-  auto decision = solo::NotificationPolicy::decide(true, isQuietTimeActive(), true);
-  reportEvent(solo::DiagnosticLog::WARNING, "Battery", "Low battery", true);
+  auto decision = solo::NotificationPolicy::decide(
+      true, isNotificationQuietActive(), true,
+      (solo::NotificationPolicy::Mode)getNotificationMode(), isClientConnected(),
+      solo::NotificationPolicy::ScreenWake::OFF, false);
+  bool screen_wake = solo::NotificationPolicy::screenWake(
+      _node_prefs ? _node_prefs->notification_screen_wake : 1) !=
+      solo::NotificationPolicy::ScreenWake::OFF;
+  reportEvent(solo::DiagnosticLog::WARNING, "Battery", "Low battery", true, screen_wake);
 #ifdef PIN_BUZZER
   if (decision.play_sound) {
     SoundNotifier sn(buzzer, _node_prefs, _notif_mel_buf, sizeof(_notif_mel_buf));
     sn.playLowBattery();
   }
 #endif
-  if (decision.show_visual) {
-    showAlert("Low Battery", 5000);
-    wakeForNotification();
-  }
+  // Battery warnings remain visible when the screen is already on, even if
+  // routine notifications are Off. Screen Wake governs a sleeping display.
+  showAlert("Low Battery", 5000);
+  wakeForNotification(screen_wake);
 }
 
 void UITask::setLowPowerMode(bool active) {
@@ -3653,7 +3715,12 @@ char UITask::handleDoubleClick(char c) {
 
 char UITask::handleTripleClick(char c) {
   checkDisplayOn(c);
-  toggleBuzzer();
+  _dnd_active = !_dnd_active;
+  showAlert(_dnd_active ? "Silent On" : "Silent Off", 800);
+  // Use the same short feedback as Advert, Bluetooth and GPS. Do not imply
+  // that sound is back when Mode, Auto or Quiet Time still mutes it.
+  if (!_dnd_active) notifyHomeAction();
+  _next_refresh = 0;
   return 0;
 }
 
@@ -3760,7 +3827,7 @@ void UITask::toggleGPS() {
     logFailure("GPS", "Apply failed");
     return;
   }
-  notify(UIEventType::ack);
+  notifyHomeAction();
   showAlert(enable ? "GPS: On" : "GPS: Off", 900);
   _next_refresh = 0;
 }
@@ -3996,42 +4063,20 @@ void UITask::setBuzzerVolumeLevel(uint8_t level) {
 #endif
 }
 
-void UITask::toggleBuzzer() {
-  #ifdef PIN_BUZZER
-    if (_node_prefs) _node_prefs->buzzer_auto = 0;  // exit auto mode
-    if (buzzer.isQuiet()) {
-      buzzer.quiet(false);
-      notify(UIEventType::ack);
-    } else {
-      buzzer.quiet(true);
-    }
-    if (_node_prefs) _node_prefs->buzzer_quiet = buzzer.isQuiet();
-    showAlert(buzzer.isQuiet() ? "Buzzer: OFF" : "Buzzer: ON", 800);
-    _next_refresh = 0;
-    requestPrefsSave();
-  #endif
+int UITask::getNotificationMode() const {
+  if (!_node_prefs) return solo::NotificationPolicy::ON;
+  return solo::NotificationPolicy::mode(_node_prefs->buzzer_quiet != 0,
+                                        _node_prefs->buzzer_auto != 0);
 }
 
-int UITask::getBuzzerMode() {
-#ifdef PIN_BUZZER
-  if (_node_prefs && _node_prefs->buzzer_auto) return 2;
-  return buzzer.isQuiet() ? 1 : 0;
-#else
-  return 1;
-#endif
-}
-
-void UITask::cycleBuzzerMode(int direction) {
-#ifdef PIN_BUZZER
+void UITask::cycleNotificationMode(int direction) {
   if (!_node_prefs) return;
-  int mode = getBuzzerMode();
+  int mode = getNotificationMode();
   mode = wrapSelection(mode, 3, direction);
   _node_prefs->buzzer_auto = (mode == 2) ? 1 : 0;
-  if (mode == 0) { buzzer.quiet(false); _node_prefs->buzzer_quiet = 0; notify(UIEventType::ack); }
-  if (mode == 1) { buzzer.quiet(true);  _node_prefs->buzzer_quiet = 1; }
-  if (mode == 2) { buzzer.quiet(isClientConnected()); }
-  static const char* labels[] = { "Buzzer: ON", "Buzzer: OFF", "Buzzer: Auto" };
-  showAlert(labels[mode], 800);
-  _next_refresh = 0;
+  _node_prefs->buzzer_quiet = mode == 1 ? 1 : 0;
+#ifdef PIN_BUZZER
+  buzzer.quiet(mode == 1 || (mode == 2 && isClientConnected()));
 #endif
+  _next_refresh = 0;
 }

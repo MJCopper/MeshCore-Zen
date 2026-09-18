@@ -178,6 +178,16 @@ public:
   static bool apply(NodePrefs& prefs) {
     bool changed = false;
     if (prefs.gps_interval > 3600) { prefs.gps_interval = 3600; changed = true; }
+    if (prefs.notification_screen_wake > 2) {
+      prefs.notification_screen_wake = 1;
+      changed = true;
+    }
+    uint8_t new_contact_melody = BuiltinMelodies::validate(
+        prefs.notif_melody_new_contact, BuiltinMelodies::NONE);
+    if (prefs.notif_melody_new_contact != new_contact_melody) {
+      prefs.notif_melody_new_contact = new_contact_melody;
+      changed = true;
+    }
     if (prefs.gps_adaptive > 1) { prefs.gps_adaptive = 0; changed = true; }
     if (prefs.gps_interval != 0 && prefs.gps_adaptive) {
       prefs.gps_adaptive = 0;

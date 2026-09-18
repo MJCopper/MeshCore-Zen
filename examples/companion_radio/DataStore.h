@@ -35,7 +35,9 @@ public:
   FILESYSTEM* getSecondaryFS() const { return _fsExtra; }
   bool loadMainIdentity(mesh::LocalIdentity &identity);
   bool saveMainIdentity(const mesh::LocalIdentity &identity);
-  bool loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon);
+  bool loadPrefs(NodePrefs& prefs, double& node_lat, double& node_lon, bool* imported = nullptr);
+  bool hasMeshCorePrefs() const;
+  bool importMeshCorePrefs(NodePrefs& prefs, double& node_lat, double& node_lon);
   bool savePrefs(const NodePrefs& prefs, double node_lat, double node_lon);
   void loadContacts(DataStoreHost* host);
   bool saveContacts(DataStoreHost* host, bool (*filter)(const ContactInfo& c) = NULL);
