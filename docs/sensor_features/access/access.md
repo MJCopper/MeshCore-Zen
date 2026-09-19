@@ -28,8 +28,8 @@ The following data persists across reboot:
 - Administrator password and ACL.
 - Radio and advert configuration.
 
-Sensor readings, air-quality calibration, command hashes and response-rate state
-remain in RAM and reset at boot.
+Sensor readings, air-quality calibration, command hashes, response-rate state
+and any pending second reply parts remain in RAM and reset at boot.
 
 ## Leaf-node policy
 

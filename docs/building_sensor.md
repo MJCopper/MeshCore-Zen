@@ -25,17 +25,19 @@ pio run -e Xiao_nrf52_bme680_sensor
 pio run -e Xiao_nrf52_bme680_sensor -t create_uf2
 ```
 
-The first command compiles the firmware and creates the HEX and ZIP files. The
-second converts the compiled HEX into the flashable UF2. The main artifacts are:
+The first command compiles the firmware and creates the HEX and named DFU ZIP.
+The second converts the compiled HEX into the flashable UF2. The main artifacts are:
 
 ```text
 .pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2
+.pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.zip
 .pio/build/Xiao_nrf52_bme680_sensor/firmware.hex
-.pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
 ```
 
 Flash `Xiao_nrf52_bme680_sensor.uf2` using the USB bootloader procedure in the
 [README](../README.md#flashing).
+Use `Xiao_nrf52_bme680_sensor.zip` with a compatible nRF52 DFU application for
+OTA updates.
 
 To rebuild from scratch:
 

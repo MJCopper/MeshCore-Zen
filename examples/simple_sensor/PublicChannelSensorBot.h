@@ -29,6 +29,7 @@ public:
     METRIC_VOLTAGE = 1 << 4,
     REQUEST_PING = 1 << 5,
     REQUEST_PATH = 1 << 6,
+    REQUEST_TRACE = 1 << 7,
     METRIC_ALL = METRIC_TEMPERATURE | METRIC_HUMIDITY |
                  METRIC_PRESSURE | METRIC_AIR_QUALITY | METRIC_VOLTAGE,
   };
@@ -38,7 +39,7 @@ public:
   int findChannel(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) const;
 
   // Returns true once for an accepted command and places the selected metrics
-  // or a standalone ping/path request in metric_mask.
+  // or a standalone ping/path/trace request in metric_mask.
   bool accept(uint8_t type, uint8_t* data, size_t len, uint32_t now_millis,
               uint8_t& metric_mask);
   const mesh::GroupChannel& channel() const { return _channel; }

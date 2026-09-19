@@ -1,6 +1,7 @@
 #include "RepeaterNameCache.h"
 
 #include <helpers/AdvertDataHelpers.h>
+#include <helpers/UTF8Helpers.h>
 #include <string.h>
 
 static const char* CACHE_FILE = "/repeaters";
@@ -161,6 +162,23 @@ const char* RepeaterNameCache::findName(const uint8_t* hash, uint8_t hash_size) 
   return match;
 }
 
+void RepeaterNameCache::formatLabel(const uint8_t* hash, uint8_t hash_size,
+                                    char* dest, size_t size) const {
+  if (!dest || size == 0) return;
+  dest[0] = 0;
+  if (!hash || hash_size == 0 || hash_size > 3) return;
+
+  const char* name = findName(hash, hash_size);
+  if (name) {
+    size_t len = mesh::validUtf8PrefixLength(name, size - 1);
+    memcpy(dest, name, len);
+    dest[len] = 0;
+  } else if (size >= hash_size * 2 + 1) {
+    for (uint8_t i = 0; i < hash_size; i++)
+      snprintf(&dest[i * 2], size - i * 2, "%02X", hash[i]);
+  }
+}
+
 void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_t size) const {
   if (!dest || size == 0) return;
   dest[0] = 0;
@@ -179,15 +197,8 @@ void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_
   int used = snprintf(dest, size, "Path (%u repeaters): ", count);
   for (uint8_t i = 0; i < count && used > 0 && (size_t)used < size; i++) {
     const uint8_t* hash = &packet->path[i * hash_size];
-    const char* name = findName(hash, hash_size);
     char label[33];
-    if (name) {
-      strncpy(label, name, sizeof(label) - 1);
-      label[sizeof(label) - 1] = 0;
-    } else {
-      for (uint8_t j = 0; j < hash_size; j++)
-        snprintf(&label[j * 2], sizeof(label) - j * 2, "%02X", hash[j]);
-    }
+    formatLabel(hash, hash_size, label, sizeof(label));
     size_t needed = strlen(label) + (i ? 3 : 0);
     if ((size_t)used + needed >= size) {
       snprintf(&dest[used], size - used, "...");

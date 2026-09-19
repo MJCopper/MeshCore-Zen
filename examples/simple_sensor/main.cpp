@@ -2,7 +2,9 @@
 
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   #include "PublicChannelSensorBot.h"
+  #include "PublicResponseQueue.h"
   #include "RepeaterNameCache.h"
+  #include "RepeaterTraceProbe.h"
 #endif
 
 #ifdef DISPLAY_CLASS
@@ -51,6 +53,9 @@ public:
   void loop() {
     SensorMesh::loop();
     repeater_names.loop(millis());
+    if (trace_probe.isTimedOut(millis())) sendPublicResponse("Trace: route timed out");
+    char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
+    if (public_replies.takeDue(millis(), part)) sendPublicPart(part, 0);
   }
 #endif
 
@@ -60,7 +65,9 @@ protected:
   TimeSeriesData  battery_data;
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   PublicChannelSensorBot public_bot;
+  PublicResponseQueue public_replies;
   RepeaterNameCache repeater_names;
+  RepeaterTraceProbe trace_probe;
   float bme_temperature = NAN;
   float bme_humidity = NAN;
   float bme_pressure = NAN;
@@ -116,9 +123,63 @@ protected:
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   bool allowPacketForward(const mesh::Packet*) override { return false; }
 
+  bool sendPublicPart(const char* response, uint32_t delay_millis) {
+    uint8_t payload[MAX_PACKET_PAYLOAD];
+    uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
+    memcpy(payload, &timestamp, sizeof(timestamp));
+    payload[4] = 0;
+    int prefix_len = snprintf(reinterpret_cast<char*>(&payload[5]), sizeof(payload) - 5,
+                              "%s: ", getNodeName());
+    if (prefix_len < 0 || prefix_len >= (int)(sizeof(payload) - 5)) return false;
+    size_t response_len = strlen(response);
+    if (prefix_len + response_len > PublicResponseQueue::MAX_PART_LENGTH) return false;
+    memcpy(&payload[5 + prefix_len], response, response_len);
+
+    auto reply_packet = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
+                                            5 + prefix_len + response_len);
+    if (!reply_packet) return false;
+    sendFlood(reply_packet, delay_millis);
+    return true;
+  }
+
+  void sendPublicResponse(const char* response) {
+    size_t prefix_len = strlen(getNodeName()) + 2;
+    if (prefix_len >= PublicResponseQueue::MAX_PART_LENGTH) return;
+    char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
+    char second[PublicResponseQueue::MAX_PART_LENGTH + 1];
+    bool multipart = PublicResponseQueue::split(response,
+                                                 PublicResponseQueue::MAX_PART_LENGTH - prefix_len,
+                                                 first, second);
+    uint32_t first_delay = getRNG()->nextInt(500, 2001);
+    if (!sendPublicPart(first, first_delay)) return;
+    if (multipart) public_replies.schedule(second, millis() + first_delay + 3000);
+  }
+
   void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
                     const uint8_t* app_data, size_t app_data_len) override {
     repeater_names.onAdvert(id, timestamp, app_data, app_data_len, millis());
+  }
+
+  void onTraceRecv(mesh::Packet* packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
+                   const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len) override {
+    uint32_t elapsed_millis;
+    uint8_t repeater_count;
+    if (!trace_probe.complete(packet, tag, auth_code, flags, path_hashes, path_len,
+                              millis(), elapsed_millis, repeater_count)) return;
+
+    char response[2 * PublicResponseQueue::MAX_PART_LENGTH + 1];
+    snprintf(response, sizeof(response), "Trace: %lu ms RTT", (unsigned long)elapsed_millis);
+    uint8_t hash_size = 1 << (flags & 0x03);
+    for (uint8_t i = 0; i < repeater_count; i++) {
+      char label[13];
+      char line[40];
+      repeater_names.formatLabel(&path_hashes[i * hash_size], hash_size,
+                                 label, sizeof(label));
+      snprintf(line, sizeof(line), "%u %s %+.1f dB", i + 1, label,
+               (float)(int8_t)path_snrs[i] / 4.0f);
+      appendResponseLine(response, sizeof(response), line);
+    }
+    sendPublicResponse(response);
   }
 
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override {
@@ -130,7 +191,37 @@ protected:
     uint8_t metric_mask;
     if (!public_bot.accept(type, data, len, millis(), metric_mask)) return;
 
-    char response[MAX_PACKET_PAYLOAD];
+    if (metric_mask == PublicChannelSensorBot::REQUEST_TRACE) {
+      uint32_t tag, auth_code;
+      getRNG()->random(reinterpret_cast<uint8_t*>(&tag), sizeof(tag));
+      getRNG()->random(reinterpret_cast<uint8_t*>(&auth_code), sizeof(auth_code));
+      switch (trace_probe.start(packet, tag, auth_code, millis())) {
+        case RepeaterTraceProbe::STARTED: {
+          auto trace = createTrace(tag, auth_code, trace_probe.flags());
+          if (trace) {
+            sendDirect(trace, trace_probe.path(), trace_probe.pathBytes());
+            return;  // Reply when the trace returns or times out.
+          }
+          trace_probe.cancel();
+          sendPublicResponse("Trace: unable to start");
+          return;
+        }
+        case RepeaterTraceProbe::BUSY:
+          sendPublicResponse("Trace: already running");
+          return;
+        case RepeaterTraceProbe::NO_REPEATERS:
+          sendPublicResponse("Trace: no repeaters in request path");
+          return;
+        case RepeaterTraceProbe::TOO_LONG:
+          sendPublicResponse("Trace: path too long (max 4 repeaters)");
+          return;
+        case RepeaterTraceProbe::INVALID_PATH:
+          sendPublicResponse("Trace: request path unavailable");
+          return;
+      }
+    }
+
+    char response[2 * PublicResponseQueue::MAX_PART_LENGTH + 1];
     char air_quality[48];
     char line[64];
     response[0] = 0;
@@ -169,20 +260,7 @@ protected:
     if (response[0] == 0)
       StrHelper::strncpy(response, "Sensor data is not ready", sizeof(response));
 
-    uint8_t payload[MAX_PACKET_PAYLOAD];
-    uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
-    memcpy(payload, &timestamp, sizeof(timestamp));
-    payload[4] = 0;
-    int prefix_len = snprintf(reinterpret_cast<char*>(&payload[5]), sizeof(payload) - 5,
-                              "%s: ", getNodeName());
-    int response_len = strlen(response);
-    int available = sizeof(payload) - 5 - prefix_len;
-    if (response_len > available) response_len = available;
-    memcpy(&payload[5 + prefix_len], response, response_len);
-
-    auto reply_packet = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
-                                            5 + prefix_len + response_len);
-    if (reply_packet) sendFlood(reply_packet, getRNG()->nextInt(500, 2001));
+    sendPublicResponse(response);
   }
 #endif
   /* ======================================================================= */

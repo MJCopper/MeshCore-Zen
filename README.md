@@ -27,14 +27,17 @@ wiring table.
 - Temperature, relative humidity, pressure, calculated altitude and relative
   air-quality telemetry.
 - One sensor sample per minute with the latest result cached in RAM.
-- Public-channel queries for environmental readings, battery voltage, reachability
-  and repeater path through the case-insensitive `!hillvue` command.
-- Single- and multi-value command responses with consistent labels and units.
+- Public-channel queries for environmental readings, battery voltage, reachability,
+  repeater path and repeater-route round-trip time through the case-insensitive
+  `!hillvue` command.
+- Single- and multi-value command responses with consistent labels and units;
+  longer replies use at most two numbered messages, scheduled three seconds apart.
 - Ten-sample air-quality warm-up with descriptive quality ratings.
 - RAM-only air-quality calibration and duplicate-command tracking.
 - Standard MeshCore remote telemetry and administrator management.
 - Fixed leaf-node operation: received mesh packets are never repeated.
-- Rate-limited bot responses with no scheduled sensor posts.
+- Up to four accepted bot commands per rolling minute, with no scheduled sensor
+  posts.
 
 See [FEATURES.md](./FEATURES.md) for the complete behaviour summary.
 
@@ -102,6 +105,9 @@ The second command writes the flashable UF2 to:
 ```text
 .pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2
 ```
+
+The first command also creates the OTA DFU package at
+`.pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.zip`.
 
 Mesh networking and the sensor protocol are provided by
 [MeshCore](https://github.com/meshcore-dev/MeshCore).

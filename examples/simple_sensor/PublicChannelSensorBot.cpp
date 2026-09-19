@@ -58,6 +58,8 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
     metric_mask = REQUEST_PING;
   } else if (equalsIgnoreCase(argument, "path")) {
     metric_mask = REQUEST_PATH;
+  } else if (equalsIgnoreCase(argument, "trace")) {
+    metric_mask = REQUEST_TRACE;
   } else {
     char* token = argument;
     while (*token) {
@@ -65,7 +67,8 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
       while (*separator && !isspace((unsigned char)*separator)) separator++;
       if (*separator) *separator++ = 0;
 
-      if (equalsIgnoreCase(token, "ping") || equalsIgnoreCase(token, "path")) {
+      if (equalsIgnoreCase(token, "ping") || equalsIgnoreCase(token, "path") ||
+          equalsIgnoreCase(token, "trace")) {
         return false;  // Standalone requests cannot be combined with measurements.
       } else if (equalsIgnoreCase(token, "all")) {
         metric_mask = METRIC_ALL;
