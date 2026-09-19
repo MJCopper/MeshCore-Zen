@@ -35,6 +35,13 @@ With a known path, Zen tries it twice, clears it, then makes up to three flood
 attempts. Without a path it makes up to three flood attempts. An ACK stops the
 sequence immediately.
 
+Hold Enter on a saved direct-message contact and choose **Path details** to
+inspect its current learned route, hash width and latest send result. The
+route and attempt summary are RAM-only; a path that received no ACK remains
+summarised after Zen falls back to flooding. Unknown or ambiguous hop hashes
+remain in hex, while unique matches to saved contacts show their names. This
+is not a live reachability test and sends no radio request.
+
 ## Text entry
 
 The default on-screen layout is predictive T9; ABC is selectable under

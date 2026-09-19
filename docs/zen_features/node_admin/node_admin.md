@@ -15,8 +15,11 @@ matching read-back.
 The Neighbours view resolves known key prefixes to contact names. The selected
 name scrolls while age and one-decimal SNR remain fixed at the right.
 
+For a saved node, **Path details** in the Node List's Hold Enter menu shows
+its learned route and latest local send result without probing or saving it.
+Hop names appear only when their hash matches one saved contact uniquely.
+
 Radio changes affect the remote node and may make it unreachable. Actions and
 console commands require confirmation and are not automatically retried.
 **No reply** means the outcome is unknown. Commands use current paths with
 route-to-flood retry handling. Admin is unavailable while Child Mode is locked.
-

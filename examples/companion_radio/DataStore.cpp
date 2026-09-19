@@ -6,6 +6,7 @@
 #include "solo/NotificationPreferences.h"
 #include "solo/ConfigMaintenance.h"
 #include "solo/MeshCorePrefsImport.h"
+#include "solo/StorageHealth.h"
 #include "Features.h"   // FEAT_JOYSTICK_ROTATION_SETTING (else `#if !FEAT_…` is always true)
 
 #if defined(EXTRAFS) || defined(QSPIFLASH)
@@ -56,6 +57,46 @@ static File openReadFile(FILESYSTEM* fs, const char* filename) {
   return fs->open(filename);
 #endif
 }
+
+// Check every field write and read back the complete temporary preferences
+// record before replacing the live file; the on-disk layout stays unchanged.
+class CheckedPrefsWriter {
+  File& _file;
+  solo::CheckedRecordDigest _digest;
+
+public:
+  explicit CheckedPrefsWriter(File& file) : _file(file) {}
+  size_t write(const uint8_t* data, size_t length) {
+    if (!_digest.good()) return 0;
+    size_t written = _file.write(data, length);
+    _digest.record(data, length, written);
+    return written;
+  }
+  void close() { _file.close(); }
+  bool good() const { return _digest.good(); }
+  bool verify(FILESYSTEM* fs, const char* path) const {
+    if (!_digest.good()) return false;
+    File check = openReadFile(fs, path);
+    if (!check) return false;
+    bool valid = (size_t)check.size() == _digest.size();
+    uint32_t hash = 2166136261UL;
+    uint8_t buffer[64];
+    size_t read_total = 0;
+    while (valid && read_total < _digest.size()) {
+      size_t wanted = _digest.size() - read_total;
+      if (wanted > sizeof(buffer)) wanted = sizeof(buffer);
+      int got = check.read(buffer, wanted);
+      if (got != (int)wanted) { valid = false; break; }
+      for (int i = 0; i < got; i++) {
+        hash ^= buffer[i];
+        hash *= 16777619UL;
+      }
+      read_total += wanted;
+    }
+    check.close();
+    return valid && hash == _digest.hash();
+  }
+};
 
 // Atomically swap a fully-written temp file over its final path. LittleFS
 // (nRF52/STM32) rename replaces an existing destination atomically, so a crash
@@ -118,17 +159,12 @@ static bool copyFileVerified(FILESYSTEM* source_fs, const char* source_path,
   return false;
 }
 
-#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  static uint32_t _ContactsChannelsTotalBlocks = 0;
-#endif
-
 void DataStore::begin() {
 #if defined(RP2040_PLATFORM)
   identity_store.begin();
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  _ContactsChannelsTotalBlocks = _getContactsChannelsFS()->_getFS()->cfg->block_count;
   #if defined(EXTRAFS) || defined(QSPIFLASH)
   migrateToSecondaryFS();
   #endif
@@ -155,60 +191,81 @@ void DataStore::begin() {
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-int _countLfsBlock(void *p, lfs_block_t block){
-      if (block > _ContactsChannelsTotalBlocks) {
-        MESH_DEBUG_PRINTLN("ERROR: Block %d exceeds filesystem bounds - CORRUPTION DETECTED!", block);
-        return LFS_ERR_CORRUPT;  // return error to abort lfs_traverse() gracefully
-    }
-  lfs_size_t *size = (lfs_size_t*) p;
-  *size += 1;
-    return 0;
+struct LfsCountContext {
+  lfs_size_t used;
+  lfs_size_t total;
+};
+
+int _countLfsBlock(void *p, lfs_block_t block) {
+  LfsCountContext* context = (LfsCountContext*)p;
+  if (block >= context->total) {
+    MESH_DEBUG_PRINTLN("ERROR: Block %d exceeds filesystem bounds - CORRUPTION DETECTED!", block);
+    return LFS_ERR_CORRUPT;  // return error to abort lfs_traverse() gracefully
+  }
+  context->used += 1;
+  return 0;
 }
 
 lfs_ssize_t _getLfsUsedBlockCount(FILESYSTEM* fs) {
-  lfs_size_t size = 0;
-  int err = lfs_traverse(fs->_getFS(), _countLfsBlock, &size);
+  const lfs_config* config = fs->_getFS()->cfg;
+  if (!config || !config->block_count || !config->block_size) return -1;
+  LfsCountContext context = {0, config->block_count};
+  int err = lfs_traverse(fs->_getFS(), _countLfsBlock, &context);
   if (err) {
     MESH_DEBUG_PRINTLN("ERROR: lfs_traverse() error: %d", err);
-    return 0;
+    return -1;
   }
-  return size;
+  return context.used;
 }
 #endif
 
-uint32_t DataStore::getStorageUsedKb() const {
+DataStore::StorageStatus DataStore::getStorageStatus(bool contacts_channels) const {
+  StorageStatus status = {false, false, 0, 0, 0};
+  FILESYSTEM* fs = contacts_channels ? _getContactsChannelsFS() : _fs;
 #if defined(ESP32)
-  return SPIFFS.usedBytes() / 1024;
+  size_t used = SPIFFS.usedBytes(), total = SPIFFS.totalBytes();
+  uint32_t block_size = 4096;
 #elif defined(RP2040_PLATFORM)
-  FSInfo info;
-  info.usedBytes = 0;
-  _fs->info(info);
-  return info.usedBytes / 1024;
+  FSInfo info = {};
+  if (!fs->info(info)) return status;
+  size_t used = info.usedBytes, total = info.totalBytes;
+  uint32_t block_size = 4096;
 #elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  const lfs_config* config = _getContactsChannelsFS()->_getFS()->cfg;
-  int usedBlockCount = _getLfsUsedBlockCount(_getContactsChannelsFS());
-  int usedBytes = config->block_size * usedBlockCount;
-  return usedBytes / 1024;
+  const lfs_config* config = fs->_getFS()->cfg;
+  if (!config || !config->block_count || !config->block_size) return status;
+  lfs_ssize_t used_blocks = _getLfsUsedBlockCount(fs);
+  if (used_blocks < 0 || (uint32_t)used_blocks > config->block_count) return status;
+  size_t used = (size_t)config->block_size * used_blocks;
+  size_t total = (size_t)config->block_size * config->block_count;
+  uint32_t block_size = config->block_size;
 #else
-  return 0;
+  return status;
 #endif
+  if (!total || used > total) return status;
+  status.available = true;
+  status.used_kb = used / 1024;
+  status.total_kb = total / 1024;
+  status.free_bytes = total - used;
+  const char* files[] = { contacts_channels ? "/contacts3" : "/new_prefs",
+                          contacts_channels ? "/channels3" : "/solo_prefs" };
+  uint32_t largest = 0;
+  for (const char* path : files) {
+    File file = openReadFile(fs, path);
+    if (file) {
+      if (file.size() > largest) largest = file.size();
+      file.close();
+    }
+  }
+  status.low_space = solo::StorageHealth::lowSpace(total - used, largest, block_size);
+  return status;
+}
+
+uint32_t DataStore::getStorageUsedKb() const {
+  return getStorageStatus(true).used_kb;
 }
 
 uint32_t DataStore::getStorageTotalKb() const {
-#if defined(ESP32)
-  return SPIFFS.totalBytes() / 1024;
-#elif defined(RP2040_PLATFORM)
-  FSInfo info;
-  info.totalBytes = 0;
-  _fs->info(info);
-  return info.totalBytes / 1024;
-#elif defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  const lfs_config* config = _getContactsChannelsFS()->_getFS()->cfg;
-  int totalBytes = config->block_size * config->block_count;
-  return totalBytes / 1024;
-#else
-  return 0;
-#endif
+  return getStorageStatus(true).total_kb;
 }
 
 File DataStore::openRead(const char* filename) {
@@ -833,10 +890,22 @@ void DataStore::loadPrefsInt(const char *filename, NodePrefs& _prefs, double& no
 }
 
 bool DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_lon) {
+  _last_sidecar_save_failed = false;
   // Atomic temp-then-rename (see commitTempFile) so an interrupted save can't
   // wipe settings; loadPrefs() still validates the tail sentinel on read.
-  File file = ::openWrite(_fs, "/new_prefs.tmp");
-  if (file) {
+  _fs->remove("/new_prefs.tmp");
+  // Reject only a definitely impossible replacement. A conservative LOW
+  // warning remains advisory; actual writes and read-back decide success.
+  File existing = openReadFile(_fs, "/new_prefs");
+  size_t existing_size = existing ? (size_t)existing.size() : 0;
+  if (existing) existing.close();
+  StorageStatus space = getStorageStatus(false);
+  if (space.available && solo::StorageHealth::cannotStageReplacement(
+          space.free_bytes, existing_size)) return false;
+
+  File backing = ::openWrite(_fs, "/new_prefs.tmp");
+  CheckedPrefsWriter file(backing);
+  if (backing) {
     uint8_t pad[8];
     memset(pad, 0, sizeof(pad));
 
@@ -1010,16 +1079,21 @@ bool DataStore::savePrefs(const NodePrefs& _prefs, double node_lat, double node_
     // the one we check: once the flash fills, writes return 0, so a good
     // sentinel write means the whole record fit. Only then swap it in.
     uint32_t sentinel = NodePrefs::SCHEMA_SENTINEL;
-    bool ok = (file.write((uint8_t *)&sentinel, sizeof(sentinel)) == sizeof(sentinel));
+    bool ok = (file.write((uint8_t *)&sentinel, sizeof(sentinel)) == sizeof(sentinel)) &&
+              file.good();
 
     file.close();
-    if (ok) {
+    if (ok && file.verify(_fs, "/new_prefs.tmp")) {
       if (commitTempFile(_fs, "/new_prefs.tmp", "/new_prefs")) {
-        return saveSoloPrefs(_prefs);
+        // The primary record is authoritative on load. A failed legacy
+        // sidecar update cannot turn a committed save into failure.
+        _last_sidecar_save_failed = !saveSoloPrefs(_prefs);
+        if (_last_sidecar_save_failed)
+          MESH_DEBUG_PRINTLN("WARNING: Legacy preferences sidecar not updated");
+        return true;
       }
-    } else {
-      _fs->remove("/new_prefs.tmp");   // keep the previous good /new_prefs
     }
+    _fs->remove("/new_prefs.tmp");   // keep the previous good /new_prefs
   }
   return false;
 }

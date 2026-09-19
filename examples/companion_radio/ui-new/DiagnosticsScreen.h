@@ -36,6 +36,8 @@ class DiagnosticsScreen : public UIScreen {
   FullscreenMsgView _event_view;
   char _event_title[16]{};
   char _event_detail[96]{};
+  DataStore::StorageStatus _internal_storage{};
+  DataStore::StorageStatus _contacts_storage{};
 
   enum Tab : uint8_t { TAB_LIVE, TAB_EVENTS, TAB_BATTERY, TAB_SYSTEM, TAB_FONT, TAB_COUNT };
   static const char* const TAB_LABELS[TAB_COUNT];
@@ -175,6 +177,25 @@ class DiagnosticsScreen : public UIScreen {
       addLine("SF%u BW%.0f CR%u", (unsigned)p->sf, p->bw, (unsigned)p->cr);
       addLine("TX %d dBm", (int)p->tx_power_dbm);
     }
+    const char* scope = the_mesh.getDefaultFloodScopeName();
+    addLine("Scope default: %.30s", the_mesh.hasDefaultFloodScope() ?
+            (scope[0] ? scope : "Key set") : "None");
+    MyMesh::FloodScopeState scope_state = the_mesh.getFloodScopeState();
+    addLine("Msg flood: %s", scope_state == solo::FloodScopeView::APP_OVERRIDE ? "App override" :
+                             scope_state == solo::FloodScopeView::APP_UNSCOPED ? "App unscoped" :
+                             scope_state == solo::FloodScopeView::DEFAULT ? "Default" : "Unscoped");
+    addLine("Advert flood: %s", the_mesh.hasDefaultFloodScope() ? "Default" : "Unscoped");
+    if (_internal_storage.available)
+      addLine("Internal: %lu/%luKB%s", (unsigned long)_internal_storage.used_kb,
+              (unsigned long)_internal_storage.total_kb,
+              _internal_storage.low_space ? " LOW" : "");
+    else addLine("Internal: Unavailable");
+    if (_contacts_storage.available)
+      addLine("Contacts: %lu/%luKB%s", (unsigned long)_contacts_storage.used_kb,
+              (unsigned long)_contacts_storage.total_kb,
+              _contacts_storage.low_space ? " LOW" : "");
+    else addLine("Contacts: Unavailable");
+    addLine("Back up via companion app");
   }
 
   void buildEventLines() {
@@ -349,6 +370,17 @@ class DiagnosticsScreen : public UIScreen {
 
 public:
   DiagnosticsScreen(UITask* task) : _task(task) {}
+
+  void onShow() override {
+    // A filesystem traverse can touch many flash blocks. Sample only when the
+    // user opens Diagnostics, never from the periodic render or radio loop.
+    _internal_storage = the_mesh.getStorageStatus(false);
+    _contacts_storage = the_mesh.getStorageStatus(true);
+    if (!_internal_storage.available || !_contacts_storage.available)
+      _task->logWarning("Storage", "Status unavailable");
+    else if (_internal_storage.low_space || _contacts_storage.low_space)
+      _task->logWarning("Storage", "Low free space");
+  }
 
   int render(DisplayDriver& display) override {
     display.setTextSize(1);

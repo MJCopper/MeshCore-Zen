@@ -73,6 +73,9 @@ public:
   virtual void onOperationFailure(const char* operation, const char* reason) {
     (void)operation; (void)reason;
   }
+  virtual void onOperationWarning(const char* operation, const char* reason) {
+    (void)operation; (void)reason;
+  }
   // Text reply to an on-device-UI-triggered MyMesh::sendAdminCommand() arrived
   // (see AdminScreen). pub_key is the contact's key prefix (>=4 bytes valid).
   virtual void onAdminReply(const uint8_t* pub_key, const char* text) { (void)pub_key; (void)text; }

@@ -732,6 +732,51 @@ void MyMesh::sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pk
   }
 }
 
+bool MyMesh::useDefaultFloodScopeNow() {
+  if (!hasTemporaryFloodScopeOverride()) return false;
+  memset(send_scope.key, 0, sizeof(send_scope.key));
+  send_unscoped = false;
+  return true;
+}
+
+bool MyMesh::setDefaultFloodScope(const char* name, const uint8_t* key) {
+  if (!name || (!key && name[0])) return false;
+  size_t len = strnlen(name, sizeof(_prefs.default_scope_name));
+  if (len >= sizeof(_prefs.default_scope_name)) return false;
+  NodePrefs candidate = _prefs;
+  memset(candidate.default_scope_name, 0, sizeof(candidate.default_scope_name));
+  memset(candidate.default_scope_key, 0, sizeof(candidate.default_scope_key));
+  if (len) {
+    memcpy(candidate.default_scope_name, name, len);
+    memcpy(candidate.default_scope_key, key, sizeof(candidate.default_scope_key));
+  }
+  if (memcmp(candidate.default_scope_name, _prefs.default_scope_name,
+             sizeof(candidate.default_scope_name)) == 0 &&
+      memcmp(candidate.default_scope_key, _prefs.default_scope_key,
+             sizeof(candidate.default_scope_key)) == 0) return true;
+  if (!_store->savePrefs(candidate, sensors.node_lat, sensors.node_lon)) {
+    if (_ui) _ui->onOperationFailure("Flood scope", "Save failed");
+    return false;
+  }
+  _prefs = candidate;
+  _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
+  if (_store->lastSidecarSaveFailed() && _ui)
+    _ui->onOperationWarning("Settings", "Legacy backup not updated");
+  return true;
+}
+
+bool MyMesh::setDefaultFloodScopeName(const char* name) {
+  char clean[sizeof(_prefs.default_scope_name)];
+  if (!solo::FloodScopeView::normaliseName(name, clean, sizeof(clean))) return false;
+  if (!clean[0]) return setDefaultFloodScope("", nullptr);
+  char keyed_name[sizeof(clean) + 1];
+  snprintf(keyed_name, sizeof(keyed_name), "#%s", clean);
+  TransportKeyStore keys;
+  TransportKey key;
+  keys.getAutoKeyFor(0, keyed_name, key);
+  return setDefaultFloodScope(clean, key.key);
+}
+
 
 void MyMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                            const char *text) {
@@ -1805,15 +1850,24 @@ static bool isAllZero(const uint8_t* buf, size_t n) {
 // Shared by the BLE/USB CMD_SET_CHANNEL handler below and the on-device
 // Channels add/edit/delete UI (ChannelsView) -- one place computing "was this
 // a delete" so the two callers can't drift on the cleanup step.
-bool MyMesh::setChannelLocal(uint8_t idx, const ChannelDetails& ch) {
-  if (!setChannel(idx, ch)) return false;
-  if (!saveChannels()) return false;
+MyMesh::ChannelSaveResult MyMesh::setChannelLocal(uint8_t idx, const ChannelDetails& ch) {
+  ChannelDetails current;
+  if (!getChannel(idx, current)) return CHANNEL_INVALID_SLOT;
+  if (solo::ChannelSlotPolicy::duplicate<ChannelDetails>(*this, MAX_GROUP_CHANNELS,
+                                                           idx, ch.channel.secret) >= 0)
+    return CHANNEL_DUPLICATE;
+  if (strncmp(current.name, ch.name, sizeof(ch.name)) == 0 &&
+      memcmp(current.channel.secret, ch.channel.secret, sizeof(ch.channel.secret)) == 0)
+    return CHANNEL_SAVED;
+  if (!solo::ChannelSlotPolicy::saveWithRollback(idx, ch, current,
+      [this](int slot, const ChannelDetails& value) { return setChannel(slot, value); },
+      [this]() { return saveChannels(); })) return CHANNEL_SAVE_FAILED;
   // An all-zero secret is this codebase's "empty slot" sentinel (same check
   // loadChannels()/saveChannels() use) -- drop anything that referenced it by
   // index, the same way onContactRemoved() does for contacts.
   if (_ui && isAllZero(ch.channel.secret, sizeof(ch.channel.secret)))
     _ui->onChannelRemoved(idx);
-  return true;
+  return CHANNEL_SAVED;
 }
 
 void MyMesh::handleCmdFrame(size_t len) {
@@ -2286,8 +2340,9 @@ void MyMesh::handleCmdFrame(size_t len) {
     int i = 0;
     reply[i++] = RESP_CODE_BATT_AND_STORAGE;
     uint16_t battery_millivolts = board.getBattMilliVolts();
-    uint32_t used = _store->getStorageUsedKb();
-    uint32_t total = _store->getStorageTotalKb();
+    DataStore::StorageStatus storage = _store->getStorageStatus(true);
+    uint32_t used = storage.used_kb;
+    uint32_t total = storage.total_kb;
     memcpy(&reply[i], &battery_millivolts, 2); i += 2;
     memcpy(&reply[i], &used, 4); i += 4;
     memcpy(&reply[i], &total, 4); i += 4;
@@ -2536,10 +2591,12 @@ void MyMesh::handleCmdFrame(size_t len) {
     ChannelDetails channel;
     StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
     memcpy(channel.channel.secret, &cmd_frame[2 + 32], 32); // 256-bit key
-    if (setChannelLocal(channel_idx, channel)) {
+    ChannelSaveResult result = setChannelLocal(channel_idx, channel);
+    if (result == CHANNEL_SAVED) {
       writeOKFrame();
     } else {
-      writeErrFrame(ERR_CODE_NOT_FOUND); // bad channel_idx
+      writeErrFrame(result == CHANNEL_DUPLICATE ? ERR_CODE_ILLEGAL_ARG :
+                    result == CHANNEL_SAVE_FAILED ? ERR_CODE_FILE_IO_ERROR : ERR_CODE_NOT_FOUND);
     }
   } else if (cmd_frame[0] == CMD_SET_CHANNEL && len >= 2 + 32 + 16) {
     uint8_t channel_idx = cmd_frame[1];
@@ -2547,10 +2604,12 @@ void MyMesh::handleCmdFrame(size_t len) {
     StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
     memset(channel.channel.secret, 0, sizeof(channel.channel.secret));
     memcpy(channel.channel.secret, &cmd_frame[2 + 32], 16); // 128-bit key
-    if (setChannelLocal(channel_idx, channel)) {
+    ChannelSaveResult result = setChannelLocal(channel_idx, channel);
+    if (result == CHANNEL_SAVED) {
       writeOKFrame();
     } else {
-      writeErrFrame(ERR_CODE_NOT_FOUND); // bad channel_idx
+      writeErrFrame(result == CHANNEL_DUPLICATE ? ERR_CODE_ILLEGAL_ARG :
+                    result == CHANNEL_SAVE_FAILED ? ERR_CODE_FILE_IO_ERROR : ERR_CODE_NOT_FOUND);
     }
   } else if (cmd_frame[0] == CMD_SIGN_START) {
     out_frame[0] = RESP_CODE_SIGN_START;
@@ -2768,18 +2827,14 @@ void MyMesh::handleCmdFrame(size_t len) {
       // avoid reading into the key (or past the frame) when no NUL is present.
       int n = (int)strnlen((char *) &cmd_frame[1], 31);
       if (n > 0 && n < 31) {
-        strcpy(_prefs.default_scope_name, (char *) &cmd_frame[1]);
-        memcpy(_prefs.default_scope_key, &cmd_frame[1+31], 16);
-        savePrefs();
-        writeOKFrame();
+        if (setDefaultFloodScope((char*)&cmd_frame[1], &cmd_frame[1+31])) writeOKFrame();
+        else writeErrFrame(ERR_CODE_FILE_IO_ERROR);
       } else {
         writeErrFrame(ERR_CODE_ILLEGAL_ARG);
       }
     } else {
-      memset(_prefs.default_scope_name, 0, sizeof(_prefs.default_scope_name));  // set default scope to null
-      memset(_prefs.default_scope_key, 0, sizeof(_prefs.default_scope_key));
-      savePrefs();
-      writeOKFrame();
+      if (setDefaultFloodScope("", nullptr)) writeOKFrame();
+      else writeErrFrame(ERR_CODE_FILE_IO_ERROR);
     }
   } else if (cmd_frame[0] == CMD_GET_DEFAULT_FLOOD_SCOPE) {
     out_frame[0] = RESP_CODE_DEFAULT_FLOOD_SCOPE;

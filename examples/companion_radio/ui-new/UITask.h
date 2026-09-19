@@ -6,6 +6,7 @@
 #include <helpers/SensorManager.h>
 #include <helpers/BaseSerialInterface.h>
 #include <helpers/ContactInfo.h>
+#include "../solo/PathDetails.h"
 #include <Arduino.h>
 #include <helpers/sensors/LPPDataHelpers.h>
 
@@ -229,6 +230,7 @@ public:
   void gotoGpsPollingSettings();
 #endif
   void gotoMessagesScreen();
+  solo::PathAttemptSnapshot latestPathAttempt(const uint8_t* pub_key) const;
   void gotoMessagesCategory(uint8_t category);
   void gotoChildUnlockScreen();
   void openContactDM(const ContactInfo& ci);
@@ -286,6 +288,9 @@ public:
                    const char* reason, bool background = false, bool screen_wake = true);
   void onOperationFailure(const char* operation, const char* reason) override {
     reportEvent(solo::DiagnosticLog::ERROR, operation, reason, true);
+  }
+  void onOperationWarning(const char* operation, const char* reason) override {
+    reportEvent(solo::DiagnosticLog::WARNING, operation, reason, true);
   }
   const solo::DiagnosticLog& diagnosticLog() const { return _diagnostic_log; }
   void clearDiagnosticLog() { _diagnostic_log.clear(); }

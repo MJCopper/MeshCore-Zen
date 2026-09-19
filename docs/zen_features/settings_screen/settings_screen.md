@@ -124,6 +124,12 @@ TX power, preset, frequency, spreading factor, bandwidth and coding rate. Preset
 changes apply the frequency, bandwidth, SF and CR together. Frequency uses a
 validated digit editor.
 
+**Flood Scope** sets the saved default region for message floods and flood
+adverts. Enter a region name (or leave it empty for no scope), confirm the
+delivery warning, then leave Settings to save. **Msg Flood** shows whether
+message floods currently use the default or a temporary app override.
+**Use Default** clears that override in RAM without changing the saved scope.
+
 ## System
 
 | Setting | Options or action |

@@ -1,6 +1,6 @@
 # Zen features
 
-Zen v1.32.94 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
+Zen v1.32.107 extends MeshCore v1.17.1 companion firmware for the Wio Tracker L1.
 The features below are provided by Zen in addition to the standard MeshCore
 companion protocol and radio operation.
 
@@ -23,11 +23,11 @@ companion protocol and radio operation.
 | Notifications | Per-contact/channel tones, eight built-in melodies, two editable chromatic tones and five-second notification wake |
 | Advert | Manual and Off/1 h/3 h/6 h automatic adverts with shared GPS privacy control and timed status icon |
 | Repeater Mode | Companion repeating with current radio settings, MeshCore repeater timing, Yield x2 and duplicate suppression |
-| Node tools | Repeater discovery, filtered Node List, inspection, ping and saved-node management |
+| Node tools | Repeater discovery, filtered Node List, inspection, ping, read-only path details and saved-node management |
 | Node administration | ACL/password login, route retries, remote settings, routing, radio, console and verified changes for repeaters, rooms and sensors |
 | Battery | Li-ion percentage curve, learned remaining-runtime estimate, hourly low-battery warning and 3.3 V shutdown protection |
 | Low Power | Automatic 5% radio/GPS/Bluetooth suspension with a ten-minute emergency communications override |
-| Diagnostics | Live radio/mesh counters, battery and system details, font viewer and a 16-entry RAM-only warning/error log |
+| Diagnostics | Live radio/mesh counters, battery, storage and flood-scope status, system details, font viewer and a 16-entry RAM-only warning/error log |
 | Signal indicator | Three-bar SF-relative repeater-link estimate from passive routed traffic, with authoritative 30-minute user-wake discovery ([guide](./docs/zen_features/signal_indicator/signal_indicator.md)) |
 | Configuration | Save-on-exit for changed values, versioned Zen sidecar preferences and schema-based migrations |
 

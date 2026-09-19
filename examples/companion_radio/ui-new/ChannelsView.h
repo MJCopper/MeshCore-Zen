@@ -95,7 +95,7 @@ class ChannelsView {
     return true;
   }
 
-  bool saveChannel(const char* name, const uint8_t secret[32]) {
+  MyMesh::ChannelSaveResult saveChannel(const char* name, const uint8_t secret[32]) {
     ChannelDetails ch;
     memset(&ch, 0, sizeof(ch));
     strncpy(ch.name, name, sizeof(ch.name) - 1);
@@ -113,7 +113,9 @@ class ChannelsView {
     static const char PUBLIC_SECRET_HEX[] = "8b3387e9c5cdea6ac9e5edbaa115cd72";
     uint8_t secret[32];
     hexToSecret(PUBLIC_SECRET_HEX, secret);   // fixed, known-good constant -- can't fail
-    if (saveChannel("Public", secret)) _task->showAlert("Channel added", 1000);
+    MyMesh::ChannelSaveResult result = saveChannel("Public", secret);
+    if (result == MyMesh::CHANNEL_SAVED) _task->showAlert("Channel added", 1000);
+    else if (result == MyMesh::CHANNEL_DUPLICATE) _task->logWarning("Channel", "Already added");
     else {
       _task->logFailure("Channel", "Save failed");
     }
@@ -140,9 +142,12 @@ class ChannelsView {
       _task->logWarning("Channel", _hex_mode ? "Invalid secret" : "Secret required");
       return;
     }
-    if (saveChannel(_name, secret)) {
+    MyMesh::ChannelSaveResult result = saveChannel(_name, secret);
+    if (result == MyMesh::CHANNEL_SAVED) {
       _task->showAlert((_mode == ADD || _mode == ADD_HASHTAG) ? "Channel added" : "Channel updated", 1000);
       _mode = OFF;
+    } else if (result == MyMesh::CHANNEL_DUPLICATE) {
+      _task->logWarning("Channel", "Already added");
     } else {
       _task->logFailure("Channel", "Save failed");
     }

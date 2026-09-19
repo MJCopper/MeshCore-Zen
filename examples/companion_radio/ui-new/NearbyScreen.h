@@ -1,6 +1,7 @@
 #pragma once
 #include "../GeoUtils.h"
 #include "TabBar.h"
+#include "PathDetailsView.h"
 #include "../solo/SignalFormat.h"
 
 // ── Nearby Nodes ──────────────────────────────────────────────────────────────
@@ -24,7 +25,7 @@ class NearbyScreen : public UIScreen {
   enum Source : uint8_t { SRC_STORED, SRC_SCAN };
 
   // ── action-menu actions (matched by id, not by row index) ────────────────────
-  enum Action : uint8_t { ACT_PING, ACT_ADD, ACT_DELETE, ACT_FAV, ACT_PIN,
+  enum Action : uint8_t { ACT_PING, ACT_PATH, ACT_ADD, ACT_DELETE, ACT_FAV, ACT_PIN,
                           ACT_ADMIN, ACT_SORT, ACT_SCAN };
 
   // Returning from a node's Admin action preserves this browsing context.
@@ -74,6 +75,7 @@ class NearbyScreen : public UIScreen {
 
   // ── popups ────────────────────────────────────────────────────────────────────
   PopupMenu _menu;            // unified action menu (Hold Enter), list + detail
+  PathDetailsView _path_view;
   PopupMenu _ping_menu;       // ping (special: read-only result rows)
   PopupMenu _confirm;         // delete-contact confirmation (destructive → 2-step)
 
@@ -500,6 +502,8 @@ class NearbyScreen : public UIScreen {
     };
 
     if (has_key) add("Ping",          ACT_PING);
+    if (stored && is_contact && has_key && !_task->isChildModeLocked())
+      add("Path details", ACT_PATH);
     if (can_add)            add("Add contact", ACT_ADD);
     if (stored && is_contact && has_key) {
       snprintf(_fav_label, sizeof(_fav_label), "Fav: %s", e->favourite ? "On" : "Off");
@@ -524,6 +528,12 @@ class NearbyScreen : public UIScreen {
         rebuildPingMenu();
         _ping_menu.active = true;
         if (e && e->has_key) startPingForKey(e->pub_key);
+        break;
+      }
+      case ACT_PATH: {
+        const Entry* e = selected();
+        if (e && e->has_key)
+          _path_view.open(e->pub_key, _task->latestPathAttempt(e->pub_key));
         break;
       }
       case ACT_ADD: {
@@ -663,6 +673,7 @@ public:
   }
 
   void onShow() override {
+    _path_view.active = false;
     if (_resume_admin) {
       _resume_admin = false;
       _menu.active = false;
@@ -696,6 +707,11 @@ public:
 
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
+    if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
+    if (_path_view.active) {
+      _path_view.setAttempt(_task->latestPathAttempt(_path_view.key()));
+      return _path_view.render(display);
+    }
 
     // Periodic refresh of the selected entry while in detail or navigate view,
     // preserving the selection across the list rebuild. Navigate refreshes
@@ -813,6 +829,8 @@ public:
   }
 
   bool handleInput(char c) override {
+    if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
+    if (_path_view.active) return _path_view.handleInput(c);
     // ── navigate-to-node view — any nav key returns to detail ─────────────────
     // ── popups (same handling in list and detail) ─────────────────────────────
     if (_confirm.active) {

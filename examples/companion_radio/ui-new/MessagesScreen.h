@@ -8,6 +8,7 @@
 #include "../solo/NotificationPreferences.h"
 #include "../solo/BuiltinMelodies.h"
 #include "MessageTranscriptView.h"
+#include "PathDetailsView.h"
 #include "RecentParticipants.h"
 #include "../solo/QuickReplies.h"
 #include "../solo/MessageDraftStore.h"
@@ -112,6 +113,7 @@ class MessagesScreen : public UIScreen {
   // shared types (AckState, ChHistEntry, DmHistEntry, MSG_TEXT_BUF) are file-
   // scope, so they're still referred to unqualified throughout this screen.
   MessageHistory _history;
+  PathDetailsView _path_view;
   solo::MessageDraftStore _drafts;
 
   // DM_HIST view state (the ring itself is in _history).
@@ -696,6 +698,10 @@ class MessagesScreen : public UIScreen {
   ChannelsView _ch_view;
 
 public:
+  solo::PathAttemptSnapshot latestPathAttempt(const uint8_t* pub_key) const {
+    return _history.latestPathAttempt(pub_key);
+  }
+
   MessagesScreen(UITask* task, KeyboardWidget* kb)
     : _task(task), _kb(kb), _phase(MODE_SELECT), _mode_sel(0),
       _contact_sel(0), _contact_scroll(0), _num_contacts(0), _room_mode(false), _login_mode(false),
@@ -710,13 +716,9 @@ public:
     // The history rings + per-channel unread counters init in MessageHistory.
   }
 
-  // First free channel slot (existing config or blank name), or -1 if full.
+  // A blank name is still an occupied slot when it has a channel key.
   int findFreeChannelSlot() const {
-    for (int i = 0; i < MAX_GROUP_CHANNELS; i++) {
-      ChannelDetails ch;
-      if (!the_mesh.getChannel(i, ch) || ch.name[0] == '\0') return i;
-    }
-    return -1;
+    return solo::ChannelSlotPolicy::firstFree<ChannelDetails>(the_mesh, MAX_GROUP_CHANNELS);
   }
 
   // CHANNEL_PICK row count including the synthetic "+ Add channel" row
@@ -884,6 +886,7 @@ public:
   }
 
   void reset() {
+    _path_view.active = false;
     _phase = MODE_SELECT;
     _mode_sel = 0;
     _contact_sel = _contact_scroll = 0;
@@ -1087,6 +1090,11 @@ public:
   int render(DisplayDriver& display) override {
     display.setTextSize(1);
     display.setColor(DisplayDriver::LIGHT);
+    if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
+    if (_path_view.active) {
+      _path_view.setAttempt(_history.latestPathAttempt(_path_view.key()));
+      return _path_view.render(display);
+    }
 
     // Channel Add/Edit form owns the screen while active.
     if (_ch_view.active()) return _ch_view.render(display);
@@ -1383,6 +1391,8 @@ public:
   }
 
   bool handleInput(char c) override {
+    if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
+    if (_path_view.active) return _path_view.handleInput(c);
     // Channel Add/Edit form consumes all input while active.
     if (_ch_view.active()) return _ch_view.handleInput(c);
 
@@ -1550,6 +1560,8 @@ public:
               int cleared = (int)_task->getDMUnread(ci.id.pub_key);
               _task->clearDMUnread(ci.id.pub_key);
               markReadAlert(cleared);
+            } else if (sel == 5) {
+              _path_view.open(ci.id.pub_key, _history.latestPathAttempt(ci.id.pub_key));
             } else if (sel == 4) {
               // Pin / Unpin
               int pinned_slot = _task->findFavouriteSlot(ci.id.pub_key);
@@ -1680,12 +1692,13 @@ public:
         if (pinned_slot >= 0) snprintf(_ctx_pin_item, sizeof(_ctx_pin_item), "Unpin (slot %d)", pinned_slot + 1);
         else                  snprintf(_ctx_pin_item, sizeof(_ctx_pin_item), "Pin to dial");
         snprintf(_ctx_fav_item, sizeof(_ctx_fav_item), "Fav: %s", (ci.flags & 0x01) ? "On" : "Off");
-        _ctx_menu.begin("Contact options", 5);
+        _ctx_menu.begin("Contact options", 6);
         _ctx_menu.addItem("Mark as read");
         _ctx_menu.addValueItem(_ctx_notif_item);
         _ctx_menu.addValueItem(_ctx_melody_item);
         _ctx_menu.addValueItem(_ctx_fav_item);
         _ctx_menu.addItem(_ctx_pin_item);
+        _ctx_menu.addItem("Path details");
         _ctx_dirty = false;
         return true;
       }
@@ -1746,8 +1759,10 @@ public:
           if (res == PopupMenu::SELECTED && _ctx_menu.selectedIndex() == 0) {
             ChannelDetails ch;
             memset(&ch, 0, sizeof(ch));
-            the_mesh.setChannelLocal(_ctx_ch_idx, ch);
-            _task->showAlert("Channel deleted", 1000);
+            if (the_mesh.setChannelLocal(_ctx_ch_idx, ch) == MyMesh::CHANNEL_SAVED)
+              _task->showAlert("Channel deleted", 1000);
+            else
+              _task->logFailure("Channel", "Delete failed");
           }
           if (res != PopupMenu::NONE) {
             _channel_delete_confirm_active = false;

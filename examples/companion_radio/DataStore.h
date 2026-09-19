@@ -18,6 +18,7 @@ class DataStore {
   FILESYSTEM* _fsExtra;
   mesh::RTCClock* _clock;
   IdentityStore identity_store;
+  bool _last_sidecar_save_failed = false;
 
   void loadPrefsInt(const char *filename, NodePrefs& prefs, double& node_lat, double& node_lon);
   void loadSoloPrefs(NodePrefs& prefs);
@@ -27,6 +28,14 @@ class DataStore {
 #endif
 
 public:
+  struct StorageStatus {
+    bool available;
+    bool low_space;
+    uint32_t used_kb;
+    uint32_t total_kb;
+    uint32_t free_bytes;
+  };
+
   DataStore(FILESYSTEM& fs, mesh::RTCClock& clock);
   DataStore(FILESYSTEM& fs, FILESYSTEM& fsExtra, mesh::RTCClock& clock);
   void begin();
@@ -39,6 +48,7 @@ public:
   bool hasMeshCorePrefs() const;
   bool importMeshCorePrefs(NodePrefs& prefs, double& node_lat, double& node_lon);
   bool savePrefs(const NodePrefs& prefs, double node_lat, double node_lon);
+  bool lastSidecarSaveFailed() const { return _last_sidecar_save_failed; }
   void loadContacts(DataStoreHost* host);
   bool saveContacts(DataStoreHost* host, bool (*filter)(const ContactInfo& c) = NULL);
   // True when current or legacy channel storage exists. This lets first boot
@@ -61,6 +71,7 @@ public:
   bool removeFile(FILESYSTEM* fs, const char* filename);
   uint32_t getStorageUsedKb() const;
   uint32_t getStorageTotalKb() const;
+  StorageStatus getStorageStatus(bool contacts_channels) const;
   bool saveRTCTime();
   void restoreRTCTime();
 

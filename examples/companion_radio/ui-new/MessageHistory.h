@@ -12,6 +12,7 @@
 
 #include "../solo/MessageAckTracker.h"
 #include "../solo/NodeRouteRetry.h"
+#include "../solo/PathDetails.h"
 
 // Outgoing-message delivery state. DM: a real end-to-end ACK (✓ delivered to
 // the recipient). Channel: only a "relayed into mesh" echo from a repeater (no
@@ -57,6 +58,10 @@ struct DmHistEntry {
   // sender_timestamp for incoming (used to dedup retried copies). 0 = unknown.
   uint32_t msg_ts;
   uint8_t  attempt;          // last attempt number sent (outgoing); next resend = attempt+1
+  uint8_t  path_hops;        // last learned route shape, retained after flood fallback
+  uint8_t  path_hash_bytes;
+  uint8_t  fallback_from_path;
+  uint8_t  fallback_hops;
   solo::NodeRouteRetry route_retry;
 };
 
@@ -250,6 +255,21 @@ public:
     _dm_hist[pos].ack_deadline_ms = ack_deadline_ms;
     _dm_hist[pos].msg_ts          = msg_ts;
     _dm_hist[pos].attempt         = 0;
+    _dm_hist[pos].path_hops = 0;
+    _dm_hist[pos].path_hash_bytes = 0;
+    _dm_hist[pos].fallback_from_path = 0;
+    _dm_hist[pos].fallback_hops = 0;
+    if (initial_route == DELIVERY_ROUTE_PATH) {
+      ContactInfo route_contact;
+      if (contactByPrefix(pub_key, route_contact)) {
+        solo::PathShape shape = solo::pathShape(route_contact.out_path_len,
+                                                sizeof(route_contact.out_path));
+        if (shape.valid && shape.known) {
+          _dm_hist[pos].path_hops = shape.hops;
+          _dm_hist[pos].path_hash_bytes = shape.hash_bytes;
+        }
+      }
+    }
     bool initial_direct = initial_route == DELIVERY_ROUTE_DIRECT ||
                           initial_route == DELIVERY_ROUTE_PATH;
     if (outgoing && ack_tag) _dm_hist[pos].route_retry.begin(initial_direct);
@@ -291,6 +311,17 @@ public:
       e.ack_deadline_ms = ack_deadline_ms;
       e.ack_status = ack_tag ? ACK_PENDING : ACK_NONE;
       e.delivery_route = route;
+      if (route == DELIVERY_ROUTE_PATH) {
+        ContactInfo current;
+        if (contactByPrefix(pub_key, current)) {
+          solo::PathShape shape = solo::pathShape(current.out_path_len,
+                                                  sizeof(current.out_path));
+          if (shape.valid && shape.known) {
+            e.path_hops = shape.hops;
+            e.path_hash_bytes = shape.hash_bytes;
+          }
+        }
+      }
       e.acknowledgements.record(attempt, ack_tag, route);
       e.route_retry.reset();
       scheduleDmMaintenance();
@@ -382,6 +413,10 @@ public:
     e.delivery_route = direct
         ? (c.out_path_len == 0 ? DELIVERY_ROUTE_DIRECT : DELIVERY_ROUTE_PATH)
         : DELIVERY_ROUTE_FLOOD;
+    if (e.delivery_route == DELIVERY_ROUTE_PATH) {
+      solo::PathShape shape = solo::pathShape(c.out_path_len, sizeof(c.out_path));
+      if (shape.valid) { e.path_hops = shape.hops; e.path_hash_bytes = shape.hash_bytes; }
+    }
     e.acknowledgements.record(e.attempt, expected_ack, e.delivery_route);
     e.route_retry.begin(direct);
     scheduleDmMaintenance();
@@ -419,6 +454,8 @@ public:
         if (matched_prefix) memcpy(matched_prefix, e.prefix, sizeof(e.prefix));
         e.ack_status = ACK_OK;
         e.delivery_route = route;
+        if (route == DELIVERY_ROUTE_PATH || route == DELIVERY_ROUTE_DIRECT)
+          e.fallback_from_path = 0; // a late ACK proved the earlier route worked
         e.route_retry.reset();
         scheduleDmMaintenance();
         return true;
@@ -461,6 +498,11 @@ public:
       }
       bool send_direct = retry == solo::NodeRouteRetry::RETRY_PATH;
       if (!send_direct) {
+        if ((e.delivery_route == DELIVERY_ROUTE_PATH ||
+             e.delivery_route == DELIVERY_ROUTE_DIRECT) && !e.fallback_from_path) {
+          e.fallback_from_path = 1;
+          e.fallback_hops = e.path_hops;
+        }
         // Force every fallback attempt to flood, even if a path-return packet
         // learned a fresh route after an earlier flood whose ACK was missed.
         the_mesh.clearContactPath(e.prefix, sizeof(e.prefix));
@@ -477,6 +519,10 @@ public:
         e.delivery_route = send_direct
             ? (c.out_path_len == 0 ? DELIVERY_ROUTE_DIRECT : DELIVERY_ROUTE_PATH)
             : DELIVERY_ROUTE_FLOOD;
+        if (e.delivery_route == DELIVERY_ROUTE_PATH) {
+          solo::PathShape shape = solo::pathShape(c.out_path_len, sizeof(c.out_path));
+          if (shape.valid) { e.path_hops = shape.hops; e.path_hash_bytes = shape.hash_bytes; }
+        }
         e.acknowledgements.record(e.attempt, expected_ack, e.delivery_route);
       } else {
         e.ack_status = ACK_FAIL;            // couldn't compose/send — give up
@@ -528,6 +574,23 @@ public:
 
   DmHistEntry&       dmAtPos(int pos)       { return _dm_hist[pos]; }
   const DmHistEntry& dmAtPos(int pos) const { return _dm_hist[pos]; }
+
+  solo::PathAttemptSnapshot latestPathAttempt(const uint8_t* prefix) const {
+    solo::PathAttemptSnapshot result;
+    for (int i = _dm_hist_count - 1; i >= 0; i--) {
+      const DmHistEntry& e = _dm_hist[(_dm_hist_head + i) % DM_HIST_MAX];
+      if (!e.outgoing || memcmp(e.prefix, prefix, 4)) continue;
+      result.route = e.delivery_route;
+      result.tries = e.attempt + 1;
+      result.hops = e.path_hops;
+      result.hash_bytes = e.path_hash_bytes;
+      result.result = dmEffectiveStatus(e);
+      result.fallback_from_path = e.fallback_from_path != 0;
+      result.fallback_hops = e.fallback_hops;
+      break;
+    }
+    return result;
+  }
 
 private:
   // Recompute only when delivery state changes. UITask may call

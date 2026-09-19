@@ -1901,6 +1901,10 @@ void UITask::gotoMessagesScreen() {
   setCurrScreen(messages_screen);
 }
 
+solo::PathAttemptSnapshot UITask::latestPathAttempt(const uint8_t* pub_key) const {
+  return ((MessagesScreen*)messages_screen)->latestPathAttempt(pub_key);
+}
+
 void UITask::gotoMessagesCategory(uint8_t category) {
   ((MessagesScreen*)messages_screen)->enterCategory(category);
   setCurrScreen(messages_screen);

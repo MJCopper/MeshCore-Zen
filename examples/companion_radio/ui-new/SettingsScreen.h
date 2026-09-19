@@ -73,6 +73,7 @@ class SettingsScreen : public UIScreen {
     TX_POWER,
     RADIO_PRESET,
     CUSTOM_FREQ, CUSTOM_SF, CUSTOM_BW, CUSTOM_CR,
+    DEFAULT_FLOOD_SCOPE, CURRENT_FLOOD_SCOPE, USE_DEFAULT_SCOPE,
     // System section
     SECTION_SYSTEM,
     DEVICE_NAME,
@@ -123,6 +124,12 @@ class SettingsScreen : public UIScreen {
 #endif
   bool _bluetooth_dirty = false; // staged with GPS; applied and saved on exit
   uint8_t _bluetooth_initial = 1;
+  char _scope_pending_name[31]{};
+  char _scope_proposed_name[31]{};
+  bool _scope_dirty = false;
+  bool _scope_editing = false;
+  PopupMenu _scope_confirm;
+  PopupMenu _scope_reset_menu;
 
   static const int NUM_SECTIONS = 10 + SOLO_FEAT_CHILD_MODE;
   static const int MAX_PER_SEC  = 16;
@@ -466,6 +473,23 @@ class SettingsScreen : public UIScreen {
       snprintf(buf, sizeof(buf), "%d", p ? (int)p->cr : 0);
       display.setCursor(valCol(display), y);
       display.print(buf);
+    } else if (item == DEFAULT_FLOOD_SCOPE) {
+      display.print("Flood Scope");
+      int x = valCol(display);
+      display.drawTextEllipsized(x, y, display.width() - x - _reserve,
+                                _scope_pending_name[0] ? _scope_pending_name : "None", sel);
+    } else if (item == CURRENT_FLOOD_SCOPE) {
+      display.print("Msg Flood");
+      const auto state = the_mesh.getFloodScopeState();
+      const char* value = state == solo::FloodScopeView::APP_OVERRIDE ? "App" :
+                          state == solo::FloodScopeView::APP_UNSCOPED ? "App Off" :
+                          state == solo::FloodScopeView::DEFAULT ? "Default" : "None";
+      display.setCursor(valCol(display), y);
+      display.print(value);
+    } else if (item == USE_DEFAULT_SCOPE) {
+      display.print("Use Default");
+      display.setCursor(valCol(display), y);
+      display.print(the_mesh.hasTemporaryFloodScopeOverride() ? "Now" : "---");
 #if AUTO_OFF_MILLIS > 0
     } else if (item == AUTO_OFF) {
       display.print("Auto-off");
@@ -639,6 +663,19 @@ class SettingsScreen : public UIScreen {
   int _quiet_edit_item = -1;
 
   void commitStagedChanges() {
+    if (_scope_dirty) {
+      if (the_mesh.setDefaultFloodScopeName(_scope_pending_name)) {
+        NodePrefs* saved = _task->getNodePrefs();
+        if (saved) {
+          _initial_prefs_fingerprint = prefsFingerprint(*saved);
+          _have_initial_prefs = true;
+        }
+      } else {
+        snprintf(_scope_pending_name, sizeof(_scope_pending_name), "%s",
+                 the_mesh.getDefaultFloodScopeName());
+      }
+      _scope_dirty = false;
+    }
     bool gps_changed = false;
 #if ENV_INCLUDE_GPS == 1
     gps_changed = _gps_dirty;
@@ -673,6 +710,10 @@ public:
   // Capture staged fields without applying hardware changes immediately; the
   // caller is about to power off or reboot and performs the single prefs write.
   void prepareForShutdown() {
+    if (_scope_dirty) {
+      the_mesh.setDefaultFloodScopeName(_scope_pending_name);
+      _scope_dirty = false;
+    }
 #if ENV_INCLUDE_GPS == 1
     if (_gps_dirty && _task->getNodePrefs()) {
       NodePrefs* p = _task->getNodePrefs();
@@ -702,6 +743,12 @@ public:
 #endif
     _bluetooth_dirty = false;
     _bluetooth_initial = p ? p->bluetooth_enabled : 1;
+    snprintf(_scope_pending_name, sizeof(_scope_pending_name), "%s",
+             the_mesh.getDefaultFloodScopeName());
+    _scope_dirty = false;
+    _scope_editing = false;
+    _scope_confirm.active = false;
+    _scope_reset_menu.active = false;
     _edit_name = false;
     _edit_slot = -1;
     _picker.menu.active = false;
@@ -824,7 +871,7 @@ public:
       _bluetooth_pin.render(display, display.valCol(), display.height() / 2);
       return 0;
     }
-    if (_edit_slot >= 0 || _edit_name || _picker.saving) {
+    if (_edit_slot >= 0 || _edit_name || _scope_editing || _picker.saving) {
       return _kb->render(display);
     }
 
@@ -836,6 +883,8 @@ public:
       });
 
     if (_picker.menu.active) _picker.menu.render(display);
+    if (_scope_confirm.active) _scope_confirm.render(display);
+    if (_scope_reset_menu.active) _scope_reset_menu.render(display);
 
     return 2000;
   }
@@ -920,6 +969,38 @@ public:
       return true;
     }
     NodePrefs* p = _task->getNodePrefs();
+
+    if (_scope_editing) {
+      auto result = _kb->handleInput(c);
+      if (result == KeyboardWidget::DONE) {
+        _scope_editing = false;
+        if (!solo::FloodScopeView::normaliseName(_kb->buf, _scope_proposed_name,
+                                                  sizeof(_scope_proposed_name))) {
+          _task->logWarning("Flood scope", "Invalid region name");
+        } else if (strcmp(_scope_pending_name, _scope_proposed_name) != 0) {
+          _scope_confirm.beginConfirm("May block delivery?", "Apply");
+        }
+      } else if (result == KeyboardWidget::CANCELLED) {
+        _scope_editing = false;
+      }
+      return true;
+    }
+    if (_scope_confirm.active) {
+      auto result = _scope_confirm.handleInput(c);
+      if (result == PopupMenu::SELECTED && _scope_confirm.selectedIndex() == 0) {
+        snprintf(_scope_pending_name, sizeof(_scope_pending_name), "%s", _scope_proposed_name);
+        _scope_dirty = strcmp(_scope_pending_name, the_mesh.getDefaultFloodScopeName()) != 0;
+      }
+      return true;
+    }
+    if (_scope_reset_menu.active) {
+      auto result = _scope_reset_menu.handleInput(c);
+      if (result == PopupMenu::SELECTED && _scope_reset_menu.selectedIndex() == 0) {
+        the_mesh.useDefaultFloodScopeNow();
+        _task->showAlert("Default scope active", 1000);
+      }
+      return true;
+    }
 
     if (_timezone_editor.active()) {
       if (!p) { _timezone_editor.close(); return true; }
@@ -1156,6 +1237,18 @@ public:
     }
     if (_selected == RADIO_PRESET && p && enter) {
       _picker.open(p, radioTarget(p), "Radio Preset");
+      return true;
+    }
+    if (_selected == DEFAULT_FLOOD_SCOPE && enter) {
+      _kb->begin(_scope_pending_name, 30);
+      _kb->clearPlaceholders();
+      _scope_editing = true;
+      return true;
+    }
+    if (_selected == CURRENT_FLOOD_SCOPE && enter) return true;
+    if (_selected == USE_DEFAULT_SCOPE && enter) {
+      if (the_mesh.hasTemporaryFloodScopeOverride())
+        _scope_reset_menu.beginConfirm("Use saved default?", "Use default");
       return true;
     }
     // Enter Freq's digit-by-digit editor. Bounds come from the radio driver

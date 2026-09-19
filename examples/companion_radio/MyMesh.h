@@ -10,6 +10,8 @@
 #include "solo/RepeaterSignalMonitor.h"
 #include "solo/TimezonePolicy.h"
 #include "solo/PrefsSaveTracker.h"
+#include "solo/FloodScopeView.h"
+#include "solo/ChannelSlotPolicy.h"
 #include <helpers/ui/DisplayDriver.h>
 
 // Forward declaration for UITask
@@ -25,7 +27,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.32.103"
+#define FIRMWARE_VERSION "v1.32.109"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -101,6 +103,29 @@ struct DiscoverResult {
 
 class MyMesh : public BaseChatMesh, public DataStoreHost {
 public:
+  using FloodScopeState = solo::FloodScopeView::State;
+
+  DataStore::StorageStatus getStorageStatus(bool contacts_channels) const {
+    return _store->getStorageStatus(contacts_channels);
+  }
+  FloodScopeState getFloodScopeState() const {
+    TransportKey key;
+    memcpy(key.key, _prefs.default_scope_key, sizeof(key.key));
+    return solo::FloodScopeView::state(send_unscoped, !send_scope.isNull(), !key.isNull());
+  }
+  const char* getDefaultFloodScopeName() const { return _prefs.default_scope_name; }
+  bool hasTemporaryFloodScopeOverride() const {
+    return send_unscoped || !send_scope.isNull();
+  }
+  bool useDefaultFloodScopeNow();
+  bool setDefaultFloodScope(const char* name, const uint8_t* key);
+  bool setDefaultFloodScopeName(const char* name);
+  bool hasDefaultFloodScope() const {
+    TransportKey key;
+    memcpy(key.key, _prefs.default_scope_key, sizeof(key.key));
+    return !key.isNull();
+  }
+
   void setLowPowerMode(bool active) {
     if (_low_power_mode == active) return;
     _low_power_mode = active;
@@ -348,7 +373,8 @@ public:
   // On-device channel add/edit/delete (Messages > Channels). Shares the exact
   // setChannel + saveChannels + onChannelRemoved-cleanup sequence the
   // CMD_SET_CHANNEL BLE handler already performs, so both paths stay in sync.
-  bool setChannelLocal(uint8_t idx, const ChannelDetails& ch);
+  enum ChannelSaveResult { CHANNEL_SAVED, CHANNEL_DUPLICATE, CHANNEL_INVALID_SLOT, CHANNEL_SAVE_FAILED };
+  ChannelSaveResult setChannelLocal(uint8_t idx, const ChannelDetails& ch);
 
   // Local administration uses the same wire commands as the app, but owns
   // its pending reply independently. Always resolve the current routing data.
@@ -371,6 +397,8 @@ public:
     if (!_prefs_save_tracker.needsSave(_prefs, sensors.node_lat, sensors.node_lon)) return true;
     bool ok = _store->savePrefs(_prefs, sensors.node_lat, sensors.node_lon);
     if (ok) _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
+    if (ok && _store->lastSidecarSaveFailed() && _ui)
+      _ui->onOperationWarning("Settings", "Legacy backup not updated");
     if (!ok && _ui) _ui->onOperationFailure("Settings", "Save failed");
     return ok;
   }
