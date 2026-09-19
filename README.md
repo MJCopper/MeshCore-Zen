@@ -27,7 +27,8 @@ wiring table.
 - Temperature, relative humidity, pressure, calculated altitude and relative
   air-quality telemetry.
 - One sensor sample per minute with the latest result cached in RAM.
-- Public-channel queries through the case-insensitive `!hillvue` command.
+- Public-channel queries for environmental readings, battery voltage, reachability
+  and repeater path through the case-insensitive `!hillvue` command.
 - Single- and multi-value command responses with consistent labels and units.
 - Ten-sample air-quality warm-up with descriptive quality ratings.
 - RAM-only air-quality calibration and duplicate-command tracking.

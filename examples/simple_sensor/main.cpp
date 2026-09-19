@@ -2,6 +2,7 @@
 
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   #include "PublicChannelSensorBot.h"
+  #include "RepeaterNameCache.h"
 #endif
 
 #ifdef DISPLAY_CLASS
@@ -41,16 +42,30 @@ public:
   {
   }
 
+#ifdef PUBLIC_CHANNEL_SENSOR_BOT
+  void begin(FILESYSTEM* fs) {
+    SensorMesh::begin(fs);
+    repeater_names.begin(fs);
+  }
+
+  void loop() {
+    SensorMesh::loop();
+    repeater_names.loop(millis());
+  }
+#endif
+
 protected:
   /* ========================== custom logic here ========================== */
   Trigger low_batt, critical_batt;
   TimeSeriesData  battery_data;
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   PublicChannelSensorBot public_bot;
+  RepeaterNameCache repeater_names;
   float bme_temperature = NAN;
   float bme_humidity = NAN;
   float bme_pressure = NAN;
   float bme_air_quality = NAN;
+  float cached_voltage = NAN;
   bool bme_data_ready = false;
   uint8_t bme_sample_count = 0;
 #endif
@@ -62,6 +77,7 @@ protected:
     alertIf(batt_voltage < 3.4f, critical_batt, HIGH_PRI_ALERT, "Battery is critical!");
     alertIf(batt_voltage < 3.6f, low_batt, LOW_PRI_ALERT, "Battery is low");
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
+    cached_voltage = batt_voltage;
     // This build enables only the BME680, so it occupies telemetry channel 2.
     bme_temperature = getTemperature(2);
     bme_humidity = getRelativeHumidity(2);
@@ -100,23 +116,41 @@ protected:
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   bool allowPacketForward(const mesh::Packet*) override { return false; }
 
+  void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
+                    const uint8_t* app_data, size_t app_data_len) override {
+    repeater_names.onAdvert(id, timestamp, app_data, app_data_len, millis());
+  }
+
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override {
     return public_bot.findChannel(hash, channels, max_matches);
   }
 
-  void onGroupDataRecv(mesh::Packet*, uint8_t type, const mesh::GroupChannel&,
+  void onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel&,
                        uint8_t* data, size_t len) override {
     uint8_t metric_mask;
     if (!public_bot.accept(type, data, len, millis(), metric_mask)) return;
 
     char response[MAX_PACKET_PAYLOAD];
     char air_quality[48];
-    formatAirQuality(air_quality, sizeof(air_quality), bme_air_quality, bme_sample_count);
-    if (!bme_data_ready) {
-      StrHelper::strncpy(response, "Sensor data is not ready", sizeof(response));
-    } else {
-      response[0] = 0;
-      char line[64];
+    char line[64];
+    response[0] = 0;
+    if (metric_mask == PublicChannelSensorBot::REQUEST_PING) {
+      StrHelper::strncpy(response, "Pong", sizeof(response));
+    } else if (metric_mask == PublicChannelSensorBot::REQUEST_PATH) {
+      // Leave room for the node name and group-message framing.
+      repeater_names.formatPath(packet, response, 120);
+    } else if (metric_mask & PublicChannelSensorBot::METRIC_VOLTAGE && cached_voltage > 0.0f) {
+      snprintf(line, sizeof(line), "Voltage: %.2f V", cached_voltage);
+      appendResponseLine(response, sizeof(response), line);
+    }
+
+    const uint8_t bme_metrics = PublicChannelSensorBot::METRIC_ALL &
+                                ~PublicChannelSensorBot::METRIC_VOLTAGE;
+    if ((metric_mask & bme_metrics) && !bme_data_ready) {
+      appendResponseLine(response, sizeof(response), "Sensor data is not ready");
+    } else if (metric_mask != PublicChannelSensorBot::REQUEST_PING &&
+               metric_mask != PublicChannelSensorBot::REQUEST_PATH && bme_data_ready) {
+      formatAirQuality(air_quality, sizeof(air_quality), bme_air_quality, bme_sample_count);
       if (metric_mask & PublicChannelSensorBot::METRIC_TEMPERATURE) {
         snprintf(line, sizeof(line), "Temperature: %.1f C", bme_temperature);
         appendResponseLine(response, sizeof(response), line);
@@ -132,6 +166,8 @@ protected:
       if (metric_mask & PublicChannelSensorBot::METRIC_AIR_QUALITY)
         appendResponseLine(response, sizeof(response), air_quality);
     }
+    if (response[0] == 0)
+      StrHelper::strncpy(response, "Sensor data is not ready", sizeof(response));
 
     uint8_t payload[MAX_PACKET_PAYLOAD];
     uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
@@ -144,9 +180,9 @@ protected:
     if (response_len > available) response_len = available;
     memcpy(&payload[5 + prefix_len], response, response_len);
 
-    auto packet = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
-                                      5 + prefix_len + response_len);
-    if (packet) sendFlood(packet, getRNG()->nextInt(500, 2001));
+    auto reply_packet = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
+                                            5 + prefix_len + response_len);
+    if (reply_packet) sendFlood(reply_packet, getRNG()->nextInt(500, 2001));
   }
 #endif
   /* ======================================================================= */

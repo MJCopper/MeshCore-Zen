@@ -4,13 +4,14 @@
 #include <string.h>
 
 PublicChannelSensorBot::PublicChannelSensorBot()
-    : _next_recent(0), _last_reply_at(0), _has_replied(false) {
+    : _next_recent(0), _next_reply(0), _reply_count(0) {
   static const uint8_t PUBLIC_SECRET[16] = {
     0x8b, 0x33, 0x87, 0xe9, 0xc5, 0xcd, 0xea, 0x6a,
     0xc9, 0xe5, 0xed, 0xba, 0xa1, 0x15, 0xcd, 0x72,
   };
   memset(&_channel, 0, sizeof(_channel));
   memset(_recent_commands, 0, sizeof(_recent_commands));
+  memset(_reply_times, 0, sizeof(_reply_times));
   memcpy(_channel.secret, PUBLIC_SECRET, sizeof(PUBLIC_SECRET));
   mesh::Utils::sha256(_channel.hash, sizeof(_channel.hash),
                       _channel.secret, sizeof(PUBLIC_SECRET));
@@ -53,6 +54,10 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
   while (end > argument && isspace((unsigned char)end[-1])) *--end = 0;
   if (*argument == 0 || equalsIgnoreCase(argument, "all")) {
     metric_mask = METRIC_ALL;
+  } else if (equalsIgnoreCase(argument, "ping")) {
+    metric_mask = REQUEST_PING;
+  } else if (equalsIgnoreCase(argument, "path")) {
+    metric_mask = REQUEST_PATH;
   } else {
     char* token = argument;
     while (*token) {
@@ -60,7 +65,9 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
       while (*separator && !isspace((unsigned char)*separator)) separator++;
       if (*separator) *separator++ = 0;
 
-      if (equalsIgnoreCase(token, "all")) {
+      if (equalsIgnoreCase(token, "ping") || equalsIgnoreCase(token, "path")) {
+        return false;  // Standalone requests cannot be combined with measurements.
+      } else if (equalsIgnoreCase(token, "all")) {
         metric_mask = METRIC_ALL;
       } else {
         switch (tolower((unsigned char)token[0])) {
@@ -68,6 +75,7 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
           case 'h': metric_mask |= METRIC_HUMIDITY; break;
           case 'p': metric_mask |= METRIC_PRESSURE; break;
           case 'a': metric_mask |= METRIC_AIR_QUALITY; break;
+          case 'v': metric_mask |= METRIC_VOLTAGE; break;
           default: return false;
         }
       }
@@ -84,11 +92,14 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
   for (int i = 0; i < RECENT_COMMANDS; i++)
     if (_recent_commands[i] == command_hash) return false;
 
-  if (_has_replied && (uint32_t)(now_millis - _last_reply_at) < REPLY_COOLDOWN_MILLIS) return false;
+  // The next slot is the oldest accepted reply once the window is full.
+  if (_reply_count == MAX_REPLIES_PER_WINDOW &&
+      (uint32_t)(now_millis - _reply_times[_next_reply]) < REPLY_WINDOW_MILLIS) return false;
 
   _recent_commands[_next_recent] = command_hash;
   _next_recent = (_next_recent + 1) % RECENT_COMMANDS;
-  _last_reply_at = now_millis;
-  _has_replied = true;
+  _reply_times[_next_reply] = now_millis;
+  _next_reply = (_next_reply + 1) % MAX_REPLIES_PER_WINDOW;
+  if (_reply_count < MAX_REPLIES_PER_WINDOW) _reply_count++;
   return true;
 }

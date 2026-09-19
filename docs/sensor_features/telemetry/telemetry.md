@@ -16,7 +16,8 @@ does not trigger an additional BME680 measurement.
 | Relative air quality | `0–500` generic sensor value |
 
 The BME680 measurements occupy telemetry channel 2. Node supply voltage uses the
-standard self-telemetry channel.
+standard self-telemetry channel. The same cached battery-voltage reading is
+available through `!hillvue voltage` on the Public channel.
 
 ## Altitude
 
