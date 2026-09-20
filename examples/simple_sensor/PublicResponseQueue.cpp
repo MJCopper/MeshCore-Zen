@@ -66,15 +66,52 @@ bool PublicResponseQueue::schedule(const char* second, uint32_t due_at) {
     if (_pending[i].active) continue;
     strcpy(_pending[i].text, second);
     _pending[i].due_at = due_at;
+    _pending[i].first_packet = NULL;
+    _pending[i].waiting_first = false;
     _pending[i].active = true;
     return true;
   }
   return false;
 }
 
+bool PublicResponseQueue::scheduleAfterFirst(const char* second, const void* first_packet) {
+  if (!first_packet || !second || !second[0] || strlen(second) > MAX_PART_LENGTH) return false;
+  for (uint8_t i = 0; i < MAX_PENDING; i++) {
+    if (_pending[i].active) continue;
+    strcpy(_pending[i].text, second);
+    _pending[i].due_at = 0;
+    _pending[i].first_packet = first_packet;
+    _pending[i].waiting_first = true;
+    _pending[i].active = true;
+    return true;
+  }
+  return false;
+}
+
+void PublicResponseQueue::onFirstSent(const void* first_packet, uint32_t now_millis) {
+  for (uint8_t i = 0; i < MAX_PENDING; i++) {
+    if (!_pending[i].active || !_pending[i].waiting_first ||
+        _pending[i].first_packet != first_packet) continue;
+    _pending[i].waiting_first = false;
+    _pending[i].first_packet = NULL;
+    _pending[i].due_at = now_millis + 3000;
+    return;
+  }
+}
+
+void PublicResponseQueue::onFirstFailed(const void* first_packet) {
+  for (uint8_t i = 0; i < MAX_PENDING; i++) {
+    if (!_pending[i].active || !_pending[i].waiting_first ||
+        _pending[i].first_packet != first_packet) continue;
+    _pending[i].active = false;
+    return;
+  }
+}
+
 bool PublicResponseQueue::takeDue(uint32_t now_millis, char part[MAX_PART_LENGTH + 1]) {
   for (uint8_t i = 0; i < MAX_PENDING; i++) {
-    if (!_pending[i].active || (int32_t)(now_millis - _pending[i].due_at) < 0) continue;
+    if (!_pending[i].active || _pending[i].waiting_first ||
+        (int32_t)(now_millis - _pending[i].due_at) < 0) continue;
     strcpy(part, _pending[i].text);
     _pending[i].active = false;
     return true;

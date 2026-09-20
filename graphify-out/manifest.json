@@ -1,9 +1,4 @@
 {
-  ".claude/settings.json": {
-    "mtime": 1786358680.4929745,
-    "ast_hash": "bfee062c3962c14264fd704e975a6b38",
-    "semantic_hash": ""
-  },
   ".devcontainer/devcontainer.json": {
     "mtime": 1786358680.4979744,
     "ast_hash": "005aefa0a232907e37c9a7c75bcb036c",
@@ -305,8 +300,8 @@
     "semantic_hash": ""
   },
   "build.sh": {
-    "mtime": 1787304510.9050083,
-    "ast_hash": "a554ecee7cc0e698f2c12cab5691e1d3",
+    "mtime": 1789873330.8506198,
+    "ast_hash": "8d9faf2de03b036936311effc3615e9b",
     "semantic_hash": ""
   },
   "build_as_lib.py": {
@@ -315,273 +310,58 @@
     "semantic_hash": ""
   },
   "create-uf2.py": {
-    "mtime": 1786358680.8549745,
-    "ast_hash": "9f822a14c4606903992c42ea595a7fca",
+    "mtime": 1789873330.8536198,
+    "ast_hash": "a6b4689d3cc1039fdf571ecfe155579c",
     "semantic_hash": ""
   },
   "examples/companion_radio/AbstractUITask.h": {
-    "mtime": 1786766891.4877372,
-    "ast_hash": "b312c1118781bf46988af1dcd2023bf8",
+    "mtime": 1789873330.8966198,
+    "ast_hash": "c867e4b6d1fa7e256a8059ac6fbe68f4",
     "semantic_hash": ""
   },
   "examples/companion_radio/DataStore.cpp": {
-    "mtime": 1787306211.5139363,
-    "ast_hash": "d308710f95c94d8251c138b2b29dd375",
+    "mtime": 1789873330.8996198,
+    "ast_hash": "87ebbb55af8b5be013d7adf6780b5d9f",
     "semantic_hash": ""
   },
   "examples/companion_radio/DataStore.h": {
-    "mtime": 1786364491.885728,
-    "ast_hash": "928543092e96349bd4b47d8e5467e541",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/Features.h": {
-    "mtime": 1786358681.1529744,
-    "ast_hash": "b78e2d7d7967cf72c346a0433cc96c46",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/GeoUtils.h": {
-    "mtime": 1786358681.1559744,
-    "ast_hash": "3c7c87db959ee6a64aeccba6102d4043",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/LiveTrack.h": {
-    "mtime": 1786358681.1599743,
-    "ast_hash": "ab73f2201fed2265583d4c7c78deecd8",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/MsgExpand.h": {
-    "mtime": 1786358681.1639743,
-    "ast_hash": "c23da9a6e16877061077807bf0d00d21",
+    "mtime": 1789873330.90362,
+    "ast_hash": "df60756e7ee2ca8165c7b59468abab47",
     "semantic_hash": ""
   },
   "examples/companion_radio/MyMesh.cpp": {
-    "mtime": 1787306271.4329338,
-    "ast_hash": "6fa85c04b4ac7c483003d1de9c4a75de",
+    "mtime": 1789873330.90762,
+    "ast_hash": "716160f14a1e022e2b5ea8f54c248475",
     "semantic_hash": ""
   },
   "examples/companion_radio/MyMesh.h": {
-    "mtime": 1787306271.3139336,
-    "ast_hash": "0cc98cd3d85d77bcf386d828c2757c8c",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/MyMeshBot.h": {
-    "mtime": 1786365793.1996727,
-    "ast_hash": "1797a5ea8f538f6e3f99783be3f85cfc",
+    "mtime": 1789873330.91162,
+    "ast_hash": "7707ad61b54a1688bb06fc9128583e0c",
     "semantic_hash": ""
   },
   "examples/companion_radio/NodePrefs.h": {
-    "mtime": 1787306211.3949363,
-    "ast_hash": "3110606bd5e205634d86dd1691cf51a7",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/Persist.h": {
-    "mtime": 1786358681.1819744,
-    "ast_hash": "425b26f3b48478443592893c91253a76",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/RadioPresets.h": {
-    "mtime": 1786358681.1859744,
-    "ast_hash": "1ebc11f7c65b54df6ba9bd95fa6dd80d",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/Trail.h": {
-    "mtime": 1786358681.1899743,
-    "ast_hash": "d4b1a7c42d399442ed26686bd6a9dfe3",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/Waypoint.h": {
-    "mtime": 1786358681.1949744,
-    "ast_hash": "8298a00d532026317ec61050b8487609",
+    "mtime": 1789873330.9156199,
+    "ast_hash": "29dbc43e55230b9b8ccd304e8dae364c",
     "semantic_hash": ""
   },
   "examples/companion_radio/main.cpp": {
-    "mtime": 1786358681.1979744,
-    "ast_hash": "a6172db041bb6668d1a3a729e18f55d1",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/AccordionList.h": {
-    "mtime": 1786698097.7677314,
-    "ast_hash": "87e460a3473cbcc7f50fe655048f7928",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/AdminScreen.h": {
-    "mtime": 1786690622.2920485,
-    "ast_hash": "c14418fba42a57ddc53cfcb8cb3f9b58",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/AutoAdvertScreen.h": {
-    "mtime": 1787305434.0369692,
-    "ast_hash": "1ccdf47eefdce8c267c5c7df98a28f9f",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/BotScreen.h": {
-    "mtime": 1786358681.2139745,
-    "ast_hash": "e9a047649dd825646df0771f62f9f102",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/ChannelsView.h": {
-    "mtime": 1786690622.4240487,
-    "ast_hash": "bc6373faa6590cefb7c3c21ffb347d4e",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/ChildMode.h": {
-    "mtime": 1786750575.2314293,
-    "ast_hash": "a419bd1d2df7b2f76208bd2b9815067c",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/ClockToolsScreen.h": {
-    "mtime": 1786358681.2259743,
-    "ast_hash": "1f90895f24ddecbc06dd0654c4fcd4f0",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/CompassScreen.h": {
-    "mtime": 1786358681.2299743,
-    "ast_hash": "8860dbad016de6bc4e8520345e7d1ce3",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/DiagnosticsScreen.h": {
-    "mtime": 1787305901.5449493,
-    "ast_hash": "536a811fd46f62e45358ff6612f1db62",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/DigitEditor.h": {
-    "mtime": 1786358681.2429743,
-    "ast_hash": "d463a91c666f71af9657548017be7c4b",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/FullscreenMsgView.h": {
-    "mtime": 1787302991.9990728,
-    "ast_hash": "eb768101bbd6e3eb95b1c01a9f050526",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/GfxUtils.h": {
-    "mtime": 1786358681.2499745,
-    "ast_hash": "c4ffc89335ff23dd8d686d2bb95e5160",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/GpioScreen.h": {
-    "mtime": 1786358681.2529743,
-    "ast_hash": "9b8c0d57919c6435711afb30b74ce7d0",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/KeyboardWidget.h": {
-    "mtime": 1787305834.2929523,
-    "ast_hash": "ac679a0b457faf4fac8f3c6d755ceb56",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/LiveShareScreen.h": {
-    "mtime": 1786701769.5355756,
-    "ast_hash": "6a4d6b18dfff32de1007501e7a4b30de",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/LocatorScreen.h": {
-    "mtime": 1786701769.4105756,
-    "ast_hash": "d3285b6eeedf0075a6e5cc8d72909302",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/MessageHistory.h": {
-    "mtime": 1787305901.6809494,
-    "ast_hash": "4a52382ada03a36ab1117f5711065fd3",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/MessagesScreen.h": {
-    "mtime": 1787307860.2598662,
-    "ast_hash": "89e9614e0f105b6c4c5c71a516df8a8e",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/NavView.h": {
-    "mtime": 1786358681.2749743,
-    "ast_hash": "3e9d9a5b592acc27ceabac6bacbaee62",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/NearbyScreen.h": {
-    "mtime": 1787302992.0130727,
-    "ast_hash": "41a15f0dcf2f59a353c1a59cae07cc62",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/PopupMenu.h": {
-    "mtime": 1786358681.2819743,
-    "ast_hash": "30fca89541c5b99a615c9a42e8b45c86",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/QuietTime.h": {
-    "mtime": 1786360770.1378858,
-    "ast_hash": "c1e50cb52d5756bcbd8a098650e11928",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/RadioParamsEditor.h": {
-    "mtime": 1786358681.2889743,
-    "ast_hash": "e517b3300c2463d56828f318211c6915",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/RadioPresetPicker.h": {
-    "mtime": 1786358681.2929745,
-    "ast_hash": "a0726c6855a980b41d28f81754f58a72",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/RepeaterScreen.h": {
-    "mtime": 1787306111.3709404,
-    "ast_hash": "24542d4f7445b4f74b95bfbab2e793c7",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/RingtoneEditorScreen.h": {
-    "mtime": 1786358681.3009744,
-    "ast_hash": "f506c918c06ab35015ebe46ebb62222c",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/SensorPlaceholders.h": {
-    "mtime": 1786358681.3049743,
-    "ast_hash": "fe8730753aa86d05f41600da5f6e2a0f",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/SettingsScreen.h": {
-    "mtime": 1787306111.2489405,
-    "ast_hash": "cf01b2d9bc51f457233a95cecabdbd17",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/SoundNotifier.h": {
-    "mtime": 1786750473.8074338,
-    "ast_hash": "6ce8530aa681dd9de6b2f23abd2068f2",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/TabBar.h": {
-    "mtime": 1786358681.3149743,
-    "ast_hash": "2f095fbb88539f2a95461b84f65b860c",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/TimeOfDayEditor.h": {
-    "mtime": 1786360770.1488857,
-    "ast_hash": "e70d4218a2ee9353eaae02a42689fbc4",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/ToolsScreen.h": {
-    "mtime": 1786698492.2327147,
-    "ast_hash": "13a1cde4f220d346e6f5873b1d15d45a",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/TrailScreen.h": {
-    "mtime": 1786360770.1538858,
-    "ast_hash": "07db9af6d35757c574c65d4b973e395d",
+    "mtime": 1789873330.9186199,
+    "ast_hash": "f7484b530b0f2a074e60aaad88932b8a",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/UITask.cpp": {
-    "mtime": 1787308701.5808306,
-    "ast_hash": "7e601eb55172575228d60196166690b5",
+    "mtime": 1789873330.9226198,
+    "ast_hash": "4b7fd1e07032ec290148686bcc712ed6",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/UITask.h": {
-    "mtime": 1787306111.4919405,
-    "ast_hash": "711fdf08c6c93444267e9b246e5fe397",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/WaypointsView.h": {
-    "mtime": 1787302992.0230727,
-    "ast_hash": "91c198b658f3ab9ce635f0affb9b10d5",
+    "mtime": 1789873330.92762,
+    "ast_hash": "59ed5f14be277342225dc4c7547209cb",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/icons.h": {
-    "mtime": 1786358681.3489745,
-    "ast_hash": "df3f93bde5805e12f5a53ee0a2f43e90",
+    "mtime": 1789873330.93162,
+    "ast_hash": "47c4e161ed3ec3905e7a100df14abf95",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-orig/Button.cpp": {
@@ -595,13 +375,13 @@
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-orig/UITask.cpp": {
-    "mtime": 1786359630.6509342,
-    "ast_hash": "ee37f79c3bcd860f4c7144eef6dd90e8",
+    "mtime": 1789873330.93462,
+    "ast_hash": "9c739a3c26d7e94c8a6c21d59100d848",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-orig/UITask.h": {
-    "mtime": 1786359630.653934,
-    "ast_hash": "cf5826b0e7fcc1f0254726bd50abd7ab",
+    "mtime": 1789873330.9386199,
+    "ast_hash": "0123cd0f4bad3b6014edd87a317b7bff",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/ScrollingStatusBar.h": {
@@ -610,13 +390,13 @@
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/UITask.cpp": {
-    "mtime": 1787302992.027073,
-    "ast_hash": "df4ba75a9eb3370d4b7a83c02a976219",
+    "mtime": 1789873330.94362,
+    "ast_hash": "e11daaba92d778b93e7dd368277bd0df",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/UITask.h": {
-    "mtime": 1786359630.659934,
-    "ast_hash": "ea8b7277505fc6cb71e05496b95e599e",
+    "mtime": 1789873330.94762,
+    "ast_hash": "a4f4420fe37658410c0f63f72d5fa6d4",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/u8g2_icons.h": {
@@ -670,12 +450,12 @@
     "semantic_hash": ""
   },
   "examples/simple_room_server/MyMesh.cpp": {
-    "mtime": 1787302853.6960788,
+    "mtime": 1789255645.7251666,
     "ast_hash": "511f4a79718429e78060725460af713f",
     "semantic_hash": ""
   },
   "examples/simple_room_server/MyMesh.h": {
-    "mtime": 1787302853.6990788,
+    "mtime": 1789255645.7301664,
     "ast_hash": "ee24d3f19104a0a41087e209c26cb7b8",
     "semantic_hash": ""
   },
@@ -700,13 +480,13 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/SensorMesh.cpp": {
-    "mtime": 1787302853.7030787,
-    "ast_hash": "f059abfb99691ac76feb9dd8570e27a8",
+    "mtime": 1789873330.97762,
+    "ast_hash": "ecea8c86d716c43eefdebd275fdcd54b",
     "semantic_hash": ""
   },
   "examples/simple_sensor/SensorMesh.h": {
-    "mtime": 1787302853.7060788,
-    "ast_hash": "fd0d48343f8d91c50f7cb7bbf3012f8b",
+    "mtime": 1789873330.98062,
+    "ast_hash": "d5de33282dd52aac854fabdda43219ec",
     "semantic_hash": ""
   },
   "examples/simple_sensor/TimeSeriesData.cpp": {
@@ -730,13 +510,8 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/main.cpp": {
-    "mtime": 1786358681.4619744,
-    "ast_hash": "44ded58f85ed4247c7e44e69d4d57976",
-    "semantic_hash": ""
-  },
-  "lib/GxEPD2-patch/src/GxEPD2_BW.h": {
-    "mtime": 1786358681.4839745,
-    "ast_hash": "a11521d122274e4d8f60a6da7533db6c",
+    "mtime": 1789875303.1795363,
+    "ast_hash": "07f43880bec27310ad27bdd3d0225510",
     "semantic_hash": ""
   },
   "lib/ed25519/add_scalar.c": {
@@ -1014,19 +789,14 @@
     "ast_hash": "873692eca8d8c001c28bba69100ee9f9",
     "semantic_hash": ""
   },
-  "pyproject.toml": {
-    "mtime": 1786358681.7309744,
-    "ast_hash": "cabe2a67ea7e55c694ce6a998064b8e5",
-    "semantic_hash": ""
-  },
   "src/Dispatcher.cpp": {
-    "mtime": 1786358681.7379744,
-    "ast_hash": "fd31431db1c7864287957edac82b156b",
+    "mtime": 1789875203.1595404,
+    "ast_hash": "9693e2f25c480feaeaa0f1af361ab7f9",
     "semantic_hash": ""
   },
   "src/Dispatcher.h": {
-    "mtime": 1786358681.7409744,
-    "ast_hash": "db8fe25bb1599995e8b7b3018be14f94",
+    "mtime": 1789875203.0385404,
+    "ast_hash": "0978b0edec7f6047d315f78d804438fe",
     "semantic_hash": ""
   },
   "src/Identity.cpp": {
@@ -1040,13 +810,13 @@
     "semantic_hash": ""
   },
   "src/Mesh.cpp": {
-    "mtime": 1786358681.7519743,
-    "ast_hash": "bfe6d8948914c4c22b94aaf2cfdfcabb",
+    "mtime": 1789875156.1505425,
+    "ast_hash": "57f7f27ebc410d7ce256710d6eb3a538",
     "semantic_hash": ""
   },
   "src/Mesh.h": {
-    "mtime": 1786358681.7559743,
-    "ast_hash": "8730f40904e459a9da3675e1c0140827",
+    "mtime": 1789873337.2626197,
+    "ast_hash": "0b398b0753d50a15a4da2327372a93dd",
     "semantic_hash": ""
   },
   "src/MeshCore.h": {
@@ -1095,8 +865,8 @@
     "semantic_hash": ""
   },
   "src/helpers/ArduinoSerialInterface.cpp": {
-    "mtime": 1786358681.7949743,
-    "ast_hash": "a54b65e2eb19513d7174f176837a62c4",
+    "mtime": 1789873337.2666197,
+    "ast_hash": "df2d074c7fbaf4493b188724c223b92e",
     "semantic_hash": ""
   },
   "src/helpers/ArduinoSerialInterface.h": {
@@ -1105,28 +875,28 @@
     "semantic_hash": ""
   },
   "src/helpers/AutoDiscoverRTCClock.cpp": {
-    "mtime": 1786696185.9558125,
-    "ast_hash": "302a7b5abaa67137d461d6e8ec61ae6d",
+    "mtime": 1789873337.2696197,
+    "ast_hash": "ee0d4b12490bca7635716098a2308694",
     "semantic_hash": ""
   },
   "src/helpers/AutoDiscoverRTCClock.h": {
-    "mtime": 1786696185.8378124,
-    "ast_hash": "652f17575d154d6b73f7e557c1c45ca8",
+    "mtime": 1789873337.2736197,
+    "ast_hash": "fc6f15ec99c55c525b340d898548ff39",
     "semantic_hash": ""
   },
   "src/helpers/BaseChatMesh.cpp": {
-    "mtime": 1786701149.689602,
-    "ast_hash": "e1720b6eb0ab642d4b0800658bc71d82",
+    "mtime": 1789873337.2776196,
+    "ast_hash": "fd436a9fc21ba4893f49debbbed75ce2",
     "semantic_hash": ""
   },
   "src/helpers/BaseChatMesh.h": {
-    "mtime": 1786358681.8109744,
-    "ast_hash": "6e4597c2929885fdc95015eb0d111ede",
+    "mtime": 1789873337.2816195,
+    "ast_hash": "bfb2fc81afcc4d3d899bb3b6759cec6f",
     "semantic_hash": ""
   },
   "src/helpers/BaseSerialInterface.h": {
-    "mtime": 1786358681.8139744,
-    "ast_hash": "750495dd03dd245ed32d5fc506d234ab",
+    "mtime": 1789873337.2846196,
+    "ast_hash": "d2c1c670cf36a0930d14c0996c8cf1a6",
     "semantic_hash": ""
   },
   "src/helpers/ChannelDetails.h": {
@@ -1135,13 +905,13 @@
     "semantic_hash": ""
   },
   "src/helpers/ClientACL.cpp": {
-    "mtime": 1786358681.8219743,
-    "ast_hash": "d48e70a5e1e7860bd29cb99063b310b3",
+    "mtime": 1789873337.2876196,
+    "ast_hash": "485cbbd994095efead52a424b2488b33",
     "semantic_hash": ""
   },
   "src/helpers/ClientACL.h": {
-    "mtime": 1786358681.8249743,
-    "ast_hash": "c210e1c38d66fee1d05a5eb1fa4dcd63",
+    "mtime": 1789873337.2906196,
+    "ast_hash": "bba0635faed84685826132880cef1ed2",
     "semantic_hash": ""
   },
   "src/helpers/CommonCLI.cpp": {
@@ -1167,16 +937,6 @@
   "src/helpers/ContactInfo.h": {
     "mtime": 1786358681.8469744,
     "ast_hash": "9eac6d42ee752123e7d7768ef9d87675",
-    "semantic_hash": ""
-  },
-  "src/helpers/DeviceDiag.cpp": {
-    "mtime": 1786358681.8509743,
-    "ast_hash": "3ba0457e62a25344fb7b1e2a801f9977",
-    "semantic_hash": ""
-  },
-  "src/helpers/DeviceDiag.h": {
-    "mtime": 1786358681.8549743,
-    "ast_hash": "5f13ff207bdef6f1216115ceca4ab395",
     "semantic_hash": ""
   },
   "src/helpers/ESP32Board.cpp": {
@@ -1210,8 +970,8 @@
     "semantic_hash": ""
   },
   "src/helpers/MultiSerialInterface.h": {
-    "mtime": 1786358681.8859744,
-    "ast_hash": "830b7109a436ac11c5e428154e6ac59f",
+    "mtime": 1789873337.2946196,
+    "ast_hash": "22aae573190e30c45a384486977f91e7",
     "semantic_hash": ""
   },
   "src/helpers/NRF52Board.cpp": {
@@ -1250,8 +1010,8 @@
     "semantic_hash": ""
   },
   "src/helpers/SensorManager.h": {
-    "mtime": 1786358681.9159744,
-    "ast_hash": "c9e85de2b1de1c80e0da1a3ef15d25a9",
+    "mtime": 1789873337.2976196,
+    "ast_hash": "b8efb82b784f38d6dc2cfb1ae37537c9",
     "semantic_hash": ""
   },
   "src/helpers/SimpleMeshTables.h": {
@@ -1272,11 +1032,6 @@
   "src/helpers/StatsFormatHelper.h": {
     "mtime": 1786358681.9309742,
     "ast_hash": "e0a373740c46f8231bbc464c716b2234",
-    "semantic_hash": ""
-  },
-  "src/helpers/StreamUtils.h": {
-    "mtime": 1786358681.9349744,
-    "ast_hash": "7a33d7c76c5745059ed07a672866fdb5",
     "semantic_hash": ""
   },
   "src/helpers/TransportKeyStore.cpp": {
@@ -1420,12 +1175,12 @@
     "semantic_hash": ""
   },
   "src/helpers/nrf52/SerialBLEInterface.cpp": {
-    "mtime": 1786358682.0439744,
+    "mtime": 1789873337.3016195,
     "ast_hash": "c17899606a83e21680a5af5f6c600306",
     "semantic_hash": ""
   },
   "src/helpers/nrf52/SerialBLEInterface.h": {
-    "mtime": 1786358682.0469744,
+    "mtime": 1789873337.3046196,
     "ast_hash": "1d1e4f3358095b3c415d840dbb96a3fc",
     "semantic_hash": ""
   },
@@ -1505,13 +1260,13 @@
     "semantic_hash": ""
   },
   "src/helpers/radiolib/RadioLibWrappers.cpp": {
-    "mtime": 1787302853.7540786,
+    "mtime": 1789873337.3076196,
     "ast_hash": "bcc4f5ab627a500eccb5034966912ca1",
     "semantic_hash": ""
   },
   "src/helpers/radiolib/RadioLibWrappers.h": {
-    "mtime": 1787302853.7580788,
-    "ast_hash": "1a4df1dc2eaa165dfeab5d042d28c8c3",
+    "mtime": 1789873337.3116195,
+    "ast_hash": "62e2579b402900ed854a5969acfcd6ae",
     "semantic_hash": ""
   },
   "src/helpers/radiolib/SX126xReset.h": {
@@ -1520,28 +1275,28 @@
     "semantic_hash": ""
   },
   "src/helpers/sensors/EnvironmentSensorManager.cpp": {
-    "mtime": 1786771470.169543,
-    "ast_hash": "fe5bfe0d750c7ec316d881153b94a85e",
+    "mtime": 1789873337.3226197,
+    "ast_hash": "5779649cb1ab0a82407859cac345683a",
     "semantic_hash": ""
   },
   "src/helpers/sensors/EnvironmentSensorManager.h": {
-    "mtime": 1786771407.8165457,
-    "ast_hash": "a2bb59dc2fac393c9779b93010e519f9",
+    "mtime": 1789873337.3266196,
+    "ast_hash": "e78f2ada702946961f35eaf03df7f8f9",
     "semantic_hash": ""
   },
   "src/helpers/sensors/LPPDataHelpers.h": {
-    "mtime": 1786358682.1179743,
-    "ast_hash": "1e8550c72aeeba7c69e9b3f5b0994f9d",
+    "mtime": 1789873337.3296196,
+    "ast_hash": "380de36b22a62d2b8ab53e5a4d72c6ed",
     "semantic_hash": ""
   },
   "src/helpers/sensors/LocationProvider.h": {
-    "mtime": 1786358682.1229744,
-    "ast_hash": "f81afbbe0c27b3307e0c64c660a81acb",
+    "mtime": 1789873337.3336196,
+    "ast_hash": "5c2b1c5ec9f4ca3d7683783dc2203fd0",
     "semantic_hash": ""
   },
   "src/helpers/sensors/MicroNMEALocationProvider.h": {
-    "mtime": 1786771282.9825509,
-    "ast_hash": "6140afcda320f3ec8520c46390a93a9a",
+    "mtime": 1789873337.3376195,
+    "ast_hash": "308fa8196ec5dd05472b51ba23de6d0f",
     "semantic_hash": ""
   },
   "src/helpers/sensors/RAK12035_SoilMoisture.cpp": {
@@ -1580,8 +1335,8 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/DisplayDriver.h": {
-    "mtime": 1787302992.030073,
-    "ast_hash": "0410b9a25eff68ecf98d854d473c7892",
+    "mtime": 1789873337.3406196,
+    "ast_hash": "72ab46ab2135645788dcfc10f085a85e",
     "semantic_hash": ""
   },
   "src/helpers/ui/E213Display.cpp": {
@@ -1615,13 +1370,13 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/GxEPDDisplay.cpp": {
-    "mtime": 1787302992.0360727,
-    "ast_hash": "18263004deccc39cac9d891a37255472",
+    "mtime": 1789873337.3446195,
+    "ast_hash": "551e35700ff85ba5bd7158219cfb994b",
     "semantic_hash": ""
   },
   "src/helpers/ui/GxEPDDisplay.h": {
-    "mtime": 1787302992.040073,
-    "ast_hash": "d146d886833d44ee05edb5984abc0908",
+    "mtime": 1789873337.3486197,
+    "ast_hash": "442f04ed99ff1bd7fdf63a6182e664c2",
     "semantic_hash": ""
   },
   "src/helpers/ui/LGFXDisplay.cpp": {
@@ -1634,29 +1389,14 @@
     "ast_hash": "f08a21c505619df1cc2975c5971825bc",
     "semantic_hash": ""
   },
-  "src/helpers/ui/LemonIcons.h": {
-    "mtime": 1786358682.2119744,
-    "ast_hash": "1ad0ac9f1b88e4374b2e4a15a6f9e95f",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/MiscFixedFont.h": {
-    "mtime": 1786358682.2169743,
-    "ast_hash": "76dd7bd3da87a4c5bb2100004c9184b5",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/MiscFixedRenderer.h": {
-    "mtime": 1786796488.9014816,
-    "ast_hash": "8f6d5ad40b0665d62661ecce0b7636a6",
-    "semantic_hash": ""
-  },
   "src/helpers/ui/MomentaryButton.cpp": {
-    "mtime": 1786358682.2269742,
-    "ast_hash": "903b4ee91d3839e93cddba0f019f9d76",
+    "mtime": 1789873337.3536196,
+    "ast_hash": "da2a936d146087a53ce5a8cdf6902a88",
     "semantic_hash": ""
   },
   "src/helpers/ui/MomentaryButton.h": {
-    "mtime": 1786358682.2309744,
-    "ast_hash": "8e5a3cffdc0b724ed26518d578e6cd88",
+    "mtime": 1789873337.3576195,
+    "ast_hash": "58123c0e039bede4c6a45d742a9a5e82",
     "semantic_hash": ""
   },
   "src/helpers/ui/NV3001BDisplay.cpp": {
@@ -1705,13 +1445,13 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/SH1106Display.cpp": {
-    "mtime": 1787302992.043073,
-    "ast_hash": "72d4c22fb0cd6389220a96a024c520e4",
+    "mtime": 1789873337.3616197,
+    "ast_hash": "5e2c98590ba7fd3f5311b41352901125",
     "semantic_hash": ""
   },
   "src/helpers/ui/SH1106Display.h": {
-    "mtime": 1787302992.0480728,
-    "ast_hash": "422be55a9047be50120576a5c3a3a3d9",
+    "mtime": 1789873337.3646197,
+    "ast_hash": "c33fa81f55f9386499392e870cd4acf2",
     "semantic_hash": ""
   },
   "src/helpers/ui/SSD1306Display.cpp": {
@@ -1770,18 +1510,18 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/UIScreen.h": {
-    "mtime": 1786358682.3179743,
-    "ast_hash": "13741380bf703d1071ad1992dc0de5e4",
+    "mtime": 1789873337.3676195,
+    "ast_hash": "087391161e9c63a7902e0c44531561ac",
     "semantic_hash": ""
   },
   "src/helpers/ui/buzzer.cpp": {
-    "mtime": 1786358682.3209743,
-    "ast_hash": "44d78234cd5d1433af621b3c258bf919",
+    "mtime": 1789873337.3706195,
+    "ast_hash": "fda80af749bce7b03f431d923c8480a4",
     "semantic_hash": ""
   },
   "src/helpers/ui/buzzer.h": {
-    "mtime": 1786358682.3249743,
-    "ast_hash": "8037aee9152c7f1a3720dbf5f985421e",
+    "mtime": 1789873337.3736196,
+    "ast_hash": "044706a2e54286934d7196d401555eae",
     "semantic_hash": ""
   },
   "test/mocks/AES.h": {
@@ -1852,21 +1592,6 @@
   "test/test_utils/test_tohex.cpp": {
     "mtime": 1786358682.3899744,
     "ast_hash": "8be87db316608e411b72b1b1982255c0",
-    "semantic_hash": ""
-  },
-  "tools/bdf2gfx.py": {
-    "mtime": 1786358682.3989744,
-    "ast_hash": "5df92364e802276eb2d54b1551288cb2",
-    "semantic_hash": ""
-  },
-  "tools/screenshot.py": {
-    "mtime": 1786358682.4079742,
-    "ast_hash": "0f9c4d29cc263cb8532a5622048c9a35",
-    "semantic_hash": ""
-  },
-  "tools/trail_export.py": {
-    "mtime": 1786358682.4129744,
-    "ast_hash": "f3584ba01c208970fba75d079b09e2cb",
     "semantic_hash": ""
   },
   "variants/ebyte_eora_s3/target.cpp": {
@@ -3735,33 +3460,33 @@
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/WioTrackerL1Board.cpp": {
-    "mtime": 1786358684.1069744,
-    "ast_hash": "d95d0646f886aad4727a0206e9d252d4",
+    "mtime": 1789873337.3916197,
+    "ast_hash": "2c379b234665b66e576b16b108792c44",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/WioTrackerL1Board.h": {
-    "mtime": 1786358684.1109743,
-    "ast_hash": "465ba6e9852e96413965359e285403b0",
+    "mtime": 1789873337.3956196,
+    "ast_hash": "75d6734c82aec98b61f37f727cdfe15e",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/target.cpp": {
-    "mtime": 1786358684.1189742,
-    "ast_hash": "0ea7342046bfde79ebd3ec72849f8436",
+    "mtime": 1789873337.4036195,
+    "ast_hash": "efada8a8e6355c28df4990c091dd126c",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/target.h": {
-    "mtime": 1786358684.1229742,
-    "ast_hash": "c410401edb0c06f374cb5ec2826c7ac7",
+    "mtime": 1789873337.4066195,
+    "ast_hash": "9964e88a08356fe12cb606c9a7b6a5af",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/variant.cpp": {
-    "mtime": 1786358684.1269743,
-    "ast_hash": "36119c6e4597144c9d3bc9c7d02b33d0",
+    "mtime": 1789873337.4096196,
+    "ast_hash": "6d2328f0fdeab375f55af558043680ff",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/variant.h": {
-    "mtime": 1786358684.1309743,
-    "ast_hash": "fcb6b4f096ea6563fe226de78cdeb39b",
+    "mtime": 1789873337.4136195,
+    "ast_hash": "653742afbaa58cdd9c3b712e3e0ee1a2",
     "semantic_hash": ""
   },
   "variants/wio_wm1110/WioWM1110Board.cpp": {
@@ -3910,23 +3635,23 @@
     "semantic_hash": ""
   },
   ".github/actions/setup-build-environment/action.yml": {
-    "mtime": 1786358680.5179744,
-    "ast_hash": "d91b7988a79700a1261b9a337d279624",
+    "mtime": 1789873330.8076198,
+    "ast_hash": "3eda38b78fca777ccff5d047494a74f9",
     "semantic_hash": ""
   },
   ".github/workflows/build-companion-firmwares.yml": {
-    "mtime": 1786358680.5219743,
-    "ast_hash": "8d31a199d8aed3bdba57014e2b6f847f",
+    "mtime": 1789873330.81162,
+    "ast_hash": "0d6b1901c3d84607c04be9247d55933c",
     "semantic_hash": ""
   },
   ".github/workflows/build-repeater-firmwares.yml": {
-    "mtime": 1786358680.5249743,
-    "ast_hash": "b909d90768f7aba38c1936c4a8b16ba1",
+    "mtime": 1789873330.8166199,
+    "ast_hash": "e69f4a8d8377cd0ce160a841043518bd",
     "semantic_hash": ""
   },
   ".github/workflows/build-room-server-firmwares.yml": {
-    "mtime": 1786358680.5289743,
-    "ast_hash": "f10361684654f05ed37b336df3f31c4c",
+    "mtime": 1789873330.81962,
+    "ast_hash": "576c706a6adf266f692aafecfa1eca7d",
     "semantic_hash": ""
   },
   ".github/workflows/firmware-builder.yml": {
@@ -3935,13 +3660,13 @@
     "semantic_hash": ""
   },
   ".github/workflows/github-pages.yml": {
-    "mtime": 1786358680.5389745,
-    "ast_hash": "d91dc94adcb10a233278c304a0b2b37a",
+    "mtime": 1789873330.8236198,
+    "ast_hash": "5418468665b26a303e18a33f0ad56624",
     "semantic_hash": ""
   },
   ".github/workflows/pr-build-check.yml": {
-    "mtime": 1786358680.5419743,
-    "ast_hash": "e6de06d269bc8949be85ba39317c9d9b",
+    "mtime": 1789873330.8266199,
+    "ast_hash": "b8586b00787d427d66c7f646734f472e",
     "semantic_hash": ""
   },
   ".github/workflows/run-unit-tests.yml": {
@@ -3954,24 +3679,19 @@
     "ast_hash": "2b4ddf8e8a9e621b43ecb647de285f02",
     "semantic_hash": ""
   },
-  "CLAUDE.md": {
-    "mtime": 1786358680.5599744,
-    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
-    "semantic_hash": ""
-  },
   "CONTRIBUTING.md": {
-    "mtime": 1786358680.5629745,
+    "mtime": 1789873330.83762,
     "ast_hash": "0d89ddf140b548b5e79403c40567fa44",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1787305093.3779836,
-    "ast_hash": "348d72e6e0af60aa8725ea44d8d47a27",
+    "mtime": 1789874492.5975707,
+    "ast_hash": "707932790d32e496e6bff809bc0d48ec",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1787306199.0059369,
-    "ast_hash": "dabf83cc95fcd7bc7700e129e3ff8e64",
+    "mtime": 1789874492.4715707,
+    "ast_hash": "8c9999cd525965ea979e15819ffc4a5c",
     "semantic_hash": ""
   },
   "RELEASE.md": {
@@ -4010,28 +3730,23 @@
     "semantic_hash": ""
   },
   "docs/companion_protocol.md": {
-    "mtime": 1787303329.4850585,
-    "ast_hash": "0e0c9c959ecdb148ab56048736469d13",
-    "semantic_hash": ""
-  },
-  "docs/design/nearby_redesign.md": {
-    "mtime": 1786358680.8859744,
-    "ast_hash": "86dd05813fd5adbac2497c3f8b4286de",
+    "mtime": 1789873330.8596199,
+    "ast_hash": "a412d39702e899f2f746a58e76d8d3d1",
     "semantic_hash": ""
   },
   "docs/docs.md": {
-    "mtime": 1786358680.8969743,
-    "ast_hash": "edfe207bfa20d5c380687afcd6378484",
+    "mtime": 1789873330.8636198,
+    "ast_hash": "b80387f391ac7fee45171aa3ce220d3d",
     "semantic_hash": ""
   },
   "docs/faq.md": {
-    "mtime": 1786358680.8999743,
-    "ast_hash": "0908506e864bb46b863bdca76233add5",
+    "mtime": 1789873330.8666198,
+    "ast_hash": "49cca5a402fb5fa69b58fc213affde0d",
     "semantic_hash": ""
   },
   "docs/index.md": {
-    "mtime": 1787304099.0850258,
-    "ast_hash": "1203644bdc3ee256ad5e805ccd52ba25",
+    "mtime": 1789873330.8736198,
+    "ast_hash": "239e37de708cae940152f86a492263f0",
     "semantic_hash": ""
   },
   "docs/kiss_modem_protocol.md": {
@@ -4085,23 +3800,8 @@
     "semantic_hash": ""
   },
   "mkdocs.yml": {
-    "mtime": 1786358681.7229743,
-    "ast_hash": "6e1c919b95e8ad6f10f31e5de9591a6d",
-    "semantic_hash": ""
-  },
-  "release-notes.md": {
-    "mtime": 1787304884.7299926,
-    "ast_hash": "025333424fde674fa13a3be4a216ad59",
-    "semantic_hash": ""
-  },
-  "tools/README.md": {
-    "mtime": 1786358682.3939743,
-    "ast_hash": "196daabcc6f16697546996bcb585cacb",
-    "semantic_hash": ""
-  },
-  "tools/gpx-downloader/index.html": {
-    "mtime": 1786358682.4029744,
-    "ast_hash": "518f510482b0630dc94092bc8b45cc5c",
+    "mtime": 1789873337.2446196,
+    "ast_hash": "6d58c0fdad41de5c5f502b5511a1e355",
     "semantic_hash": ""
   },
   "docs/_assets/meshcore.svg": {
@@ -4129,188 +3829,13 @@
     "ast_hash": "dd2f7faeb398c1adadf3dddfdf9d01d6",
     "semantic_hash": ""
   },
-  "examples/companion_radio/SoloPrefsMigration.h": {
-    "mtime": 1786360770.1238859,
-    "ast_hash": "a4660647ea536738a57763ada70216c6",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/QuietTimePolicy.h": {
-    "mtime": 1786360770.1418858,
-    "ast_hash": "956fc128463e562676e9565bcf737536",
-    "semantic_hash": ""
-  },
-  "test/test_quiet_time/test_quiet_time.cpp": {
-    "mtime": 1786360770.1768858,
-    "ast_hash": "ba47ce2eb770b98c403834f261cc4f18",
-    "semantic_hash": ""
-  },
-  "test/test_solo_prefs_migration/test_solo_prefs_migration.cpp": {
-    "mtime": 1786360770.1808858,
-    "ast_hash": "fac76aede5e340802b9a69e89157fdcc",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/SoloFeatures.h": {
-    "mtime": 1786689097.1151133,
-    "ast_hash": "1da1e39a46335e58a81f70bdc88cf34a",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/SoloPolicy.h": {
-    "mtime": 1786750575.1044295,
-    "ast_hash": "e09c17b9b453a736444c6cd3e8f870c6",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/SoloPrefsCodec.h": {
-    "mtime": 1786366738.6386325,
-    "ast_hash": "14758a4cbb0e50673fe1d8fa877de0d5",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/SoloRuntime.h": {
-    "mtime": 1786364840.620713,
-    "ast_hash": "d9998e3a48bfd791b20d3b606337cd61",
-    "semantic_hash": ""
-  },
-  "test/test_solo_prefs_codec/test_solo_prefs_codec.cpp": {
-    "mtime": 1786366738.8986325,
-    "ast_hash": "ff6de5681bf55ec1b49f81aacc391472",
-    "semantic_hash": ""
-  },
-  "test/test_solo_runtime/test_solo_runtime.cpp": {
-    "mtime": 1786365246.4606957,
-    "ast_hash": "b14cd49e71b7710b716cc3521d3e1ad8",
-    "semantic_hash": ""
-  },
-  "test/test_solo_features_disabled/test_solo_features_disabled.cpp": {
-    "mtime": 1786369171.1685293,
-    "ast_hash": "1679bbcbfbd85f15ee466b2b5d0114e8",
-    "semantic_hash": ""
-  },
-  "test/test_solo_policy/test_solo_policy.cpp": {
-    "mtime": 1786768611.0046642,
-    "ast_hash": "00bd52f6173018ff6ea996a99aab6e37",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/CardKBController.h": {
-    "mtime": 1787305800.9919536,
-    "ast_hash": "bf80d4aeac0088af9e1860b183190362",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/WordCompleter.h": {
-    "mtime": 1786712089.5171378,
-    "ast_hash": "d2b42a175ebca3dd39bcc38184614186",
-    "semantic_hash": ""
-  },
-  "test/test_solo_word_completer/test_solo_word_completer.cpp": {
-    "mtime": 1786712089.6361377,
-    "ast_hash": "585bd0708d9980f38bbc22de9ed0bd86",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/RepeaterTiming.h": {
-    "mtime": 1786764352.305845,
-    "ast_hash": "5cd7614d4637dbd53844ac82ccdbfa8f",
-    "semantic_hash": ""
-  },
-  "test/test_repeater_timing/test_repeater_timing.cpp": {
-    "mtime": 1786764352.552845,
-    "ast_hash": "c26537c56127196054f19f5e14360b1c",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/BootTimeSync.h": {
-    "mtime": 1787305092.9979837,
-    "ast_hash": "86c6227c6c8f97098de3f4834ad6096a",
-    "semantic_hash": ""
-  },
-  "test/test_boot_time_sync/test_boot_time_sync.cpp": {
-    "mtime": 1787305093.1259837,
-    "ast_hash": "6d9bcfdda07942c1e0caa94df0f9bcb1",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/MessageEditorSupport.h": {
-    "mtime": 1786834496.228253,
-    "ast_hash": "a230db5105a58e5ed81557ff42e7b436",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/T9Predictor.h": {
-    "mtime": 1786710107.312222,
-    "ast_hash": "e64d390a384938b42c47edf5faddacf1",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/EmojiGlyphData.h": {
-    "mtime": 1786715437.3959959,
-    "ast_hash": "d3b8a78fcd6b4a59fba5f5445331a433",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/EmojiGlyphs.h": {
-    "mtime": 1786752334.5753548,
-    "ast_hash": "501d9e57db133c9a5e8fe673e9eeacd2",
-    "semantic_hash": ""
-  },
-  "tools/generate_openmoji_glyphs.py": {
-    "mtime": 1786752334.3363547,
-    "ast_hash": "5534268ada18bcfda797abc3134ec27e",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/MessageTranscriptView.h": {
-    "mtime": 1787307807.4218686,
-    "ast_hash": "193099f3392899bc951284b9760af6e2",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/NotificationPolicy.h": {
-    "mtime": 1787302991.9920728,
-    "ast_hash": "189182d2c8298770bfffc0f6a2264c07",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/NotificationPreferences.h": {
-    "mtime": 1786750473.5684338,
-    "ast_hash": "66c442688111ad08d59b046c7a564564",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/SoloPrefsDefaults.h": {
-    "mtime": 1786834674.4782453,
-    "ast_hash": "d2ee5045f82aa1a0d2c154e958a3b6f3",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/HomePageRegistry.h": {
-    "mtime": 1786752695.3503394,
-    "ast_hash": "64692b34fbcf48e2fd688d1c59da9f45",
-    "semantic_hash": ""
-  },
-  "src/helpers/ui/EmojiOverrides.h": {
-    "mtime": 1787308206.8358517,
-    "ast_hash": "0c95d198bbedf39627938c72ee0db8e2",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/DmRetryPolicy.h": {
-    "mtime": 1786763212.5608933,
-    "ast_hash": "55adf9b07d1e415f119ec0a968b98f9a",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/DeliveryMarker.h": {
-    "mtime": 1786765865.1327808,
-    "ast_hash": "8585cd4a8c3c3795aed6f8907c5fb174",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/solo/GpsMode.h": {
-    "mtime": 1787305434.2839692,
-    "ast_hash": "087cb56dbf978a6ae9a7e7a94d923c03",
-    "semantic_hash": ""
-  },
-  "test/test_gps_mode/test_gps_mode.cpp": {
-    "mtime": 1786798380.5734015,
-    "ast_hash": "70d48687e58dda11d906befb54f3500b",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/EmojiPicker.h": {
-    "mtime": 1786834495.9862528,
-    "ast_hash": "dd8051fb3cc5968b75cb906f664e270d",
-    "semantic_hash": ""
-  },
   "src/helpers/RoutingPolicy.h": {
     "mtime": 1787302853.7290788,
     "ast_hash": "3aa179831534fef4ede8e46505106862",
     "semantic_hash": ""
   },
   "test/test_companion_node_prefs/test_companion_node_prefs.cpp": {
-    "mtime": 1787302853.7690787,
+    "mtime": 1789873337.3766196,
     "ast_hash": "1edfb67460cdfbd2aebda57864c54911",
     "semantic_hash": ""
   },
@@ -4329,224 +3854,119 @@
     "ast_hash": "ce7ba25a5a9d3aec74581a74353a49e8",
     "semantic_hash": ""
   },
-  ".github/workflows/build-zen-firmwares.yml": {
-    "mtime": 1787304330.1390162,
-    "ast_hash": "557e30a55a2973b44c10b5d54d32dcf8",
+  "examples/simple_sensor/PublicChannelSensorBot.cpp": {
+    "mtime": 1789875235.3155391,
+    "ast_hash": "414b63c4557aa9fb15eedde96166ac3c",
     "semantic_hash": ""
   },
-  "docs/design/zen_ui_framework.md": {
-    "mtime": 1787305901.4039495,
-    "ast_hash": "7a1fcc85b81b884ca3e5dc75bb46850d",
+  "examples/simple_sensor/PublicChannelSensorBot.h": {
+    "mtime": 1789875235.181539,
+    "ast_hash": "999410b2d2d6b6042c748e381dfd1e44",
     "semantic_hash": ""
   },
-  "docs/zen_features/cardkb/cardkb.md": {
-    "mtime": 1787305868.6459508,
-    "ast_hash": "13a4302abac3602c77bfbc49f22df017",
+  "examples/simple_sensor/PublicResponseQueue.cpp": {
+    "mtime": 1789875262.6455379,
+    "ast_hash": "89f4c6672520a39babfca99eb51699d9",
     "semantic_hash": ""
   },
-  "docs/zen_features/child_mode/child_mode.md": {
-    "mtime": 1786701770.0205755,
-    "ast_hash": "ac753185f2646ea999f68d15496cb665",
+  "examples/simple_sensor/PublicResponseQueue.h": {
+    "mtime": 1789875254.6895382,
+    "ast_hash": "4a43174bdfd7c316be39f6752f48e2cd",
     "semantic_hash": ""
   },
-  "docs/zen_features/clock_screen/clock_screen.md": {
-    "mtime": 1787305093.2529836,
-    "ast_hash": "1ac426aeaaf84d32723d64e2c0cdafc3",
+  "examples/simple_sensor/RepeaterNameCache.cpp": {
+    "mtime": 1789873330.96362,
+    "ast_hash": "9405db5ea79888829d34e9905fcb3ccf",
     "semantic_hash": ""
   },
-  "docs/zen_features/favourites_dial/favourites_dial.md": {
-    "mtime": 1787304267.2980187,
-    "ast_hash": "daa3f9e8e008b4776283eb05d1db32da",
+  "examples/simple_sensor/RepeaterNameCache.h": {
+    "mtime": 1789873330.96762,
+    "ast_hash": "348f85799dcb844a29dbad0c80309147",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/message_screen.md": {
-    "mtime": 1787307832.5788674,
-    "ast_hash": "e53e245f5c07b412423984cfcb677c02",
+  "examples/simple_sensor/RepeaterTraceProbe.cpp": {
+    "mtime": 1789875222.9705396,
+    "ast_hash": "6264797b57233b03012d7eb8f8ed42c8",
     "semantic_hash": ""
   },
-  "docs/zen_features/quiet_time/quiet_time.md": {
-    "mtime": 1787304884.9649925,
-    "ast_hash": "f209b22a2f359dd857390eb1f2dc838e",
+  "examples/simple_sensor/RepeaterTraceProbe.h": {
+    "mtime": 1789875222.8435397,
+    "ast_hash": "01baed11bd0cb832bee83592e082ef91",
     "semantic_hash": ""
   },
-  "docs/zen_features/screen_lock/screen_lock.md": {
-    "mtime": 1787306890.9389074,
-    "ast_hash": "3c4fe5849404a09f016cd1ac15e454c0",
+  "src/helpers/sensors/BME680AirQuality.cpp": {
+    "mtime": 1789873337.3156197,
+    "ast_hash": "a02807903964a761ee7bf52a94348977",
     "semantic_hash": ""
   },
-  "docs/zen_features/settings_screen/settings_screen.md": {
-    "mtime": 1787306199.1259367,
-    "ast_hash": "2c47d86e1640f5ee9e52e841a5d99a65",
+  "src/helpers/sensors/BME680AirQuality.h": {
+    "mtime": 1789873337.3186197,
+    "ast_hash": "c8fa68f524c4cf7d6bb58279ef380ab3",
     "semantic_hash": ""
   },
-  "docs/zen_features/tools_screen/tools_screen.md": {
-    "mtime": 1787304906.5939915,
-    "ast_hash": "010614f37e5dbde427a3e29c5dc2f9f6",
+  "test/test_public_response_queue/test_public_response_queue.cpp": {
+    "mtime": 1789875402.176532,
+    "ast_hash": "014012f012d5e7290d5dcdc372f4d13a",
     "semantic_hash": ""
   },
-  "docs/zen_features/clock_screen/overview_eink.png": {
-    "mtime": 1786358680.9499743,
-    "ast_hash": "252dab620d5a3b91732b98f86c7d40dc",
+  "test/test_repeater_trace_probe/test_repeater_trace_probe.cpp": {
+    "mtime": 1789875392.9005325,
+    "ast_hash": "bb6c66d5df029650eec57770f4f06980",
     "semantic_hash": ""
   },
-  "docs/zen_features/clock_screen/overview_oled.png": {
-    "mtime": 1786358680.9529743,
-    "ast_hash": "796289742d2648967cd92c2419931551",
+  "variants/xiao_nrf52/create-sensor-dfu-zip.py": {
+    "mtime": 1789873337.4166195,
+    "ast_hash": "a97a4eab54dc1dca762d51535ea6f76c",
     "semantic_hash": ""
   },
-  "docs/zen_features/favourites_dial/overview_eink.png": {
-    "mtime": 1786358680.9599743,
-    "ast_hash": "d7b4f5e93c6549b321fb62e80bf0ea19",
+  "docs/building_sensor.md": {
+    "mtime": 1789873330.8566198,
+    "ast_hash": "ae053dfa1f795fa8fc5c811d4a437fe2",
     "semantic_hash": ""
   },
-  "docs/zen_features/favourites_dial/overview_oled.png": {
-    "mtime": 1786358680.9639745,
-    "ast_hash": "0614de0b6d4d1d1732d0fd3e855ff8b4",
+  "docs/getting_started.md": {
+    "mtime": 1789873330.87062,
+    "ast_hash": "efd06aea41095a229131af4d2d797913",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/compose_eink.png": {
-    "mtime": 1786358680.9679744,
-    "ast_hash": "d5743108be5fea8050bba7a31d968a18",
+  "docs/sensor_features/access/access.md": {
+    "mtime": 1789873330.87862,
+    "ast_hash": "ba27bd325d01679d70365af0e1d075a5",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/compose_oled.png": {
-    "mtime": 1786358680.9719744,
-    "ast_hash": "1e396439f97d16975974fc835b3162de",
+  "docs/sensor_features/hardware/hardware.md": {
+    "mtime": 1789873330.8826199,
+    "ast_hash": "ed571a727da4bae8ee750dd3837f25d9",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/ctx_channel_eink.png": {
-    "mtime": 1786358680.9759743,
-    "ast_hash": "74293e4f645b83d010392a52c30b3ff3",
+  "docs/sensor_features/public_bot/public_bot.md": {
+    "mtime": 1789875428.1405308,
+    "ast_hash": "a479ad78e842cce0a7d214606dafaa46",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/ctx_channel_oled.png": {
-    "mtime": 1786358680.9799745,
-    "ast_hash": "18d5866631d817640b99ec8256c53e7d",
+  "docs/sensor_features/telemetry/telemetry.md": {
+    "mtime": 1789873330.89062,
+    "ast_hash": "015abfee4129d0ea62ef0ba2c339a8f5",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/ctx_contact_eink.png": {
-    "mtime": 1786358680.9839745,
-    "ast_hash": "1048f402111c563c344c00044427efec",
+  "docs/xiao_bme680_sensor.md": {
+    "mtime": 1789873330.89362,
+    "ast_hash": "e740512dddff5ddcbbc5341d80911037",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/ctx_contact_oled.png": {
-    "mtime": 1786358680.9879744,
-    "ast_hash": "186838379e18f8d14cc1b3509bcb79a8",
+  "src/helpers/TracePathBounds.h": {
+    "mtime": 1789875156.0235424,
+    "ast_hash": "2c6505fd5ffbfdcc6152e157fbccfdca",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/history_eink.png": {
-    "mtime": 1786358681.0059743,
-    "ast_hash": "585102f436cb8af28dbc4f901f55e3a2",
+  "test/test_public_channel_sensor_bot/test_public_channel_sensor_bot.cpp": {
+    "mtime": 1789875413.0905316,
+    "ast_hash": "1947ec9781229e7881cb21222568949c",
     "semantic_hash": ""
   },
-  "docs/zen_features/message_screen/history_oled.png": {
-    "mtime": 1786358681.0099745,
-    "ast_hash": "86b20a528c4f2a78f4b9855caa32260a",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/message_screen/overview_eink.png": {
-    "mtime": 1786358681.0169744,
-    "ast_hash": "dac537ad4a17d7d76dcd77c737cc7c69",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/message_screen/overview_oled.png": {
-    "mtime": 1786358681.0209744,
-    "ast_hash": "6e5af0e4d152c669351ed69dad112926",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/screen_lock/overview_eink.png": {
-    "mtime": 1786358681.0289743,
-    "ast_hash": "535874dade2c1a360528c475beda1776",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/screen_lock/overview_oled.png": {
-    "mtime": 1786358681.0319743,
-    "ast_hash": "0abc6fdf4762495a3628787362865585",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/screen_lock/screen_eink.png": {
-    "mtime": 1786358681.0349743,
-    "ast_hash": "5d96fe37e68dce58b50110e081e25f37",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/screen_lock/screen_oled.png": {
-    "mtime": 1786358681.0419743,
-    "ast_hash": "42ae675eb2b8bf75453883c2acd58509",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/settings_screen/homepages_eink.png": {
-    "mtime": 1786358681.0469744,
-    "ast_hash": "638426fd552bf8b1f2be1c2309bc43fd",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/settings_screen/homepages_oled.png": {
-    "mtime": 1786358681.0509744,
-    "ast_hash": "d9d1af6be7a944ccb0501d856607f7f8",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/settings_screen/overview_eink.png": {
-    "mtime": 1786358681.0539744,
-    "ast_hash": "181ee5b927ad51645fdac4f0e2da0895",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/settings_screen/overview_oled.png": {
-    "mtime": 1786358681.0569744,
-    "ast_hash": "3fdc6bf6e43d71c25f33329aef4bfee4",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_eink.png": {
-    "mtime": 1786358681.0719743,
-    "ast_hash": "2a5f5fcb092cf58128595116a96dcaf6",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_oled.png": {
-    "mtime": 1786358681.0749743,
-    "ast_hash": "a6148be7118f2a2ad48de02a630ecfd8",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_ping_eink.png": {
-    "mtime": 1786358681.0789745,
-    "ast_hash": "45753279867c92c713df827c0f8d6fa6",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_ping_oled.png": {
-    "mtime": 1786358681.0829744,
-    "ast_hash": "b7228953f000dba7866befbca9cc37fe",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_scan_eink.png": {
-    "mtime": 1786358681.0869744,
-    "ast_hash": "577370578819c130b31d4ea3e33399dd",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/nearby_scan_oled.png": {
-    "mtime": 1786358681.0909743,
-    "ast_hash": "db93839474f216f086b3809c748a5968",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/overview_eink.png": {
-    "mtime": 1786358681.0949743,
-    "ast_hash": "49fcb8fdd2eba7179356adf49feb2659",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/overview_oled.png": {
-    "mtime": 1786358681.0979743,
-    "ast_hash": "884c866faa4569c0fd7b6dbdeebd1f70",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/ringtone_eink.png": {
-    "mtime": 1786358681.1019745,
-    "ast_hash": "a39c8b9c1b287ca121d3caa9e2944c12",
-    "semantic_hash": ""
-  },
-  "docs/zen_features/tools_screen/ringtone_oled.png": {
-    "mtime": 1786358681.1069744,
-    "ast_hash": "59ead2c03b3f91e7caa1f098672cc18e",
-    "semantic_hash": ""
-  },
-  "examples/companion_radio/ui-new/RecentParticipants.h": {
-    "mtime": 1787307860.1368663,
-    "ast_hash": "7f25e245d80b2e39a0d3be0a92540e53",
+  "test/test_trace_path_bounds/test_trace_path_bounds.cpp": {
+    "mtime": 1789875156.3525424,
+    "ast_hash": "cda78f3e23aa43855af1c9e9c8d20bab",
     "semantic_hash": ""
   }
 }

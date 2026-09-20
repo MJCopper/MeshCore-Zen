@@ -59,11 +59,27 @@ Trace: 1540 ms RTT
 MeshCore TRACE does not record timestamps at each repeater, so individual
 per-node milliseconds cannot be reported from this single probe. The RTT excludes
 the final repeater-to-companion link, but includes the sensor-to-nearest-repeater
-link, radio airtime, forwarding delays and local transmit queueing. It is not a
+link, radio airtime and forwarding delays. Time waiting in the sensor's transmit
+queue is excluded. It is not a
 one-way latency or a measurement to the companion. Only one trace runs at
-a time; paths over four repeaters are rejected, and a missing return trace
-times out after 30 seconds. Incoming 3-byte path hashes cannot be mirrored by
-MeshCore TRACE and are reported as unavailable. No repeated probes are sent.
+a time; paths over ten repeaters are rejected. A probe that cannot begin
+transmitting within ten seconds is cancelled. Once transmission begins, the
+timeout is 20 seconds for up to four repeaters and 30 seconds for five to ten
+repeaters. A timed-out
+trace is not retried automatically; send a new `!hillvue trace` command to
+try again. It counts toward the unchanged four-command-per-minute limit.
+Requests received while a trace is running do not use a rate-limit slot; the
+node sends at most one `Trace: already running` notice for that trace.
+Incoming 3-byte path hashes cannot be mirrored by MeshCore TRACE and are
+reported as unavailable.
+
+After a trace result arrives, its Public-channel reply is scheduled with a
+two-second minimum plus the usual random 0.5–2-second transmit delay. This
+spacing does not guarantee a collision-free transmission. The RTT is measured
+when the trace returns; the reply delay is not included. Repeater labels retain
+their existing 12-byte UTF-8-safe limit. With the default `BME680 Sensor` name,
+all ten repeater lines fit in at most two replies. A longer sensor name may
+leave too little room; the second reply then ends with `...truncated`.
 
 Each selected value appears on its own line in a Public-channel reply;
 `!hillvue` and `!hillvue all` include voltage. A voltage-only request works
@@ -100,7 +116,7 @@ the second ends with `...truncated`; no further parts are sent.
   needs two messages.
 - Responses that do not fit one message are split into at most two, marked
   `1/2` and `2/2`. The second transmission is scheduled at least three seconds
-  after the first one's scheduled transmission. A busy radio may lengthen the
+  after the first one's completed transmission. A busy radio may lengthen the
   actual gap. Each message is a separate flood, so four accepted commands can
   produce up to eight reply messages.
 - Hashes for the eight most recent accepted commands are retained in RAM to

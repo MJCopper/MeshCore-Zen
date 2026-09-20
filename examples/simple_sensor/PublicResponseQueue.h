@@ -16,6 +16,9 @@ public:
   static bool split(const char* response, size_t max_body,
                     char first[MAX_PART_LENGTH + 1],
                     char second[MAX_PART_LENGTH + 1]);
+  bool scheduleAfterFirst(const char* second, const void* first_packet);
+  void onFirstSent(const void* first_packet, uint32_t now_millis);
+  void onFirstFailed(const void* first_packet);
   bool schedule(const char* second, uint32_t due_at);
   bool takeDue(uint32_t now_millis, char part[MAX_PART_LENGTH + 1]);
 
@@ -23,6 +26,8 @@ private:
   struct Pending {
     char text[MAX_PART_LENGTH + 1];
     uint32_t due_at;
+    const void* first_packet;
+    bool waiting_first;
     bool active;
   };
   Pending _pending[MAX_PENDING];

@@ -39,8 +39,9 @@ public:
   int findChannel(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) const;
 
   // Returns true once for an accepted command and places the selected metrics
-  // or a standalone ping/path/trace request in metric_mask.
+  // or a standalone ping/path/trace request in metric_mask. A busy trace can
+  // be reported once by the caller without consuming a command-rate slot.
   bool accept(uint8_t type, uint8_t* data, size_t len, uint32_t now_millis,
-              uint8_t& metric_mask);
+              bool trace_busy, uint8_t& metric_mask, bool& busy_trace);
   const mesh::GroupChannel& channel() const { return _channel; }
 };

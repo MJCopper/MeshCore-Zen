@@ -28,8 +28,8 @@ wiring table.
   air-quality telemetry.
 - One sensor sample per minute with the latest result cached in RAM.
 - Public-channel queries for environmental readings, battery voltage, reachability,
-  repeater path and repeater-route round-trip time through the case-insensitive
-  `!hillvue` command.
+  repeater path and round-trip traces of up to ten repeaters through the
+  case-insensitive `!hillvue` command.
 - Single- and multi-value command responses with consistent labels and units;
   longer replies use at most two numbered messages, scheduled three seconds apart.
 - Ten-sample air-quality warm-up with descriptive quality ratings.

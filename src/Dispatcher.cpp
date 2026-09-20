@@ -337,6 +337,7 @@ void Dispatcher::checkSend() {
         return;
       }
       outbound_expiry = futureMillis(max_airtime);
+      onTxStarted(outbound, outbound_start);
 
     #if MESH_PACKET_LOGGING
       Serial.print(getLogDateTime());
@@ -375,6 +376,21 @@ void Dispatcher::sendPacket(Packet* packet, uint8_t priority, uint32_t delay_mil
   } else {
     _mgr->queueOutbound(packet, priority, futureMillis(delay_millis));
   }
+}
+
+bool Dispatcher::isQueuedPacket(const Packet* packet) const {
+  for (int i = 0; i < _mgr->getOutboundTotal(); i++)
+    if (_mgr->getOutboundByIdx(i) == packet) return true;
+  return false;
+}
+
+bool Dispatcher::cancelQueuedPacket(Packet* packet) {
+  for (int i = 0; i < _mgr->getOutboundTotal(); i++) {
+    if (_mgr->getOutboundByIdx(i) != packet) continue;
+    releasePacket(_mgr->removeOutboundByIdx(i));
+    return true;
+  }
+  return false;
 }
 
 // Utility function -- handles the case where millis() wraps around back to zero

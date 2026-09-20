@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cstring>
+#include <string>
 #include "../../examples/simple_sensor/PublicResponseQueue.h"
 
 TEST(PublicResponseQueue, KeepsShortRepliesInOneMessage) {
@@ -41,6 +42,58 @@ TEST(PublicResponseQueue, SchedulesFourIndependentSecondParts) {
     EXPECT_STREQ("2/2\nMore", part);
   }
   EXPECT_FALSE(queue.takeDue(1004, part));
+}
+
+TEST(PublicResponseQueue, StartsGapAfterFirstTransmissionCompletes) {
+  PublicResponseQueue queue;
+  int first_packet = 1;
+  char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet));
+  EXPECT_FALSE(queue.takeDue(60000, part));
+  queue.onFirstSent(&first_packet, 60000);
+  EXPECT_FALSE(queue.takeDue(62999, part));
+  EXPECT_TRUE(queue.takeDue(63000, part));
+  EXPECT_STREQ("2/2\nMore", part);
+}
+
+TEST(PublicResponseQueue, FailedFirstTransmissionReleasesSecondPart) {
+  PublicResponseQueue queue;
+  int first_packet = 1;
+  char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet));
+  queue.onFirstFailed(&first_packet);
+  EXPECT_FALSE(queue.takeDue(60000, part));
+  for (int i = 0; i < PublicResponseQueue::MAX_PENDING; i++)
+    EXPECT_TRUE(queue.schedule("2/2\nOther", 0));
+}
+
+TEST(PublicResponseQueue, TenFullTraceLabelsFitWithDefaultSensorName) {
+  std::string response = "Trace: 90000 ms RTT";
+  for (int i = 1; i <= 10; i++)
+    response += "\n" + std::to_string(i) + " ABCDEFGHIJKL -32.0 dB";
+
+  char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  char second[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  EXPECT_TRUE(PublicResponseQueue::split(response.c_str(), 160 - strlen("BME680 Sensor: "),
+                                         first, second));
+  EXPECT_NE(std::string::npos, std::string(first).find("5 ABCDEFGHIJKL"));
+  EXPECT_EQ(std::string::npos, std::string(first).find("6 ABCDEFGHIJKL"));
+  EXPECT_NE(std::string::npos, std::string(second).find("10 ABCDEFGHIJKL -32.0 dB"));
+  EXPECT_EQ(std::string::npos, std::string(second).find("...truncated"));
+}
+
+TEST(PublicResponseQueue, LongSensorNameMarksOverflowWithoutPartialLine) {
+  std::string response = "Trace: 90000 ms RTT";
+  for (int i = 1; i <= 10; i++)
+    response += "\n" + std::to_string(i) + " ABCDEFGHIJKL -32.0 dB";
+
+  char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  char second[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  EXPECT_TRUE(PublicResponseQueue::split(response.c_str(), 160 - 33, first, second));
+  EXPECT_NE(std::string::npos, std::string(second).find("...truncated"));
+  EXPECT_EQ(std::string::npos, std::string(second).find("10 ABCDEFGHIJKL"));
+  EXPECT_LE(strlen(first), 127u);
+  EXPECT_LE(strlen(second), 127u);
 }
 
 int main(int argc, char** argv) {

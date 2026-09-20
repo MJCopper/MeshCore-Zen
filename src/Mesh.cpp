@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include <helpers/TracePathBounds.h>
 //#include <Arduino.h>
 
 namespace mesh {
@@ -40,7 +41,7 @@ int Mesh::searchChannelsByHash(const uint8_t* hash, GroupChannel channels[], int
 
 DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
   if (pkt->isRouteDirect() && pkt->getPayloadType() == PAYLOAD_TYPE_TRACE) {
-    if (pkt->path_len < MAX_PATH_SIZE) {
+    if (pkt->path_len < MAX_PATH_SIZE && pkt->payload_len >= 9) {
       uint8_t i = 0;
       uint32_t trace_tag;
       memcpy(&trace_tag, &pkt->payload[i], 4); i += 4;
@@ -50,12 +51,13 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
       uint8_t path_sz = flags & 0x03;  // NEW v1.11+: lower 2 bits is path hash size
 
       uint8_t len = pkt->payload_len - i;
-      // path_len*entry_size can exceed 255 (path_len up to 63, entry_size up to 8);
-      // a uint8_t offset would wrap and steer the isHashMatch() read to the wrong place.
-      uint16_t offset = (uint16_t)pkt->path_len << path_sz;
-      if (offset >= len) {   // TRACE has reached end of given path
+      size_t offset = (size_t)pkt->path_len << path_sz;
+      TracePathPosition position = getTracePathPosition(pkt->path_len, flags, len);
+      if (position == TRACE_PATH_END) {
         onTraceRecv(pkt, trace_tag, auth_code, flags, pkt->path, &pkt->payload[i], len);
-      } else if (self_id.isHashMatch(&pkt->payload[i + offset], 1 << path_sz) && allowPacketForward(pkt) && !_tables->wasSeen(pkt)) {
+      } else if (position == TRACE_PATH_NEXT && allowPacketForward(pkt) &&
+                 self_id.isHashMatch(&pkt->payload[i + offset], 1 << path_sz) &&
+                 !_tables->wasSeen(pkt)) {
         _tables->markSeen(pkt);
         // append SNR (Not hash!)
         pkt->path[pkt->path_len++] = (int8_t) (pkt->getSNR()*4);

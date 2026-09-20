@@ -13,6 +13,8 @@
 #endif
 
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
+static const uint32_t TRACE_REPLY_DELAY_MILLIS = 2000;
+
 static const char* airQualityLabel(float score) {
   return score <= 50 ? "Good" :
          score <= 100 ? "Moderate" :
@@ -53,9 +55,15 @@ public:
   void loop() {
     SensorMesh::loop();
     repeater_names.loop(millis());
+    if (trace_probe.isQueueTimedOut(millis())) {
+      cancelQueuedPacket(trace_probe.queuedPacket());
+      trace_probe.cancel();
+      sendPublicResponse("Trace: radio busy");
+    }
     if (trace_probe.isTimedOut(millis())) sendPublicResponse("Trace: route timed out");
     char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
-    if (public_replies.takeDue(millis(), part)) sendPublicPart(part, 0);
+    if (public_replies.takeDue(millis(), part) && !sendPublicPart(part, 0))
+      public_replies.schedule(part, millis() + 1000);
   }
 #endif
 
@@ -68,6 +76,7 @@ protected:
   PublicResponseQueue public_replies;
   RepeaterNameCache repeater_names;
   RepeaterTraceProbe trace_probe;
+  bool busy_trace_reported = false;
   float bme_temperature = NAN;
   float bme_humidity = NAN;
   float bme_pressure = NAN;
@@ -123,26 +132,44 @@ protected:
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   bool allowPacketForward(const mesh::Packet*) override { return false; }
 
-  bool sendPublicPart(const char* response, uint32_t delay_millis) {
+  void onTxStarted(mesh::Packet* packet, uint32_t now_millis) override {
+    trace_probe.onTxStarted(packet, now_millis);
+  }
+
+  void logTx(mesh::Packet* packet, int) override {
+    trace_probe.onTxComplete(packet);
+    public_replies.onFirstSent(packet, millis());
+  }
+
+  void logTxFail(mesh::Packet* packet, int) override {
+    if (trace_probe.onTxFailed(packet)) sendPublicResponse("Trace: transmit failed");
+    public_replies.onFirstFailed(packet);
+  }
+
+  mesh::Packet* createPublicPart(const char* response) {
     uint8_t payload[MAX_PACKET_PAYLOAD];
     uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
     memcpy(payload, &timestamp, sizeof(timestamp));
     payload[4] = 0;
     int prefix_len = snprintf(reinterpret_cast<char*>(&payload[5]), sizeof(payload) - 5,
                               "%s: ", getNodeName());
-    if (prefix_len < 0 || prefix_len >= (int)(sizeof(payload) - 5)) return false;
+    if (prefix_len < 0 || prefix_len >= (int)(sizeof(payload) - 5)) return NULL;
     size_t response_len = strlen(response);
-    if (prefix_len + response_len > PublicResponseQueue::MAX_PART_LENGTH) return false;
+    if (prefix_len + response_len > PublicResponseQueue::MAX_PART_LENGTH) return NULL;
     memcpy(&payload[5 + prefix_len], response, response_len);
 
-    auto reply_packet = createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
-                                            5 + prefix_len + response_len);
-    if (!reply_packet) return false;
-    sendFlood(reply_packet, delay_millis);
-    return true;
+    return createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
+                               5 + prefix_len + response_len);
   }
 
-  void sendPublicResponse(const char* response) {
+  bool sendPublicPart(const char* response, uint32_t delay_millis) {
+    auto reply_packet = createPublicPart(response);
+    if (!reply_packet) return false;
+    sendFlood(reply_packet, delay_millis);
+    return isQueuedPacket(reply_packet);
+  }
+
+  void sendPublicResponse(const char* response, uint32_t extra_delay_millis = 0) {
     size_t prefix_len = strlen(getNodeName()) + 2;
     if (prefix_len >= PublicResponseQueue::MAX_PART_LENGTH) return;
     char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
@@ -150,9 +177,16 @@ protected:
     bool multipart = PublicResponseQueue::split(response,
                                                  PublicResponseQueue::MAX_PART_LENGTH - prefix_len,
                                                  first, second);
-    uint32_t first_delay = getRNG()->nextInt(500, 2001);
-    if (!sendPublicPart(first, first_delay)) return;
-    if (multipart) public_replies.schedule(second, millis() + first_delay + 3000);
+    uint32_t first_delay = extra_delay_millis + getRNG()->nextInt(500, 2001);
+    auto first_packet = createPublicPart(first);
+    if (!first_packet) return;
+    if (multipart && !public_replies.scheduleAfterFirst(second, first_packet)) {
+      releasePacket(first_packet);
+      sendPublicPart("Reply queue busy", first_delay);
+      return;
+    }
+    sendFlood(first_packet, first_delay);
+    if (!isQueuedPacket(first_packet)) public_replies.onFirstFailed(first_packet);
   }
 
   void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
@@ -179,7 +213,7 @@ protected:
                (float)(int8_t)path_snrs[i] / 4.0f);
       appendResponseLine(response, sizeof(response), line);
     }
-    sendPublicResponse(response);
+    sendPublicResponse(response, TRACE_REPLY_DELAY_MILLIS);
   }
 
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override {
@@ -189,7 +223,17 @@ protected:
   void onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel&,
                        uint8_t* data, size_t len) override {
     uint8_t metric_mask;
-    if (!public_bot.accept(type, data, len, millis(), metric_mask)) return;
+    bool busy_trace;
+    if (!public_bot.accept(type, data, len, millis(), trace_probe.isActive(),
+                           metric_mask, busy_trace)) return;
+
+    if (busy_trace) {
+      if (!busy_trace_reported) {
+        busy_trace_reported = true;
+        sendPublicResponse("Trace: already running");
+      }
+      return;
+    }
 
     if (metric_mask == PublicChannelSensorBot::REQUEST_TRACE) {
       uint32_t tag, auth_code;
@@ -197,10 +241,12 @@ protected:
       getRNG()->random(reinterpret_cast<uint8_t*>(&auth_code), sizeof(auth_code));
       switch (trace_probe.start(packet, tag, auth_code, millis())) {
         case RepeaterTraceProbe::STARTED: {
+          busy_trace_reported = false;
           auto trace = createTrace(tag, auth_code, trace_probe.flags());
           if (trace) {
+            trace_probe.setQueuedPacket(trace);
             sendDirect(trace, trace_probe.path(), trace_probe.pathBytes());
-            return;  // Reply when the trace returns or times out.
+            if (isQueuedPacket(trace)) return;  // Reply on return or timeout.
           }
           trace_probe.cancel();
           sendPublicResponse("Trace: unable to start");
@@ -213,7 +259,7 @@ protected:
           sendPublicResponse("Trace: no repeaters in request path");
           return;
         case RepeaterTraceProbe::TOO_LONG:
-          sendPublicResponse("Trace: path too long (max 4 repeaters)");
+          sendPublicResponse("Trace: path too long (max 10 repeaters)");
           return;
         case RepeaterTraceProbe::INVALID_PATH:
           sendPublicResponse("Trace: request path unavailable");

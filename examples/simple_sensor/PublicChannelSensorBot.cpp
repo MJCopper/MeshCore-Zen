@@ -32,8 +32,10 @@ int PublicChannelSensorBot::findChannel(const uint8_t* hash, mesh::GroupChannel 
 }
 
 bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
-                                    uint32_t now_millis, uint8_t& metric_mask) {
+                                    uint32_t now_millis, bool trace_busy,
+                                    uint8_t& metric_mask, bool& busy_trace) {
   metric_mask = 0;
+  busy_trace = false;
   if (type != PAYLOAD_TYPE_GRP_TXT || !data || len < 6 || len >= MAX_PACKET_PAYLOAD) return false;
   if ((data[4] >> 2) != 0) return false;
 
@@ -86,6 +88,11 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
       token = separator;
       while (isspace((unsigned char)*token)) token++;
     }
+  }
+
+  if (metric_mask == REQUEST_TRACE && trace_busy) {
+    busy_trace = true;
+    return true;
   }
 
   uint32_t command_hash;
