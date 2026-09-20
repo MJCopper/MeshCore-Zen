@@ -1550,11 +1550,8 @@ void MyMesh::onSendTimeout() {
 // A queued send can wait for CAD or duty-cycle budget. Only start its relay
 // window after radio transmission completes; allow time for the repeater's
 // randomised flood delay, which scales with packet airtime.
-#define RELAY_QUEUE_WINDOW_MS  120000
-#define RELAY_ECHO_MIN_MS       10000
-#define RELAY_ECHO_MAX_MS       30000
-
 void MyMesh::logTx(mesh::Packet* packet, int len) {
+  (void)len;
   if (_relay_active == 0) return;
   uint8_t hash[MAX_HASH_SIZE];
   bool hashed = false;
@@ -1563,11 +1560,8 @@ void MyMesh::logTx(mesh::Packet* packet, int len) {
     if (!s.pending || s.transmitted || s.len != packet->payload_len) continue;
     if (!hashed) { packet->calculatePacketHash(hash); hashed = true; }
     if (memcmp(hash, s.hash, MAX_HASH_SIZE) != 0) continue;
-    uint32_t airtime = _radio->getEstAirtimeFor(len);
-    uint32_t window = airtime >= RELAY_ECHO_MAX_MS / 4
-        ? RELAY_ECHO_MAX_MS : airtime * 4;
-    if (window < RELAY_ECHO_MIN_MS) window = RELAY_ECHO_MIN_MS;
-    s.deadline = futureMillis(window);
+    uint32_t airtime = _radio->getEstAirtimeFor(packet->getRawLength());
+    s.deadline = futureMillis(solo::RelayEchoTiming::echoWindow(airtime));
     s.transmitted = true;
     break;
   }
@@ -1581,7 +1575,7 @@ void MyMesh::trackRelaySend(const mesh::Packet* pkt) {
   if (!s.pending) _relay_active++;   // overwriting an empty slot adds one pending
   pkt->calculatePacketHash(s.hash);
   s.len = pkt->payload_len;
-  s.deadline = futureMillis(RELAY_QUEUE_WINDOW_MS);
+  s.deadline = futureMillis(solo::RelayEchoTiming::QUEUE_WINDOW_MS);
   _relay_seq = (_relay_seq == 0xFFFFFFFFu) ? 1 : _relay_seq + 1;   // never 0 (0 = "no relay")
   s.seq = _relay_seq;
   s.heard = 0;

@@ -11,6 +11,7 @@
 #include "solo/TimezonePolicy.h"
 #include "solo/PrefsSaveTracker.h"
 #include "solo/FloodScopeView.h"
+#include "solo/RelayEchoTiming.h"
 #include "solo/ChannelSlotPolicy.h"
 #include <helpers/ui/DisplayDriver.h>
 
