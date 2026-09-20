@@ -60,9 +60,9 @@ TEST(RepeaterTraceProbe, SupportsTwoByteHashesAndTimesOut) {
   Packet outbound;
   probe.setQueuedPacket(&outbound);
   EXPECT_TRUE(probe.onTxStarted(&outbound, 100));
-  EXPECT_FALSE(probe.isTimedOut(20099));
-  EXPECT_TRUE(probe.isTimedOut(20100));
-  EXPECT_FALSE(probe.isTimedOut(20101));
+  EXPECT_FALSE(probe.isTimedOut(10099));
+  EXPECT_TRUE(probe.isTimedOut(10100));
+  EXPECT_FALSE(probe.isTimedOut(10101));
 }
 
 TEST(RepeaterTraceProbe, SupportsTenRepeatersWithTwoByteHashes) {
@@ -104,35 +104,195 @@ TEST(RepeaterTraceProbe, SupportsTenRepeatersWithOneByteHashes) {
   }
 }
 
-TEST(RepeaterTraceProbe, LongRouteTimesOutAndAllowsManualRetry) {
+TEST(RepeaterTraceProbe, LongRouteRetriesOnceThenAllowsManualRetry) {
   RepeaterTraceProbe probe;
   Packet request = makeRequest(1, 5);
   EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
   Packet outbound;
   probe.setQueuedPacket(&outbound);
   EXPECT_TRUE(probe.onTxStarted(&outbound, 0));
-  EXPECT_FALSE(probe.isTimedOut(29999));
+  EXPECT_FALSE(probe.isTimedOut(17999));
 
   Packet reply;
   reply.path_len = 9;
   uint32_t elapsed = 0;
   uint8_t repeaters = 0;
   EXPECT_FALSE(probe.complete(&reply, 10, 11, 0, probe.path(), probe.pathBytes(),
-                              30000, elapsed, repeaters));
-  EXPECT_TRUE(probe.isTimedOut(30000));
-  EXPECT_FALSE(probe.isTimedOut(30001));
-  EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 12, 13, 30001));
+                              18000, elapsed, repeaters));
+  EXPECT_TRUE(probe.isTimedOut(18000));
+  EXPECT_TRUE(probe.retryPending());
+  EXPECT_FALSE(probe.isTimedOut(18001));
+  EXPECT_EQ(RepeaterTraceProbe::BUSY, probe.start(&request, 12, 13, 18001));
+  EXPECT_TRUE(probe.beginRetry(12, 13, 19000));
+  Packet retry_outbound;
+  probe.setQueuedPacket(&retry_outbound);
+  EXPECT_TRUE(probe.onTxStarted(&retry_outbound, 20000));
+  EXPECT_FALSE(probe.complete(&reply, 10, 11, 0, probe.path(), probe.pathBytes(),
+                              21000, elapsed, repeaters));
+  EXPECT_FALSE(probe.isTimedOut(37999));
+  EXPECT_TRUE(probe.isTimedOut(38000));
+  EXPECT_FALSE(probe.retryPending());
+  EXPECT_FALSE(probe.isActive());
+  EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 14, 15, 38001));
 }
 
-TEST(RepeaterTraceProbe, FourRepeatersUseShortTimeout) {
+TEST(RepeaterTraceProbe, SuccessfulRetryCompletesAndClearsBusyState) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 3);
+  Packet outbound;
+  EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&outbound);
+  EXPECT_TRUE(probe.onTxStarted(&outbound, 0));
+  EXPECT_TRUE(probe.isTimedOut(13000));
+  EXPECT_TRUE(probe.beginRetry(12, 13, 14000));
+  Packet retry_outbound;
+  probe.setQueuedPacket(&retry_outbound);
+  EXPECT_TRUE(probe.onTxStarted(&retry_outbound, 15000));
+
+  Packet reply;
+  reply.path_len = 5;
+  uint32_t elapsed = 0;
+  uint8_t repeaters = 0;
+  EXPECT_TRUE(probe.complete(&reply, 12, 13, 0, probe.path(), probe.pathBytes(),
+                             18000, elapsed, repeaters));
+  EXPECT_EQ(3000u, elapsed);
+  EXPECT_EQ(3, repeaters);
+  EXPECT_FALSE(probe.isActive());
+}
+
+TEST(RepeaterTraceProbe, LateFirstResultCanCancelQueuedRetry) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 3);
+  Packet first_tx;
+  Packet retry_tx;
+  Packet reply;
+  reply.path_len = 5;
+  const uint8_t snrs[] = { 4, 8, 12, 16, 20 };
+  ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&first_tx);
+  ASSERT_TRUE(probe.onTxStarted(&first_tx, 0));
+  ASSERT_TRUE(probe.isTimedOut(13000));
+  ASSERT_TRUE(probe.beginRetry(12, 13, 13000));
+  probe.setQueuedPacket(&retry_tx);
+
+  EXPECT_EQ(RepeaterTraceProbe::RETRY_QUEUED,
+            probe.captureLateFirst(&reply, 10, 11, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 14000));
+  EXPECT_EQ(&retry_tx, probe.queuedPacket());
+  RepeaterTraceProbe::Result result;
+  ASSERT_TRUE(probe.takeFallback(result));
+  EXPECT_EQ(14000u, result.elapsed_millis);
+  EXPECT_EQ(3, result.repeater_count);
+  EXPECT_EQ(0, memcmp(snrs, result.snrs, 3));
+  EXPECT_FALSE(probe.takeFallback(result));
+}
+
+TEST(RepeaterTraceProbe, LateFirstResultIsFallbackIfRetryFails) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 2);
+  Packet first_tx;
+  Packet retry_tx;
+  Packet reply;
+  reply.path_len = 3;
+  const uint8_t snrs[] = { 4, 8, 12 };
+  ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&first_tx);
+  ASSERT_TRUE(probe.onTxStarted(&first_tx, 0));
+  ASSERT_TRUE(probe.isTimedOut(10000));
+  ASSERT_TRUE(probe.beginRetry(12, 13, 11000));
+  probe.setQueuedPacket(&retry_tx);
+  ASSERT_TRUE(probe.onTxStarted(&retry_tx, 12000));
+
+  EXPECT_EQ(RepeaterTraceProbe::NOT_FIRST,
+            probe.captureLateFirst(&reply, 10, 99, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 13000));
+  EXPECT_EQ(RepeaterTraceProbe::FALLBACK_SAVED,
+            probe.captureLateFirst(&reply, 10, 11, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 14000));
+  EXPECT_EQ(RepeaterTraceProbe::NOT_FIRST,
+            probe.captureLateFirst(&reply, 10, 11, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 15000));
+  ASSERT_TRUE(probe.onTxFailed(&retry_tx));
+  RepeaterTraceProbe::Result result;
+  ASSERT_TRUE(probe.takeFallback(result));
+  EXPECT_EQ(14000u, result.elapsed_millis);
+  EXPECT_EQ(2, result.repeater_count);
+  EXPECT_EQ(0, memcmp(snrs, result.snrs, 2));
+}
+
+TEST(RepeaterTraceProbe, SuccessfulRetryDiscardsLateFirstFallback) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 2);
+  Packet first_tx;
+  Packet retry_tx;
+  Packet reply;
+  reply.path_len = 3;
+  const uint8_t snrs[] = { 4, 8, 12 };
+  ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&first_tx);
+  ASSERT_TRUE(probe.onTxStarted(&first_tx, 0));
+  ASSERT_TRUE(probe.isTimedOut(10000));
+  ASSERT_TRUE(probe.beginRetry(12, 13, 11000));
+  probe.setQueuedPacket(&retry_tx);
+  ASSERT_TRUE(probe.onTxStarted(&retry_tx, 12000));
+  ASSERT_EQ(RepeaterTraceProbe::FALLBACK_SAVED,
+            probe.captureLateFirst(&reply, 10, 11, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 13000));
+  uint32_t elapsed = 0;
+  uint8_t repeaters = 0;
+  EXPECT_TRUE(probe.complete(&reply, 12, 13, 0, probe.path(), probe.pathBytes(),
+                             14000, elapsed, repeaters));
+  RepeaterTraceProbe::Result result;
+  EXPECT_FALSE(probe.takeFallback(result));
+}
+
+TEST(RepeaterTraceProbe, RetryTimeoutPreservesLateFirstResult) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 2);
+  Packet first_tx;
+  Packet retry_tx;
+  Packet reply;
+  reply.path_len = 3;
+  const uint8_t snrs[] = { 4, 8, 12 };
+  ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&first_tx);
+  ASSERT_TRUE(probe.onTxStarted(&first_tx, 0));
+  ASSERT_TRUE(probe.isTimedOut(10000));
+  ASSERT_TRUE(probe.beginRetry(12, 13, 11000));
+  probe.setQueuedPacket(&retry_tx);
+  ASSERT_TRUE(probe.onTxStarted(&retry_tx, 12000));
+  ASSERT_EQ(RepeaterTraceProbe::FALLBACK_SAVED,
+            probe.captureLateFirst(&reply, 10, 11, 0, snrs, probe.path(),
+                                   probe.pathBytes(), 14000));
+  ASSERT_TRUE(probe.isTimedOut(22000));
+  EXPECT_FALSE(probe.isActive());
+  RepeaterTraceProbe::Result result;
+  ASSERT_TRUE(probe.takeFallback(result));
+  EXPECT_EQ(14000u, result.elapsed_millis);
+}
+
+TEST(RepeaterTraceProbe, RetryUsesFreshIdentifierEvenIfRandomValuesRepeat) {
+  RepeaterTraceProbe probe;
+  Packet request = makeRequest(1, 1);
+  Packet outbound;
+  EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 10, 11, 0));
+  probe.setQueuedPacket(&outbound);
+  EXPECT_TRUE(probe.onTxStarted(&outbound, 0));
+  EXPECT_TRUE(probe.isTimedOut(8000));
+  EXPECT_TRUE(probe.beginRetry(10, 11, 9000));
+  EXPECT_NE(10u, probe.tag());
+  EXPECT_EQ(11u, probe.authCode());
+}
+
+TEST(RepeaterTraceProbe, FourRepeatersHaveFifteenSecondTimeout) {
   RepeaterTraceProbe probe;
   Packet request = makeRequest(1, 4);
   EXPECT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 1, 2, 500));
   Packet outbound;
   probe.setQueuedPacket(&outbound);
   EXPECT_TRUE(probe.onTxStarted(&outbound, 500));
-  EXPECT_FALSE(probe.isTimedOut(20499));
-  EXPECT_TRUE(probe.isTimedOut(20500));
+  EXPECT_FALSE(probe.isTimedOut(15499));
+  EXPECT_TRUE(probe.isTimedOut(15500));
 }
 
 TEST(RepeaterTraceProbe, QueueDeadlineDoesNotStartRoundTripClock) {
@@ -146,8 +306,23 @@ TEST(RepeaterTraceProbe, QueueDeadlineDoesNotStartRoundTripClock) {
   EXPECT_TRUE(probe.isQueueTimedOut(10100));
   EXPECT_TRUE(probe.onTxStarted(&outbound, 10100));
   EXPECT_FALSE(probe.isQueueTimedOut(10101));
-  EXPECT_FALSE(probe.isTimedOut(30099));
-  EXPECT_TRUE(probe.isTimedOut(30100));
+  EXPECT_FALSE(probe.isTimedOut(20099));
+  EXPECT_TRUE(probe.isTimedOut(20100));
+}
+
+TEST(RepeaterTraceProbe, TimeoutScalesWithEveryRepeater) {
+  const uint32_t expected_seconds[] = { 0, 8, 10, 13, 15, 18, 20, 23, 25, 28, 30 };
+  for (uint8_t count = 1; count <= 10; count++) {
+    RepeaterTraceProbe probe;
+    Packet request = makeRequest(1, count);
+    Packet outbound;
+    ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, count, 1, 0));
+    probe.setQueuedPacket(&outbound);
+    ASSERT_TRUE(probe.onTxStarted(&outbound, 1000));
+    uint32_t deadline = 1000 + expected_seconds[count] * 1000;
+    EXPECT_FALSE(probe.isTimedOut(deadline - 1)) << "count=" << (int)count;
+    EXPECT_TRUE(probe.isTimedOut(deadline)) << "count=" << (int)count;
+  }
 }
 
 TEST(RepeaterTraceProbe, FailedTransmissionAllowsManualRetry) {

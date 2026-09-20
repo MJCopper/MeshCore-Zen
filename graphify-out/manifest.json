@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/main.cpp": {
-    "mtime": 1789875303.1795363,
-    "ast_hash": "07f43880bec27310ad27bdd3d0225510",
+    "mtime": 1789884985.3141255,
+    "ast_hash": "cc874fb96dddc612d71cec7c49d1103d",
     "semantic_hash": ""
   },
   "lib/ed25519/add_scalar.c": {
@@ -3885,13 +3885,13 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/RepeaterTraceProbe.cpp": {
-    "mtime": 1789875222.9705396,
-    "ast_hash": "6264797b57233b03012d7eb8f8ed42c8",
+    "mtime": 1789884967.4751263,
+    "ast_hash": "a15220b2d9213fac878216f267854846",
     "semantic_hash": ""
   },
   "examples/simple_sensor/RepeaterTraceProbe.h": {
-    "mtime": 1789875222.8435397,
-    "ast_hash": "01baed11bd0cb832bee83592e082ef91",
+    "mtime": 1789884967.3451262,
+    "ast_hash": "d856cacc05da7ad1242af0227d04162a",
     "semantic_hash": ""
   },
   "src/helpers/sensors/BME680AirQuality.cpp": {
@@ -3910,8 +3910,8 @@
     "semantic_hash": ""
   },
   "test/test_repeater_trace_probe/test_repeater_trace_probe.cpp": {
-    "mtime": 1789875392.9005325,
-    "ast_hash": "bb6c66d5df029650eec57770f4f06980",
+    "mtime": 1789885118.08612,
+    "ast_hash": "7bd28ff823aa97a1a80cc33cf9ee657e",
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/create-sensor-dfu-zip.py": {
@@ -3940,8 +3940,8 @@
     "semantic_hash": ""
   },
   "docs/sensor_features/public_bot/public_bot.md": {
-    "mtime": 1789875428.1405308,
-    "ast_hash": "a479ad78e842cce0a7d214606dafaa46",
+    "mtime": 1789885024.6371238,
+    "ast_hash": "450a539bc717bde1d7658745219c633d",
     "semantic_hash": ""
   },
   "docs/sensor_features/telemetry/telemetry.md": {

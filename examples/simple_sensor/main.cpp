@@ -13,7 +13,7 @@
 #endif
 
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
-static const uint32_t TRACE_REPLY_DELAY_MILLIS = 2000;
+static const uint32_t TRACE_REPLY_DELAY_MILLIS = 1000;
 
 static const char* airQualityLabel(float score) {
   return score <= 50 ? "Good" :
@@ -58,9 +58,22 @@ public:
     if (trace_probe.isQueueTimedOut(millis())) {
       cancelQueuedPacket(trace_probe.queuedPacket());
       trace_probe.cancel();
-      sendPublicResponse("Trace: radio busy");
+      if (!sendTraceFallback()) sendPublicResponse("Trace: radio busy");
     }
-    if (trace_probe.isTimedOut(millis())) sendPublicResponse("Trace: route timed out");
+    if (trace_probe.isTimedOut(millis())) {
+      if (trace_probe.retryPending()) {
+        uint32_t tag, auth_code;
+        getRNG()->random(reinterpret_cast<uint8_t*>(&tag), sizeof(tag));
+        getRNG()->random(reinterpret_cast<uint8_t*>(&auth_code), sizeof(auth_code));
+        if (!trace_probe.beginRetry(tag, auth_code, millis()) ||
+            !queueTrace(getRNG()->nextInt(1000, 2001))) {
+          trace_probe.cancel();
+          if (!sendTraceFallback()) sendPublicResponse("Trace: unable to retry");
+        }
+      } else {
+        if (!sendTraceFallback()) sendPublicResponse("Trace: route timed out");
+      }
+    }
     char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
     if (public_replies.takeDue(millis(), part) && !sendPublicPart(part, 0))
       public_replies.schedule(part, millis() + 1000);
@@ -132,6 +145,14 @@ protected:
 #ifdef PUBLIC_CHANNEL_SENSOR_BOT
   bool allowPacketForward(const mesh::Packet*) override { return false; }
 
+  bool queueTrace(uint32_t delay_millis = 0) {
+    auto trace = createTrace(trace_probe.tag(), trace_probe.authCode(), trace_probe.flags());
+    if (!trace) return false;
+    trace_probe.setQueuedPacket(trace);
+    sendDirect(trace, trace_probe.path(), trace_probe.pathBytes(), delay_millis);
+    return isQueuedPacket(trace);
+  }
+
   void onTxStarted(mesh::Packet* packet, uint32_t now_millis) override {
     trace_probe.onTxStarted(packet, now_millis);
   }
@@ -142,7 +163,8 @@ protected:
   }
 
   void logTxFail(mesh::Packet* packet, int) override {
-    if (trace_probe.onTxFailed(packet)) sendPublicResponse("Trace: transmit failed");
+    if (trace_probe.onTxFailed(packet) && !sendTraceFallback())
+      sendPublicResponse("Trace: transmit failed");
     public_replies.onFirstFailed(packet);
   }
 
@@ -198,9 +220,22 @@ protected:
                    const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len) override {
     uint32_t elapsed_millis;
     uint8_t repeater_count;
-    if (!trace_probe.complete(packet, tag, auth_code, flags, path_hashes, path_len,
-                              millis(), elapsed_millis, repeater_count)) return;
+    if (trace_probe.complete(packet, tag, auth_code, flags, path_hashes, path_len,
+                             millis(), elapsed_millis, repeater_count)) {
+      sendTraceResult(elapsed_millis, repeater_count, flags, path_snrs, path_hashes);
+      return;
+    }
+    if (trace_probe.captureLateFirst(packet, tag, auth_code, flags, path_snrs,
+                                     path_hashes, path_len, millis()) ==
+        RepeaterTraceProbe::RETRY_QUEUED &&
+        cancelQueuedPacket(trace_probe.queuedPacket())) {
+      trace_probe.cancel();
+      sendTraceFallback();
+    }
+  }
 
+  void sendTraceResult(uint32_t elapsed_millis, uint8_t repeater_count, uint8_t flags,
+                       const uint8_t* path_snrs, const uint8_t* path_hashes) {
     char response[2 * PublicResponseQueue::MAX_PART_LENGTH + 1];
     snprintf(response, sizeof(response), "Trace: %lu ms RTT", (unsigned long)elapsed_millis);
     uint8_t hash_size = 1 << (flags & 0x03);
@@ -214,6 +249,14 @@ protected:
       appendResponseLine(response, sizeof(response), line);
     }
     sendPublicResponse(response, TRACE_REPLY_DELAY_MILLIS);
+  }
+
+  bool sendTraceFallback() {
+    RepeaterTraceProbe::Result result;
+    if (!trace_probe.takeFallback(result)) return false;
+    sendTraceResult(result.elapsed_millis, result.repeater_count, trace_probe.flags(),
+                    result.snrs, trace_probe.path());
+    return true;
   }
 
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override {
@@ -242,12 +285,7 @@ protected:
       switch (trace_probe.start(packet, tag, auth_code, millis())) {
         case RepeaterTraceProbe::STARTED: {
           busy_trace_reported = false;
-          auto trace = createTrace(tag, auth_code, trace_probe.flags());
-          if (trace) {
-            trace_probe.setQueuedPacket(trace);
-            sendDirect(trace, trace_probe.path(), trace_probe.pathBytes());
-            if (isQueuedPacket(trace)) return;  // Reply on return or timeout.
-          }
+          if (queueTrace()) return;  // Reply on return or after the retry.
           trace_probe.cancel();
           sendPublicResponse("Trace: unable to start");
           return;

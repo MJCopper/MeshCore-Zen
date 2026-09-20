@@ -64,17 +64,24 @@ queue is excluded. It is not a
 one-way latency or a measurement to the companion. Only one trace runs at
 a time; paths over ten repeaters are rejected. A probe that cannot begin
 transmitting within ten seconds is cancelled. Once transmission begins, the
-timeout is 20 seconds for up to four repeaters and 30 seconds for five to ten
-repeaters. A timed-out
-trace is not retried automatically; send a new `!hillvue trace` command to
-try again. It counts toward the unchanged four-command-per-minute limit.
+timeout is five seconds plus 2.5 seconds per repeater, rounded up to a whole
+second. For example, two repeaters have ten seconds, three have 13 seconds,
+and ten have 30 seconds. If the route times out, the sensor makes one retry
+over the same path after a random one-to-two-second pause. The retry has a
+fresh trace identifier and the same per-repeater timeout. Only a final result
+or failure is posted to Public. If the first trace returns after its timeout
+but before the retry transmits, the sensor cancels the retry and reports that
+result. If the retry is already on air, the late first result is held in RAM
+and used only if the retry fails. Queue and transmit failures do not trigger a
+retry. The original command counts once toward the unchanged
+four-command-per-minute limit, although a retry sends a second trace packet.
 Requests received while a trace is running do not use a rate-limit slot; the
 node sends at most one `Trace: already running` notice for that trace.
 Incoming 3-byte path hashes cannot be mirrored by MeshCore TRACE and are
 reported as unavailable.
 
 After a trace result arrives, its Public-channel reply is scheduled with a
-two-second minimum plus the usual random 0.5–2-second transmit delay. This
+one-second minimum plus the usual random 0.5–2-second transmit delay. This
 spacing does not guarantee a collision-free transmission. The RTT is measured
 when the trace returns; the reply delay is not included. Repeater labels retain
 their existing 12-byte UTF-8-safe limit. With the default `BME680 Sensor` name,
