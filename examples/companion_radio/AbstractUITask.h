@@ -65,7 +65,9 @@ public:
   // A repeater rebroadcast of one of our channel sends was heard (seq from
   // lastChannelRelaySeq()) — drives the channel "relayed into mesh" marker.
   virtual void onChannelRelayed(uint32_t seq) { (void)seq; }
-  virtual void onChannelRelayExpired(uint32_t seq) { (void)seq; }
+  virtual void onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) {
+    (void)seq; (void)heard; (void)transmitted;
+  }
   // Result of an on-device-UI-triggered MyMesh::sendNodeLogin() arrived.
   // pub_key is the contact's key prefix (>=4 bytes valid); permissions is the
   // remote node ACL byte (only meaningful when success is true).

@@ -2092,9 +2092,10 @@ void UITask::onChannelRelayed(uint32_t seq) {
   ((MessagesScreen*)messages_screen)->markChannelRelayed(seq);
 }
 
-void UITask::onChannelRelayExpired(uint32_t seq) {
-  ((MessagesScreen*)messages_screen)->markChannelRelayExpired(seq);
-  logFailure("Channel", "No relay heard");
+void UITask::onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) {
+  if (!((MessagesScreen*)messages_screen)->markChannelRelayExpired(seq)) return;
+  if (!transmitted) logWarning("Channel", "Transmission delayed");
+  else if (heard == 0) logWarning("Channel", "No relay heard");
 }
 
 void UITask::onNodeLoginResult(const uint8_t* pub_key, bool success, uint8_t permissions) {

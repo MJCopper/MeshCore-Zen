@@ -164,15 +164,16 @@ public:
     }
   }
 
-  void markChannelRelayExpired(uint32_t seq) {
-    if (seq == 0) return;
+  bool markChannelRelayExpired(uint32_t seq) {
+    if (seq == 0) return false;
     for (int i = 0; i < _hist_count; i++) {
       ChHistEntry& e = _hist[(_hist_head + i) % CH_HIST_MAX];
       if (e.relay_seq == seq) {
         if (e.relay_count == 0) e.relay_status = ACK_FAIL;
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   // Arm the "relayed into mesh" marker on a just-sent entry (pos from

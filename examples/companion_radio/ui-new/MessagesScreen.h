@@ -744,7 +744,7 @@ public:
     return pos;
   }
   void markChannelRelayed(uint32_t seq) { _history.markChannelRelayed(seq); }
-  void markChannelRelayExpired(uint32_t seq) { _history.markChannelRelayExpired(seq); }
+  bool markChannelRelayExpired(uint32_t seq) { return _history.markChannelRelayExpired(seq); }
   void armChannelRelay(int pos, uint32_t seq) { _history.armChannelRelay(pos, seq); }
   void addAppDMMsg(const uint8_t* pub_key, const char* text, uint32_t timestamp,
                    uint8_t attempt, uint32_t ack_tag, uint32_t ack_deadline_ms,

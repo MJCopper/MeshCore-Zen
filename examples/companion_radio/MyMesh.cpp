@@ -641,7 +641,7 @@ bool MyMesh::filterRecvFloodPacket(mesh::Packet* packet) {
     bool hashed = false;
     for (int i = 0; i < RELAY_RING; i++) {
       RelaySlot& s = _relay[i];
-      if (!s.pending || s.len != packet->payload_len) continue;
+      if (!s.pending || !s.transmitted || s.len != packet->payload_len) continue;
       if (!hashed) { packet->calculatePacketHash(h); hashed = true; }
       if (memcmp(h, s.hash, MAX_HASH_SIZE) == 0) {
         if (s.heard < 255) s.heard++;
@@ -1547,9 +1547,31 @@ void MyMesh::onSendTimeout() {
   // Required BaseChatMesh hook. Delivery retries are managed by the UI policy.
 }
 
-// How long to wait for a repeater to rebroadcast our channel/flood packet before
-// closing its UI relay-count window (flood retransmit delays are randomised).
-#define RELAY_ECHO_WINDOW_MS  6000
+// A queued send can wait for CAD or duty-cycle budget. Only start its relay
+// window after radio transmission completes; allow time for the repeater's
+// randomised flood delay, which scales with packet airtime.
+#define RELAY_QUEUE_WINDOW_MS  120000
+#define RELAY_ECHO_MIN_MS       10000
+#define RELAY_ECHO_MAX_MS       30000
+
+void MyMesh::logTx(mesh::Packet* packet, int len) {
+  if (_relay_active == 0) return;
+  uint8_t hash[MAX_HASH_SIZE];
+  bool hashed = false;
+  for (int i = 0; i < RELAY_RING; i++) {
+    RelaySlot& s = _relay[i];
+    if (!s.pending || s.transmitted || s.len != packet->payload_len) continue;
+    if (!hashed) { packet->calculatePacketHash(hash); hashed = true; }
+    if (memcmp(hash, s.hash, MAX_HASH_SIZE) != 0) continue;
+    uint32_t airtime = _radio->getEstAirtimeFor(len);
+    uint32_t window = airtime >= RELAY_ECHO_MAX_MS / 4
+        ? RELAY_ECHO_MAX_MS : airtime * 4;
+    if (window < RELAY_ECHO_MIN_MS) window = RELAY_ECHO_MIN_MS;
+    s.deadline = futureMillis(window);
+    s.transmitted = true;
+    break;
+  }
+}
 
 // Arm the UI "relayed into mesh" tracker for a channel send.
 // A repeater rebroadcast heard within the window = relayed; no echo = simply not
@@ -1559,10 +1581,11 @@ void MyMesh::trackRelaySend(const mesh::Packet* pkt) {
   if (!s.pending) _relay_active++;   // overwriting an empty slot adds one pending
   pkt->calculatePacketHash(s.hash);
   s.len = pkt->payload_len;
-  s.deadline = futureMillis(RELAY_ECHO_WINDOW_MS);
+  s.deadline = futureMillis(RELAY_QUEUE_WINDOW_MS);
   _relay_seq = (_relay_seq == 0xFFFFFFFFu) ? 1 : _relay_seq + 1;   // never 0 (0 = "no relay")
   s.seq = _relay_seq;
   s.heard = 0;
+  s.transmitted = false;
   s.pending = true;
   _last_relay_seq = _relay_seq;
   _relay_head = (_relay_head + 1) % RELAY_RING;
@@ -3207,7 +3230,8 @@ void MyMesh::loop() {
   if (_relay_active > 0) {
     for (int i = 0; i < RELAY_RING; i++) {
       if (_relay[i].pending && millisHasNowPassed(_relay[i].deadline)) {
-        if (_ui) _ui->onChannelRelayExpired(_relay[i].seq);
+        if (_ui) _ui->onChannelRelayExpired(_relay[i].seq, _relay[i].heard,
+                                            _relay[i].transmitted);
         _relay[i].pending = false;
         _relay_active--;
       }

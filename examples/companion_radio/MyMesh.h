@@ -27,7 +27,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v1.32.109"
+#define FIRMWARE_VERSION "v1.32.110"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -281,6 +281,7 @@ protected:
   uint32_t calcFloodTimeoutMillisFor(uint32_t pkt_airtime_millis) const override;
   uint32_t calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis, uint8_t path_len) const override;
   void onSendTimeout() override;
+  void logTx(mesh::Packet* packet, int len) override;
   void trackRelaySend(const mesh::Packet* pkt);   // arm the UI relayed-into-mesh tracker
 public:
   // Seq of the most recently tracked channel send — the UI records it on the
@@ -542,6 +543,7 @@ private:
     uint32_t deadline;
     uint32_t seq;
     uint8_t  heard;
+    bool     transmitted;
     bool     pending;
   };
   RelaySlot _relay[RELAY_RING];

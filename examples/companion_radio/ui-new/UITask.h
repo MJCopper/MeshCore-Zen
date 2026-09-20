@@ -325,7 +325,7 @@ public:
   bool matchMsgAck(uint32_t ack_crc, uint8_t* prefix) override;
   void onNodeLoginCancelled(const uint8_t* prefix) override;
   void onChannelRelayed(uint32_t seq) override;
-  void onChannelRelayExpired(uint32_t seq) override;
+  void onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) override;
   void onNodeLoginResult(const uint8_t* pub_key, bool success, uint8_t permissions) override;
   bool startNodeLogin(solo::NodeLoginCoordinator::Owner owner, const ContactInfo& contact,
                       const char* password, bool used_saved_password = false);
