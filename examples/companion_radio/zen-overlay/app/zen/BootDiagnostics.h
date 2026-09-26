@@ -5,6 +5,7 @@
 
 #if defined(NRF52_PLATFORM)
 #include <nrf.h>
+#include <nrf_soc.h>
 #endif
 
 namespace zen {
@@ -16,7 +17,13 @@ public:
   static bool abnormalReset(OperationReason& reason) {
 #if defined(NRF52_PLATFORM)
     uint32_t cause = NRF_POWER->RESETREAS;
-    NRF_POWER->RESETREAS = 0xFFFFFFFF; // write-1-to-clear for the next boot
+    // POWER register writes must go through the SoftDevice once it owns the
+    // radio; a direct write here after BLE is enabled hard-faults into a
+    // reboot loop. Bluefruit is already active by this call site.
+    uint8_t sd_enabled = 0;
+    sd_softdevice_is_enabled(&sd_enabled);
+    if (sd_enabled) sd_power_reset_reason_clr(0xFFFFFFFF);
+    else NRF_POWER->RESETREAS = 0xFFFFFFFF; // write-1-to-clear for the next boot
     if (cause & POWER_RESETREAS_DOG_Msk) { reason = OperationReason::WATCHDOG_RESET; return true; }
     if (cause & POWER_RESETREAS_LOCKUP_Msk) { reason = OperationReason::CPU_LOCKUP; return true; }
 #else
