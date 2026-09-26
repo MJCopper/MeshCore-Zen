@@ -1,5 +1,4 @@
 #include "EnvironmentSensorManager.h"
-#include "GpsPollingPolicy.h"
 
 #include <Wire.h>
 
@@ -668,7 +667,7 @@ bool EnvironmentSensorManager::begin() {
 bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, CayenneLPP& telemetry) {
   next_available_channel = TELEM_CHANNEL_SELF + 1;
 
-  if (requester_permissions & TELEM_PERM_LOCATION && gps_configured) {
+  if (requester_permissions & TELEM_PERM_LOCATION && gps_active) {
     telemetry.addGPS(TELEM_CHANNEL_SELF, node_lat, node_lon, node_altitude);
   }
 
@@ -681,6 +680,7 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
 
   return true;
 }
+
 
 int EnvironmentSensorManager::getNumSettings() const {
   int settings = 0;
@@ -704,7 +704,7 @@ const char* EnvironmentSensorManager::getSettingValue(int i) const {
   int settings = 0;
   #if ENV_INCLUDE_GPS
     if (gps_detected && i == settings++) {
-      return gps_configured ? "1" : "0";
+      return gps_active ? "1" : "0";
     }
   #endif
   return NULL;
@@ -714,47 +714,15 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
   #if ENV_INCLUDE_GPS
   if (gps_detected && strcmp(name, "gps") == 0) {
     if (strcmp(value, "0") == 0) {
-      gps_configured = false;
-      gps_consecutive_failures = 0;
-      gps_adaptive_policy.setEnabled(millis(), false, gps_active);
       stop_gps();
     } else {
-      gps_configured = true;
-      if (gps_adaptive) {
-        gps_adaptive_policy.setEnabled(millis(), true, gps_active);
-        start_gps();
-      } else if (gps_update_interval_sec == 0) start_gps();
-      else start_periodic_gps();
+      start_gps();
     }
     return true;
   }
   if (strcmp(name, "gps_interval") == 0) {
     uint32_t interval_seconds = atoi(value);
-    gps_update_interval_sec = interval_seconds;
-    if (interval_seconds != 0) gps_adaptive = false;
-    gps_consecutive_failures = 0;
-    if (gps_configured) {
-      gps_adaptive_policy.setEnabled(millis(), gps_adaptive, gps_active);
-      if (gps_adaptive || gps_update_interval_sec == 0) start_gps();
-      else start_periodic_gps();
-    }
-    return true;
-  }
-  if (strcmp(name, "gps_adaptive") == 0) {
-    gps_adaptive = strcmp(value, "0") != 0 && gps_update_interval_sec == 0;
-    gps_adaptive_policy.setEnabled(millis(), gps_configured && gps_adaptive,
-                                  gps_active);
-    if (gps_configured && gps_update_interval_sec == 0) start_gps();
-    return true;
-  }
-  // Temporary hardware claim used by boot-time clock synchronisation. Unlike
-  // the public "gps" setting, this deliberately leaves the saved user intent
-  // and periodic schedule unchanged.
-  if (strcmp(name, "gps_power") == 0) {
-    gps_force_active = strcmp(value, "0") != 0;
-    if (gps_force_active) start_gps();
-    else if (!gps_configured || gps_update_interval_sec > 0) stop_gps();
-    else start_gps();
+    gps_update_interval_sec = interval_seconds > 0 ? interval_seconds : 1;
     return true;
   }
   #endif
@@ -893,7 +861,6 @@ bool EnvironmentSensorManager::gpsIsAwake(uint8_t ioPin){
 #endif
 
 void EnvironmentSensorManager::start_gps() {
-  if (gps_active) return;
   gps_active = true;
   #ifdef RAK_WISBLOCK_GPS
     pinMode(gpsResetPin, OUTPUT);
@@ -910,7 +877,6 @@ void EnvironmentSensorManager::start_gps() {
 }
 
 void EnvironmentSensorManager::stop_gps() {
-  if (!gps_active) return;
   gps_active = false;
   #ifdef RAK_WISBLOCK_GPS
     pinMode(gpsResetPin, OUTPUT);
@@ -924,122 +890,38 @@ void EnvironmentSensorManager::stop_gps() {
   MESH_DEBUG_PRINTLN("Stop GPS is N/A on this board. Actual GPS state unchanged");
   #endif
 }
-
-void EnvironmentSensorManager::start_periodic_gps() {
-  start_gps();
-  uint32_t now = millis();
-  gps_acquire_deadline_ms = now + 90000UL;
-  gps_fix_stable_since_ms = 0;
-  gps_movement_seen = false;
-  gps_movement_since_ms = 0;
-}
 #endif // ENV_INCLUDE_GPS
-
-void EnvironmentSensorManager::onUserDisplayWake() {
-#if ENV_INCLUDE_GPS
-  if (gps_configured && gps_adaptive) {
-    GpsAdaptivePolicy::Action action =
-        gps_adaptive_policy.onUserWake(millis(), gps_active);
-    if (action == GpsAdaptivePolicy::START) start_gps();
-    return;
-  }
-  if (!GpsPollingPolicy::retryOnUserWake(
-          gps_configured, gps_active, gps_update_interval_sec,
-          gps_consecutive_failures)) return;
-
-  // A deliberate wake is evidence that conditions may have changed (for
-  // example, the device was carried outdoors). Clear the RAM-only failure
-  // history and make one acquisition due on the next sensor loop. Normal
-  // successful polling remains on its configured cadence.
-  gps_consecutive_failures = 0;
-  gps_next_acquire_ms = millis();
-#endif
-}
-
-bool EnvironmentSensorManager::getGpsAdaptiveRetry(uint32_t& remaining_ms) const {
-#if ENV_INCLUDE_GPS
-  return gps_configured && gps_adaptive &&
-         gps_adaptive_policy.retryRemaining(millis(), remaining_ms);
-#else
-  (void)remaining_ms;
-  return false;
-#endif
-}
 
 #if ENV_INCLUDE_GPS || defined(ENV_INCLUDE_BME680_BSEC)
 void EnvironmentSensorManager::loop() {
 
   #if ENV_INCLUDE_GPS
+  static unsigned long next_gps_update = 0;
   if (gps_active) {
     _location->loop();
   }
-  uint32_t now = millis();
-  if (gps_configured && !gps_force_active && !gps_adaptive &&
-      gps_update_interval_sec > 0 && !gps_active &&
-      (int32_t)(now - gps_next_acquire_ms) >= 0) {
-    start_periodic_gps();
-  }
+  if ((long)(millis() - next_gps_update) > 0) {
 
-  if (gps_active) {
-    bool valid = _location->isValid();
+    if(gps_active){
     #ifdef RAK_WISBLOCK_GPS
-    valid = (i2cGPSFlag || serialGPSFlag) && valid;
-    #endif
-    if (valid && (int32_t)(now - gps_next_cache_ms) >= 0) {
+    if ((i2cGPSFlag || serialGPSFlag) && _location->isValid()) {
       node_lat = ((double)_location->getLatitude())/1000000.;
       node_lon = ((double)_location->getLongitude())/1000000.;
       MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
       node_altitude = ((double)_location->getAltitude()) / 1000.0;
       MESH_DEBUG_PRINTLN("lat %f lon %f alt %f", node_lat, node_lon, node_altitude);
-      gps_next_cache_ms = now + 1000UL;
     }
-    long hdop = valid ? _location->getHDOP() : -1;
-    bool quality_good = valid && GpsPollingPolicy::qualityGood(
-        hdop, valid ? _location->satellitesCount() : 0);
-    if (quality_good) {
-      if (gps_fix_stable_since_ms == 0) gps_fix_stable_since_ms = now;
-    } else {
-      gps_fix_stable_since_ms = 0;
+    #else
+    if (_location->isValid()) {
+      node_lat = ((double)_location->getLatitude())/1000000.;
+      node_lon = ((double)_location->getLongitude())/1000000.;
+      MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
+      node_altitude = ((double)_location->getAltitude()) / 1000.0;
+      MESH_DEBUG_PRINTLN("lat %f lon %f alt %f", node_lat, node_lon, node_altitude);
     }
-
-    if (gps_configured && !gps_force_active && !gps_adaptive &&
-        gps_update_interval_sec > 0) {
-      // A moving receiver stays awake long enough to establish a useful
-      // walking course. Stationary polling retains the original four-second
-      // stable-fix window and therefore its existing power cost.
-      long speed = valid ? _location->getSpeed() : LONG_MIN;
-      if (quality_good && speed >= 800 && !gps_movement_seen) {
-        gps_movement_seen = true;
-        gps_movement_since_ms = now;
-      }
-      bool stable = quality_good && (gps_movement_seen
-          ? (uint32_t)(now - gps_movement_since_ms) >= GpsPollingPolicy::MOVING_CAPTURE_MS
-          : (gps_fix_stable_since_ms != 0 &&
-             (uint32_t)(now - gps_fix_stable_since_ms) >= GpsPollingPolicy::STATIONARY_STABLE_MS));
-      bool timed_out = (int32_t)(now - gps_acquire_deadline_ms) >= 0;
-      if (stable || timed_out) {
-        stop_gps();
-        if (stable) gps_consecutive_failures = 0;
-        else if (gps_consecutive_failures < 255) gps_consecutive_failures++;
-        uint32_t next_sec = GpsPollingPolicy::retryDelaySeconds(
-            gps_update_interval_sec, gps_consecutive_failures);
-        gps_next_acquire_ms = now + next_sec * 1000UL;
-        gps_fix_stable_since_ms = 0;
-        gps_movement_seen = false;
-        gps_movement_since_ms = 0;
-      }
+    #endif
     }
-
-    if (gps_configured && gps_adaptive) {
-      GpsAdaptivePolicy::Action action = gps_adaptive_policy.update(
-          now, quality_good, gps_active, gps_force_active);
-      if (action == GpsAdaptivePolicy::START) start_gps();
-      else if (action == GpsAdaptivePolicy::STOP) stop_gps();
-    }
-  } else if (gps_configured && gps_adaptive) {
-    GpsAdaptivePolicy::Action action = gps_adaptive_policy.update(
-        now, false, false, gps_force_active);
-    if (action == GpsAdaptivePolicy::START) start_gps();
+    next_gps_update = millis() + (gps_update_interval_sec * 1000);
   }
   #endif
   #if ENV_INCLUDE_BME680_BSEC

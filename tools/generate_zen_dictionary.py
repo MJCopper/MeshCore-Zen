@@ -143,7 +143,7 @@ def main() -> None:
     parser.add_argument(
         "--core",
         type=Path,
-        default=Path("examples/companion_radio/solo/WordCompleter.h"),
+        default=Path("examples/companion_radio/zen-overlay/app/zen/WordCompleter.h"),
     )
     args = parser.parse_args()
     source = json.loads(args.source.read_text(encoding="utf-8"))

@@ -1,21 +1,7 @@
 #include "MyMesh.h"
-#include "solo/RepeaterTiming.h"
-#include "solo/SoloPrefsDefaults.h"
-#include "solo/DeviceTimePolicy.h"
-#include "solo/BuiltinMelodies.h"
-#include "solo/ConfigMaintenance.h"
-#include "MsgExpand.h"
-#include "GeoUtils.h"
-#include "Features.h"
 
 #include <Arduino.h> // needed for PlatformIO
 #include <Mesh.h>
-#include <helpers/UTF8Helpers.h>
-
-#ifdef DISPLAY_CLASS
-#include "helpers/ui/DisplayDriver.h"
-#include "UITask.h"
-#endif
 
 #define CMD_APP_START                 1
 #define CMD_SEND_TXT_MSG              2
@@ -76,9 +62,6 @@
 #define CMD_SET_DEFAULT_FLOOD_SCOPE   63
 #define CMD_GET_DEFAULT_FLOOD_SCOPE   64
 #define CMD_SEND_RAW_PACKET           65
-#ifdef ENABLE_SCREENSHOT
-#define CMD_GET_SCREENSHOT             66   // Request screenshot from display
-#endif
 
 // Stats sub-types for CMD_GET_STATS
 #define STATS_TYPE_CORE               0
@@ -114,9 +97,6 @@
 #define RESP_ALLOWED_REPEAT_FREQ      26
 #define RESP_CODE_CHANNEL_DATA_RECV   27
 #define RESP_CODE_DEFAULT_FLOOD_SCOPE 28
-#ifdef ENABLE_SCREENSHOT
-#define RESP_CODE_SCREENSHOT           29   // Response with screenshot data
-#endif
 
 #define MAX_CHANNEL_DATA_LENGTH       (MAX_FRAME_SIZE - 9)
 
@@ -217,10 +197,6 @@ void MyMesh::updateContactFromFrame(ContactInfo &contact, uint32_t& last_mod, co
   memcpy(contact.out_path, &frame[i], MAX_PATH_SIZE);
   i += MAX_PATH_SIZE;
   memcpy(contact.name, &frame[i], 32);
-  // The frame comes from the app and nothing guarantees a NUL inside the 32
-  // bytes; an unterminated name would later overrun strcpy/strlen consumers
-  // (e.g. the AdvertPath name cache).
-  contact.name[sizeof(contact.name) - 1] = '\0';
   i += 32;
   memcpy(&contact.last_advert_timestamp, &frame[i], 4);
   i += 4;
@@ -285,26 +261,21 @@ float MyMesh::getAirtimeBudgetFactor() const {
 int MyMesh::getInterferenceThreshold() const {
   return 0; // disabled for now, until currentRSSI() problem is resolved
 }
+bool MyMesh::getCADEnabled() const {
+  return false; // hardware CAD before TX (disabled by default, until configurable)
+}
 
 int MyMesh::calcRxDelay(float score, uint32_t air_time) const {
-  const float base = _prefs.client_repeat ? solo::RepeaterTiming::RX_DELAY_BASE : _prefs.rx_delay_base;
-  if (base <= 0.0f) return 0;
-  return (int)((pow(base, 0.85f - score) - 1.0) * air_time);
+  if (_prefs.rx_delay_base <= 0.0f) return 0;
+  return (int)((pow(_prefs.rx_delay_base, 0.85f - score) - 1.0) * air_time);
 }
 
 uint32_t MyMesh::getRetransmitDelay(const mesh::Packet *packet) {
-  uint32_t airtime = _radio->getEstAirtimeFor(packet->getPathByteLen() + packet->payload_len + 2);
-  uint32_t t = solo::RepeaterTiming::delayWindow(airtime, solo::RepeaterTiming::FLOOD_TX_FACTOR);
-  uint32_t d = getRNG()->nextInt(0, 5*t + 1);
-  // Yield filter (Tools > Repeater): scale the flood retransmit delay so a
-  // mobile companion waits longer and lets better-sited fixed repeaters win the
-  // flood first. Only forwarded floods reach here — own sends pass their own
-  // delay to sendFlood() — so this never slows the companion's own traffic.
-  return d * solo::RepeaterTiming::YIELD_MULTIPLIER;
+  uint32_t t = (_radio->getEstAirtimeFor(packet->getPathByteLen() + packet->payload_len + 2) * 0.5f);
+  return getRNG()->nextInt(0, 5*t + 1);
 }
 uint32_t MyMesh::getDirectRetransmitDelay(const mesh::Packet *packet) {
-  uint32_t airtime = _radio->getEstAirtimeFor(packet->getPathByteLen() + packet->payload_len + 2);
-  uint32_t t = solo::RepeaterTiming::delayWindow(airtime, solo::RepeaterTiming::DIRECT_TX_FACTOR);
+  uint32_t t = (_radio->getEstAirtimeFor(packet->getPathByteLen() + packet->payload_len + 2) * 0.2f);
   return getRNG()->nextInt(0, 5*t + 1);
 }
 
@@ -313,22 +284,6 @@ uint8_t MyMesh::getExtraAckTransmitCount() const {
 }
 
 void MyMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
-  // A non-empty flood path proves at least one relay; a direct path needs more
-  // than its destination hop to prove an intermediate relay. This excludes
-  // zero-hop companion traffic while sampling normal routed mesh activity.
-  if (raw && len >= 2) {
-    uint8_t route = raw[0] & PH_ROUTE_MASK;
-    int path_pos = (route == ROUTE_TYPE_TRANSPORT_FLOOD ||
-                    route == ROUTE_TYPE_TRANSPORT_DIRECT) ? 5 : 1;
-    if (path_pos < len) {
-      uint8_t path_count = raw[path_pos] & 63;
-      bool relayed = solo::RepeaterSignalMonitor::qualifiesRoute(
-          route == ROUTE_TYPE_FLOOD || route == ROUTE_TYPE_TRANSPORT_FLOOD,
-          route == ROUTE_TYPE_DIRECT || route == ROUTE_TYPE_TRANSPORT_DIRECT,
-          path_count);
-      if (relayed) _repeater_signal.noteSample((int)(snr * 4), millis());
-    }
-  }
   if (_serial->isConnected() && len + 3 <= MAX_FRAME_SIZE) {
     int i = 0;
     out_frame[i++] = PUSH_CODE_LOG_RX_DATA;
@@ -381,7 +336,6 @@ uint8_t MyMesh::getAutoAddMaxHops() const {
 
 void MyMesh::onContactOverwrite(const uint8_t* pub_key) {
     _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE); // delete from storage
-  if (_ui) _ui->onContactRemoved(pub_key); // same cleanup as an explicit CMD_REMOVE_CONTACT
   if (_serial->isConnected()) {
     out_frame[0] = PUSH_CODE_CONTACT_DELETED;
     memcpy(&out_frame[1], pub_key, PUB_KEY_SIZE);
@@ -396,19 +350,7 @@ void MyMesh::onContactsFull() {
   }
 }
 
-void MyMesh::onContactAdded(const ContactInfo& contact) {
-  if (_ui) _ui->onNewContact(contact);
-}
-
-void MyMesh::onDiscoveredAdvert(bool was_flood) {
-  if (_ui) _ui->notify(was_flood ? UIEventType::advertReceivedFlood : UIEventType::advertReceivedZeroHop);
-}
-
 void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len, const uint8_t* path) {
-  // Routed adverts were already sampled by logRxRaw(); this covers a directly
-  // heard repeater advert without double-weighting the same packet.
-  if (contact.type == ADV_TYPE_REPEATER && (path_len & 63) == 0)
-    _repeater_signal.noteSample((int)(_radio->getLastSNR() * 4), millis());
   if (_serial->isConnected()) {
     if (is_new) {
       writeContactRespFrame(PUSH_CODE_NEW_ADVERT, contact);
@@ -417,6 +359,10 @@ void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path
       memcpy(&out_frame[1], contact.id.pub_key, PUB_KEY_SIZE);
       _serial->writeFrame(out_frame, 1 + PUB_KEY_SIZE);
     }
+  } else {
+#ifdef DISPLAY_CLASS
+    if (_ui) _ui->notify(UIEventType::newContactMessage);
+#endif
   }
 
   // add inbound-path to mem cache
@@ -457,88 +403,17 @@ int MyMesh::getRecentlyHeard(AdvertPath dest[], int max_num) {
   return max_num;
 }
 
-bool MyMesh::addDiscoveredContact(const uint8_t* pub_key, const char* name, uint8_t type) {
-  if (lookupContactByPubKey(pub_key, PUB_KEY_SIZE)) return true;  // already a contact
-  ContactInfo c;
-  memset(&c, 0, sizeof(c));
-  c.id = mesh::Identity(pub_key);
-  strncpy(c.name, name ? name : "", sizeof(c.name) - 1);
-  c.name[sizeof(c.name) - 1] = '\0';
-  c.type = type;
-  c.out_path_len = OUT_PATH_UNKNOWN;   // no path yet → flood until one is learned
-  c.lastmod = getRTCClock()->getCurrentTime();
-  c.shared_secret_valid = false;
-  if (!addContact(c)) return false;    // contacts table full
-  dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-  return true;
-}
-
-// Full delete sequence shared by CMD_REMOVE_CONTACT and the on-device Nearby menu:
-// drop the contact, its persisted blob and any saved room login, run the UI cleanup
-// (favourite slot / Locator / Live Share target), then schedule the lazy write.
-bool MyMesh::deleteContactByKey(const uint8_t* pub_key) {
-  ContactInfo* recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
-  if (!recipient || !removeContact(*recipient)) return false;
-  _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE);
-  forgetRoomPassword(pub_key);
-  if (_ui) _ui->onContactRemoved(pub_key);
-  dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-  return true;
-}
-
-bool MyMesh::setContactFavourite(const uint8_t* pub_key, bool favourite) {
-  ContactInfo* contact = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
-  if (!contact) return false;
-  bool current = (contact->flags & 0x01) != 0;
-  if (current == favourite) return true;
-  if (favourite) contact->flags |= 0x01;
-  else           contact->flags &= ~0x01;
-  uint32_t changed_at = getRTCClock()->getCurrentTimeUnique();
-  // Incremental companion sync uses `lastmod > since`. Preserve that strict
-  // ordering even for two edits in one RTC second or a clock correction.
-  if (changed_at <= contact->lastmod && contact->lastmod != UINT32_MAX)
-    changed_at = contact->lastmod + 1;
-  contact->lastmod = changed_at;
-  dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-  return true;
-}
-
-bool MyMesh::clearContactPath(const uint8_t* pub_key, size_t prefix_len) {
-  ContactInfo* recipient = lookupContactByPubKey(pub_key, prefix_len);
-  if (!recipient) return false;
-  recipient->out_path_len = OUT_PATH_UNKNOWN;
-  memset(recipient->out_path, 0, sizeof(recipient->out_path));
-  onContactPathUpdated(*recipient);
-  return true;
-}
-
 void MyMesh::onContactPathUpdated(const ContactInfo &contact) {
   out_frame[0] = PUSH_CODE_PATH_UPDATED;
   memcpy(&out_frame[1], contact.id.pub_key, PUB_KEY_SIZE);
   _serial->writeFrame(out_frame, 1 + PUB_KEY_SIZE); // NOTE: app may not be connected
+
+  dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
 }
 
 ContactInfo*  MyMesh::processAck(const uint8_t *data) {
-  // 0 marks an empty/cleared table slot, not a real ACK -- a bare memcmp below
-  // would otherwise match the first free slot against an all-zero `data` (which
-  // *is* remotely reachable, ack_crc comes off the air) and misattribute the
-  // ACK to whatever contact that slot last belonged to.
-  static const uint8_t zero_ack[4] = {0, 0, 0, 0};
-  if (memcmp(data, zero_ack, 4) == 0) return checkConnectionsAck(data);
-
-  // This is the common ACK path for both standalone ACK packets and ACKs
-  // embedded in a returned contact path. On-device sends keep their pending
-  // tag in MessageHistory rather than expected_ack_table, so notifying here is
-  // essential: doing it only from onAckRecv() misses the embedded form and the
-  // UI incorrectly retries a message that was already delivered.
-  uint32_t ack_crc;
-  memcpy(&ack_crc, data, sizeof(ack_crc));
-  uint8_t ui_prefix[4];
-  bool ui_matched = _ui && _ui->matchMsgAck(ack_crc, ui_prefix);
-
   // see if matches any in a table
   for (int i = 0; i < EXPECTED_ACK_TABLE_SIZE; i++) {
-    if (expected_ack_table[i].ack == 0) continue;   // empty slot
     if (memcmp(data, &expected_ack_table[i].ack, 4) == 0) { // got an ACK from recipient
       out_frame[0] = PUSH_CODE_SEND_CONFIRMED;
       memcpy(&out_frame[1], data, 4);
@@ -546,19 +421,12 @@ ContactInfo*  MyMesh::processAck(const uint8_t *data) {
       memcpy(&out_frame[5], &trip_time, 4);
       _serial->writeFrame(out_frame, 9);
 
-      ContactInfo* contact = expected_ack_table[i].contact;
       // NOTE: the same ACK can be received multiple times!
-      expected_ack_table[i].ack = 0;            // clear expected hash, now that we have received ACK
-      expected_ack_table[i].contact = nullptr;  // and the stale pointer along with it
-      return contact;
+      expected_ack_table[i].ack = 0; // clear expected hash, now that we have received ACK
+      return expected_ack_table[i].contact;
     }
   }
-  ContactInfo* connection = checkConnectionsAck(data);
-  if (ui_matched) {
-    ContactInfo* contact = lookupContactByPubKey(ui_prefix, sizeof(ui_prefix));
-    if (contact) return contact;
-  }
-  return connection;
+  return checkConnectionsAck(data);
 }
 
 void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packet *pkt,
@@ -582,9 +450,9 @@ void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packe
     memcpy(&out_frame[i], extra, extra_len);
     i += extra_len;
   }
-  int tlen = strlen(text);
+  int tlen = strlen(text); // TODO: UTF-8 ??
   if (i + tlen > MAX_FRAME_SIZE) {
-    tlen = mesh::validUtf8PrefixLength(text, MAX_FRAME_SIZE - i);
+    tlen = MAX_FRAME_SIZE - i;
   }
   memcpy(&out_frame[i], text, tlen);
   i += tlen;
@@ -599,100 +467,23 @@ void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packe
 #ifdef DISPLAY_CLASS
   // we only want to show text messages on display, not cli data
   bool should_display = txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN;
-  if (should_display && _ui && _ui->allowOnDeviceContactMessage(from)) {
-    // Add to the on-device conversation history. Room servers (ADV_TYPE_ROOM) are
-    // viewed through the same history list as chat contacts (keyed by the server's
-    // pubkey), so their posts must be stored too — otherwise an incoming room
-    // message fires the notification and reaches the app via the offline queue but
-    // never shows when the room is opened directly on the device.
-    bool added = true;
-    if (from.type == ADV_TYPE_CHAT) {
-      added = _ui->addDMMsg(from.id.pub_key, false, text, sender_timestamp);
-    } else if (from.type == ADV_TYPE_ROOM) {
-      // A room carries many guests, so prefix the post with its author so the UI
-      // can attribute each line. The signed message's `extra` holds the sender's
-      // pubkey prefix; resolve it to a contact name, falling back to a short hex.
-      char labeled[MAX_TEXT_LEN + 40];  // room text + "Sender: " (history store truncates)
-      if (extra && extra_len >= 4) {
-        ContactInfo* sc = lookupContactByPubKey(extra, extra_len);
-        if (sc && sc->name[0])
-          snprintf(labeled, sizeof(labeled), "%s: %s", sc->name, text);
-        else
-          snprintf(labeled, sizeof(labeled), "%02X%02X: %s", extra[0], extra[1], text);
-      } else {
-        snprintf(labeled, sizeof(labeled), "%s", text);
-      }
-      added = _ui->addDMMsg(from.id.pub_key, false, labeled, sender_timestamp);
+  if (should_display && _ui) {
+    _ui->newMsg(path_len, from.name, text, offline_queue_len);
+    if (!_serial->isConnected()) {
+      _ui->notify(UIEventType::contactMessage);
     }
-    // A retry reuses timestamp + text but has a fresh packet hash. Only the
-    // first stored copy should affect unread state or notify the user.
-    if (added)
-      _ui->incomingMessage(from.type == ADV_TYPE_ROOM ? UIEventType::roomMessage : UIEventType::contactMessage,
-                           path_len, from.name, text, offline_queue_len, from.type, from.id.pub_key);
   }
 #endif
 }
 
 bool MyMesh::filterRecvFloodPacket(mesh::Packet* packet) {
-  // UI relayed-into-mesh marker: match heard echoes of recent channel sends.
-  // Gated on _relay_active so the hash is only computed while a send is pending.
-  if (_relay_active > 0) {
-    uint8_t h[MAX_HASH_SIZE];
-    bool hashed = false;
-    for (int i = 0; i < RELAY_RING; i++) {
-      RelaySlot& s = _relay[i];
-      if (!s.pending || !s.transmitted || s.len != packet->payload_len) continue;
-      if (!hashed) { packet->calculatePacketHash(h); hashed = true; }
-      if (memcmp(h, s.hash, MAX_HASH_SIZE) == 0) {
-        if (s.heard < 255) s.heard++;
-        if (_ui) _ui->onChannelRelayed(s.seq);
-        break;
-      }
-    }
-  }
   // REVISIT: try to determine which Region (from transport_codes[1]) that Sender is indicating for replies/responses
   //    if unknown, fallback to finding Region from transport_codes[0], the 'scope' used by Sender
   return false;
 }
 
-// Loop guard for flood packets, ported from simple_repeater's LOOP_DETECT_MODERATE
-// thresholds (max times this node's hash may already appear in the path, by hash size).
-// A companion moves around, so it re-enters its own flood's path more easily than a
-// fixed repeater — hardcoded rather than configurable since there's no CLI here.
-// Indexed by getPathHashSize() = (path_len>>6)+1, so 1..4. Index 0 is unused
-// (hash size is never 0); index 4 covers path_mode 3, which tryParsePacket
-// currently rejects — kept in-bounds so this can't OOB-read if that guard is
-// ever relaxed.
-static const uint8_t REPEAT_LOOP_MAX[] = { 0, /*1-byte*/ 2, /*2-byte*/ 1, /*3-byte*/ 1, /*4-byte*/ 1 };
-// Caps how many hops an ADVERT flood gets repeated, matching simple_repeater's default
-// flood_max_advert — adverts are the most frequent flood traffic, so this is the one
-// depth limit worth keeping even without the rest of simple_repeater's flood_max knobs.
-static const uint8_t REPEAT_MAX_ADVERT_HOPS = 8;
-
-bool MyMesh::isRepeatLooped(const mesh::Packet* packet) const {
-  uint8_t hash_size = packet->getPathHashSize();
-  if (hash_size >= sizeof(REPEAT_LOOP_MAX)) return true;  // unknown hash size: treat as looped, don't forward
-  uint8_t hash_count = packet->getPathHashCount();
-  uint8_t n = 0;
-  const uint8_t* path = packet->path;
-  while (hash_count > 0) {
-    if (self_id.isHashMatch(path, hash_size)) n++;
-    hash_count--;
-    path += hash_size;
-  }
-  return n >= REPEAT_LOOP_MAX[hash_size];
-}
-
 bool MyMesh::allowPacketForward(const mesh::Packet* packet) {
-  if (!solo::Features::REPEATER || _prefs.client_repeat == 0) return false;
-  // Apply only the standard automatic flood-safety limits. User-configurable
-  // advert, global-hop and SNR filters were removed because they could silently
-  // prevent otherwise valid mesh delivery.
-  if (packet->isRouteFlood()) {
-    if (packet->getPayloadType() == PAYLOAD_TYPE_ADVERT && packet->getPathHashCount() >= REPEAT_MAX_ADVERT_HOPS) return false;
-    if (isRepeatLooped(packet)) return false;
-  }
-  return true;
+  return _prefs.isRepeatEn();
 }
 
 void MyMesh::sendFloodScoped(const TransportKey& scope, mesh::Packet* pkt, uint32_t delay_millis) {
@@ -720,7 +511,6 @@ void MyMesh::sendFloodScoped(const ContactInfo& recipient, mesh::Packet* pkt, ui
 }
 void MyMesh::sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis) {
   // TODO: have per-channel send_scope
-  trackRelaySend(pkt);
   if (send_unscoped) {
     sendFlood(pkt, delay_millis, _prefs.path_hash_mode + 1);  // app has explicitly requested un-scoped
   } else {
@@ -732,81 +522,16 @@ void MyMesh::sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pk
   }
 }
 
-bool MyMesh::useDefaultFloodScopeNow() {
-  if (!hasTemporaryFloodScopeOverride()) return false;
-  memset(send_scope.key, 0, sizeof(send_scope.key));
-  send_unscoped = false;
-  return true;
-}
-
-bool MyMesh::setDefaultFloodScope(const char* name, const uint8_t* key) {
-  if (!name || (!key && name[0])) return false;
-  size_t len = strnlen(name, sizeof(_prefs.default_scope_name));
-  if (len >= sizeof(_prefs.default_scope_name)) return false;
-  NodePrefs candidate = _prefs;
-  memset(candidate.default_scope_name, 0, sizeof(candidate.default_scope_name));
-  memset(candidate.default_scope_key, 0, sizeof(candidate.default_scope_key));
-  if (len) {
-    memcpy(candidate.default_scope_name, name, len);
-    memcpy(candidate.default_scope_key, key, sizeof(candidate.default_scope_key));
-  }
-  if (memcmp(candidate.default_scope_name, _prefs.default_scope_name,
-             sizeof(candidate.default_scope_name)) == 0 &&
-      memcmp(candidate.default_scope_key, _prefs.default_scope_key,
-             sizeof(candidate.default_scope_key)) == 0) return true;
-  if (!_store->savePrefs(candidate, sensors.node_lat, sensors.node_lon)) {
-    if (_ui) _ui->onOperationFailure("Flood scope", "Save failed");
-    return false;
-  }
-  _prefs = candidate;
-  _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
-  if (_store->lastSidecarSaveFailed() && _ui)
-    _ui->onOperationWarning("Settings", "Legacy backup not updated");
-  return true;
-}
-
-bool MyMesh::setDefaultFloodScopeName(const char* name) {
-  char clean[sizeof(_prefs.default_scope_name)];
-  if (!solo::FloodScopeView::normaliseName(name, clean, sizeof(clean))) return false;
-  if (!clean[0]) return setDefaultFloodScope("", nullptr);
-  char keyed_name[sizeof(clean) + 1];
-  snprintf(keyed_name, sizeof(keyed_name), "#%s", clean);
-  TransportKeyStore keys;
-  TransportKey key;
-  keys.getAutoKeyFor(0, keyed_name, key);
-  return setDefaultFloodScope(clean, key.key);
-}
-
-
 void MyMesh::onMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                            const char *text) {
   markConnectionActive(from); // in case this is from a server, and we have a connection
   queueMessage(from, TXT_TYPE_PLAIN, pkt, sender_timestamp, NULL, 0, text);
-
-  // hop count of the received message. getPathHashCount() (low 6 bits of path_len)
-  // is the number of repeaters traversed — the same value the mesh uses for flood
-  // retransmit priority. 0 = heard directly. (Raw path_len is a size/count
-  // bitfield for transport packets, so it must not be used directly.)
-#if SOLO_FEAT_REMOTE_BOT
-  uint8_t hops = pkt ? pkt->getPathHashCount() : 0;
-  if (!tryBotCommand(from, text, hops))  // commands take priority; fall through to trigger reply
-    tryBotReplyDM(from, text, hops);
-#endif
 }
 
 void MyMesh::onCommandDataRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
                                const char *text) {
   markConnectionActive(from); // in case this is from a server, and we have a connection
   queueMessage(from, TXT_TYPE_CLI_DATA, pkt, sender_timestamp, NULL, 0, text);
-  // If the on-device Admin screen sent this command (not the BLE/USB app's CLI
-  // terminal), also hand the reply straight to the UI -- queueMessage() above
-  // never displays TXT_TYPE_CLI_DATA on-device (see should_display), since that
-  // path also serves the app's terminal, which must keep working unaffected.
-#if SOLO_FEAT_ADMIN
-  if (_ui && _admin_session.complete(from.id.pub_key, text, millis())) {
-    _ui->onAdminReply(from.id.pub_key, text + 3);
-  }
-#endif
 }
 
 void MyMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uint32_t sender_timestamp,
@@ -815,17 +540,6 @@ void MyMesh::onSignedMessageRecv(const ContactInfo &from, mesh::Packet *pkt, uin
   // from.sync_since change needs to be persisted
   dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
   queueMessage(from, TXT_TYPE_SIGNED_PLAIN, pkt, sender_timestamp, sender_prefix, 4, text);
-
-  // Room-server auto-reply bot — only ever fires for the room server contact
-  // itself (signed posts are how a room relays its members' messages back to
-  // us); a defensive type check lives in tryBotReplyRoom/tryBotRoomCommand too.
-#if SOLO_FEAT_REMOTE_BOT
-  if (from.type == ADV_TYPE_ROOM) {
-    uint8_t hops = pkt ? pkt->getPathHashCount() : 0;
-    if (!tryBotRoomCommand(from, sender_prefix, text, hops))  // commands take priority
-      tryBotReplyRoom(from, sender_prefix, text, hops);
-  }
-#endif
 }
 
 void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packet *pkt, uint32_t timestamp,
@@ -840,26 +554,16 @@ void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packe
     out_frame[i++] = RESP_CODE_CHANNEL_MSG_RECV;
   }
 
-  // findChannelIdx() returns -1 for an unknown secret (e.g. a packet that
-  // routed to us through a stale hash collision, or a stored channel slot
-  // whose secret was corrupted). Casting -1 to uint8_t would give 255, and
-  // every downstream path (offline queue, UI hist, bot reply) would then
-  // operate on a bogus channel index. Drop the message instead.
-  int idx = findChannelIdx(channel);
-  if (idx < 0) {
-    MESH_DEBUG_PRINTLN("onChannelMessageRecv: unknown channel secret — dropping message");
-    return;
-  }
-  uint8_t channel_idx = (uint8_t)idx;
+  uint8_t channel_idx = findChannelIdx(channel);
   out_frame[i++] = channel_idx;
   uint8_t path_len = out_frame[i++] = pkt->isRouteFlood() ? pkt->path_len : 0xFF;
 
   out_frame[i++] = TXT_TYPE_PLAIN;
   memcpy(&out_frame[i], &timestamp, 4);
   i += 4;
-  int tlen = strlen(text);
+  int tlen = strlen(text); // TODO: UTF-8 ??
   if (i + tlen > MAX_FRAME_SIZE) {
-    tlen = mesh::validUtf8PrefixLength(text, MAX_FRAME_SIZE - i);
+    tlen = MAX_FRAME_SIZE - i;
   }
   memcpy(&out_frame[i], text, tlen);
   i += tlen;
@@ -869,25 +573,19 @@ void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packe
     uint8_t frame[1];
     frame[0] = PUSH_CODE_MSG_WAITING; // send push 'tickle'
     _serial->writeFrame(frame, 1);
+  } else {
+#ifdef DISPLAY_CLASS
+    if (_ui) _ui->notify(UIEventType::channelMessage);
+#endif
   }
 #ifdef DISPLAY_CLASS
-  bool show_on_device = _ui && _ui->allowOnDeviceChannelMessage(channel_idx);
-  if (show_on_device) _ui->addChannelMsg(channel_idx, text, timestamp);
+  // Get the channel name from the channel index
   const char *channel_name = "Unknown";
   ChannelDetails channel_details;
   if (getChannel(channel_idx, channel_details)) {
     channel_name = channel_details.name;
   }
-  if (show_on_device) _ui->incomingMessage(UIEventType::channelMessage, path_len, channel_name,
-                                text, offline_queue_len, 0, nullptr, channel_idx);
-
-#endif
-
-  // hop count for !hops (see onMessageRecv); not the wire path_len above.
-#if SOLO_FEAT_REMOTE_BOT
-  uint8_t ch_hops = pkt->getPathHashCount();
-  if (!tryBotChannelCommand(channel_idx, text, ch_hops))  // commands take priority
-    tryBotReplyChannel(channel_idx, text, ch_hops);
+  if (_ui) _ui->newMsg(path_len, channel_name, text, offline_queue_len);
 #endif
 }
 
@@ -905,12 +603,7 @@ void MyMesh::onChannelDataRecv(const mesh::GroupChannel &channel, mesh::Packet *
   out_frame[i++] = 0; // reserved1
   out_frame[i++] = 0; // reserved2
 
-  int didx = findChannelIdx(channel);
-  if (didx < 0) {
-    MESH_DEBUG_PRINTLN("onChannelDataRecv: unknown channel secret — dropping packet");
-    return;
-  }
-  uint8_t channel_idx = (uint8_t)didx;
+  uint8_t channel_idx = findChannelIdx(channel);
   out_frame[i++] = channel_idx;
   out_frame[i++] = pkt->isRouteFlood() ? pkt->path_len : 0xFF;
   out_frame[i++] = (uint8_t)(data_type & 0xFF);
@@ -964,6 +657,11 @@ uint8_t MyMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_tim
       // query other sensors -- target specific
       sensors.querySensors(permissions, telemetry);
 
+      float temperature = board.getMCUTemperature();
+      if(!isnan(temperature)) { // Supported boards with built-in temperature sensor. ESP32-C3 may return NAN
+        telemetry.addTemperature(TELEM_CHANNEL_SELF, temperature); // Built-in MCU Temperature
+      }
+
       memcpy(reply, &sender_timestamp,
              4); // reflect sender_timestamp back in response packet (kind of like a 'tag')
 
@@ -976,32 +674,20 @@ uint8_t MyMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_tim
 }
 
 void MyMesh::onContactResponse(const ContactInfo &contact, const uint8_t *data, uint8_t len) {
-  if (len < 4) return;
   uint32_t tag;
   memcpy(&tag, data, 4);
-
-  // UI telemetry owns its tag and full identity, independently of app requests.
-  if (sensorReplyState() == SENSOR_WAITING && tag == _sensor_tag &&
-      memcmp(_sensor_key, contact.id.pub_key, PUB_KEY_SIZE) == 0) {
-    sensorTelemetry.load(data + 4, len - 4);
-    _sensor_state = SENSOR_READY;
-    if (_ui) _ui->onSensorTelemetry();
-    return;
-  }
 
   if (pending_login && memcmp(&pending_login, contact.id.pub_key, 4) == 0) { // check for login response
     // yes, is response to pending sendLogin()
     pending_login = 0;
 
     int i = 0;
-    bool login_ok = false;
-    if (len >= 6 && memcmp(&data[4], "OK", 2) == 0) { // legacy Repeater login OK response
+    if (memcmp(&data[4], "OK", 2) == 0) { // legacy Repeater login OK response
       out_frame[i++] = PUSH_CODE_LOGIN_SUCCESS;
       out_frame[i++] = 0; // legacy: is_admin = false
       memcpy(&out_frame[i], contact.id.pub_key, 6);
       i += 6;                                     // pub_key_prefix
-      login_ok = true;
-    } else if (len >= 13 && data[4] == RESP_SERVER_LOGIN_OK) { // new login response
+    } else if (data[4] == RESP_SERVER_LOGIN_OK) { // new login response
       uint16_t keep_alive_secs = ((uint16_t)data[5]) * 16;
       if (keep_alive_secs > 0) {
         startConnection(contact, keep_alive_secs);
@@ -1014,44 +700,13 @@ void MyMesh::onContactResponse(const ContactInfo &contact, const uint8_t *data, 
       i += 4; // NEW: include server timestamp
       out_frame[i++] = data[7]; // NEW (v7): ACL permissions
       out_frame[i++] = data[12]; // FIRMWARE_VER_LEVEL
-      login_ok = true;
     } else {
       out_frame[i++] = PUSH_CODE_LOGIN_FAIL;
       out_frame[i++] = 0; // reserved
       memcpy(&out_frame[i], contact.id.pub_key, 6);
       i += 6; // pub_key_prefix
     }
-    // Persist app/USB-entered room passwords too, so the device can later post
-    // to that room standalone (after reboot, no phone) without re-prompting --
-    // same store the on-device login path uses. Rooms only; a failed login
-    // forgets any stale saved password, mirroring onNodeLoginResult().
-    if (contact.type == ADV_TYPE_ROOM) {
-      if (login_ok) saveRoomPassword(contact.id.pub_key, pending_login_pw);
-      else          forgetRoomPassword(contact.id.pub_key);
-    }
     _serial->writeFrame(out_frame, i);
-  } else if (ui_pending_login && memcmp(&ui_pending_login, contact.id.pub_key, 4) == 0
-      && !(pending_telemetry && tag == pending_telemetry)
-      && !(pending_req && tag == pending_req)
-      && solo::NodeLoginResponse::valid(data, len)) {
-    ui_pending_login = 0;
-
-    bool success;
-    uint8_t permissions = 0;
-    if (memcmp(&data[4], "OK", 2) == 0) { // legacy Repeater login OK response
-      success = true;
-    } else if (data[4] == RESP_SERVER_LOGIN_OK) { // new login response
-      uint16_t keep_alive_secs = ((uint16_t)data[5]) * 16;
-      if (keep_alive_secs > 0) {
-        startConnection(contact, keep_alive_secs);
-      }
-      success = true;
-      permissions = solo::NodeLoginResponse::effectivePermissions(
-          data[6], data[7]); // reconcile legacy role with ACL permissions
-    } else {
-      success = false;
-    }
-    _ui->onNodeLoginResult(contact.id.pub_key, success, permissions);
   } else if (len > 4 && // check for status response
              pending_status &&
              memcmp(&pending_status, contact.id.pub_key, 4) == 0 // legacy matching scheme
@@ -1092,109 +747,6 @@ void MyMesh::onContactResponse(const ContactInfo &contact, const uint8_t *data, 
   }
 }
 
-#define ROOM_PW_FILE "/room_pw"
-#define ROOM_PW_TMP  "/room_pw.tmp"
-#define MAX_SAVED_ROOM_PASSWORDS 16
-
-namespace {
-  struct RoomPwRec {
-    uint8_t key[4];   // pub-key prefix
-    char pw[16];      // up to 15 chars + NUL
-  };
-}
-
-bool MyMesh::getRoomPassword(const uint8_t* pub_key, char* out_password, uint8_t max_len) {
-  File f = _store->openRead(ROOM_PW_FILE);
-  if (!f) return false;
-
-  RoomPwRec rec;
-  bool found = false;
-  while (f.read((uint8_t *)&rec, sizeof(rec)) == sizeof(rec)) {
-    if (memcmp(rec.key, pub_key, 4) == 0) {
-      strncpy(out_password, rec.pw, max_len - 1);
-      out_password[max_len - 1] = 0;
-      found = true;
-      break;
-    }
-  }
-  f.close();
-  return found;
-}
-
-bool MyMesh::saveRoomPassword(const uint8_t* pub_key, const char* password) {
-  RoomPwRec new_rec;
-  memcpy(new_rec.key, pub_key, 4);
-  strncpy(new_rec.pw, password, sizeof(new_rec.pw) - 1);
-  new_rec.pw[sizeof(new_rec.pw) - 1] = 0;
-
-  // The table is tiny (<= MAX_SAVED_ROOM_PASSWORDS * 20 bytes), so just load
-  // it whole, update/append/evict in RAM, then rewrite -- simpler and just
-  // as crash-safe as a record seek given how rarely this runs (once per new
-  // room login).
-  RoomPwRec recs[MAX_SAVED_ROOM_PASSWORDS];
-  int count = 0;
-  File rf = _store->openRead(ROOM_PW_FILE);
-  if (rf) {
-    RoomPwRec rec;
-    while (count < MAX_SAVED_ROOM_PASSWORDS && rf.read((uint8_t *)&rec, sizeof(rec)) == sizeof(rec)) {
-      if (memcmp(rec.key, pub_key, 4) == 0 &&
-          strncmp(rec.pw, new_rec.pw, sizeof(rec.pw)) == 0) {
-        rf.close();
-        return true;  // reconnecting with the same password needs no flash write
-      }
-      if (memcmp(rec.key, pub_key, 4) != 0) { // drop stale entry for this key -- replaced below
-        recs[count++] = rec;
-      }
-    }
-    rf.close();
-  }
-
-  if (count < MAX_SAVED_ROOM_PASSWORDS) {
-    recs[count++] = new_rec;
-  } else { // table full and not already present -- evict oldest (front)
-    memmove(&recs[0], &recs[1], sizeof(RoomPwRec) * (MAX_SAVED_ROOM_PASSWORDS - 1));
-    recs[MAX_SAVED_ROOM_PASSWORDS - 1] = new_rec;
-  }
-
-  // Write to a temp file and atomically swap it over /room_pw, so an
-  // interrupted save leaves the previous good table intact rather than a
-  // truncated mix (mirrors how contacts/channels are persisted).
-  File wf = _store->openWrite(ROOM_PW_TMP);
-  if (!wf) return false;
-  size_t want = sizeof(RoomPwRec) * count;
-  bool ok = (wf.write((uint8_t *)recs, want) == want);
-  wf.close();
-  if (!ok) { _store->removeFile(ROOM_PW_TMP); return false; } // keep previous good file
-  return _store->commitFile(ROOM_PW_TMP, ROOM_PW_FILE);
-}
-
-void MyMesh::forgetRoomPassword(const uint8_t* pub_key) {
-  RoomPwRec recs[MAX_SAVED_ROOM_PASSWORDS];
-  int count = 0;
-  File rf = _store->openRead(ROOM_PW_FILE);
-  if (!rf) return;
-
-  RoomPwRec rec;
-  bool removed = false;
-  while (count < MAX_SAVED_ROOM_PASSWORDS && rf.read((uint8_t *)&rec, sizeof(rec)) == sizeof(rec)) {
-    if (memcmp(rec.key, pub_key, 4) == 0) {
-      removed = true;
-    } else {
-      recs[count++] = rec;
-    }
-  }
-  rf.close();
-  if (!removed) return; // nothing to do, avoid a pointless rewrite
-
-  File wf = _store->openWrite(ROOM_PW_TMP);
-  if (!wf) return;
-  size_t want = sizeof(RoomPwRec) * count;
-  bool ok = (wf.write((uint8_t *)recs, want) == want);
-  wf.close();
-  if (!ok) { _store->removeFile(ROOM_PW_TMP); return; } // keep previous good file
-  _store->commitFile(ROOM_PW_TMP, ROOM_PW_FILE);
-}
-
 bool MyMesh::onContactPathRecv(ContactInfo& contact, uint8_t* in_path, uint8_t in_path_len, uint8_t* out_path, uint8_t out_path_len, uint8_t extra_type, uint8_t* extra, uint8_t extra_len) {
   if (extra_type == PAYLOAD_TYPE_RESPONSE && extra_len > 4) {
     uint32_t tag;
@@ -1226,201 +778,7 @@ bool MyMesh::onContactPathRecv(ContactInfo& contact, uint8_t* in_path, uint8_t i
   return BaseChatMesh::onContactPathRecv(contact, in_path, in_path_len, out_path, out_path_len, extra_type, extra, extra_len);
 }
 
-#define CTL_TYPE_NODE_DISCOVER_REQ  0x80
-#define CTL_TYPE_NODE_DISCOVER_RESP 0x90
-
-bool MyMesh::sendNodeDiscoverReq(bool silent) {
-  bool scan_active = _pending_node_discover_tag != 0 &&
-                     !millisHasNowPassed(_pending_node_discover_until);
-  // A user-opened Discover screen may replace a silent wake scan immediately;
-  // silent scans never displace an interactive one.
-  if (!radioAvailable() || (scan_active && (silent || !_pending_node_discover_silent)))
-    return false;
-  if (scan_active) _repeater_signal.cancelDiscovery();
-  uint8_t data[10];
-  data[0] = CTL_TYPE_NODE_DISCOVER_REQ;
-  // Zen's on-device Discover screen is repeater-only. Keep this standalone
-  // request narrow so sensors do not spend airtime and power replying to
-  // results the UI will discard. App/USB discovery uses its existing path.
-  data[1] = (1 << ADV_TYPE_REPEATER);
-  getRNG()->random(&data[2], 4);
-  memcpy(&_pending_node_discover_tag, &data[2], 4);
-  _pending_node_discover_until = futureMillis(8000);
-  _pending_node_discover_silent = silent;
-  if (!silent) _discover_count = 0;
-  uint32_t since = 0;
-  memcpy(&data[6], &since, 4);
-  auto pkt = createControlData(data, sizeof(data));
-  if (!pkt) {
-    _pending_node_discover_tag = 0;
-    _pending_node_discover_silent = false;
-    return false;
-  }
-  sendZeroHop(pkt);
-  _repeater_signal.beginDiscovery();
-  return true;
-}
-
-void MyMesh::onUserDisplayWake() {
-  uint32_t now = millis();
-  // Low Power never spends airtime on probing, including during Emergency.
-  // Notification and alarm wakes do not call this entry point.
-  if (_low_power_mode || !_repeater_signal.shouldScanOnUserWake(now, radioAvailable())) return;
-  if (sendNodeDiscoverReq(true)) _repeater_signal.noteScanAttempt(now);
-}
-
-int MyMesh::getDiscoverResults(DiscoverResult dest[], int max_count) {
-  int n = min(_discover_count, max_count);
-  memcpy(dest, _discover_results, n * sizeof(DiscoverResult));
-  return n;
-}
-
-// ── Ping/Trace functionality ─────────────────────────────────────────────────
-
-uint32_t MyMesh::sendPing(const uint8_t* dest_pubkey, uint8_t hash_width) {
-  if (hash_width == 0 || hash_width > 2) return 0;
-
-  // Generate random tag and auth code
-  uint32_t tag, auth;
-  getRNG()->random((uint8_t*)&tag, 4);
-  getRNG()->random((uint8_t*)&auth, 4);
-
-  // Find a free slot in ping results
-  int slot = -1;
-  for (int i = 0; i < PING_RESULT_MAX; i++) {
-    if (!_ping_results[i].received && _ping_results[i].tag == 0) {
-      slot = i;
-      break;
-    }
-  }
-  if (slot < 0) {
-    return 0;
-  }
-
-  // Initialize ping result tracking
-  PingResult& result = _ping_results[slot];
-  result.tag = tag;
-  result.auth_code = auth;
-  result.snr_out_x4 = 0;
-  result.snr_back_x4 = 0;
-  result.rtt_ms = 0;
-  result.received = false;
-  result.sent_ms = millis();
-
-  // Create path hash from destination public key
-  uint8_t path_len = hash_width;
-  uint8_t path[MAX_PATH_SIZE];
-  memcpy(path, dest_pubkey, path_len);
-
-  // Create and send trace packet
-  auto pkt = createTrace(tag, auth, hash_width - 1); // flags = hash_width - 1
-  if (pkt) {
-    sendDirect(pkt, path, path_len);
-    return tag;
-  }
-
-  // Failed to create packet
-  memset(&result, 0, sizeof(result));
-  return 0;
-}
-
-void MyMesh::setPingCallback(PingCallback cb, void* arg) {
-  _ping_callback = cb;
-  _ping_callback_arg = arg;
-}
-
-void MyMesh::clearPingResult(uint32_t tag) {
-  if (tag == 0) return;
-  for (int i = 0; i < PING_RESULT_MAX; i++) {
-    if (_ping_results[i].tag == tag) {
-      memset(&_ping_results[i], 0, sizeof(_ping_results[i]));
-      return;
-    }
-  }
-}
-
-MyMesh::PingResult* MyMesh::getPingResult(uint32_t tag) {
-  for (int i = 0; i < PING_RESULT_MAX; i++) {
-    if (_ping_results[i].tag == tag) {
-      return &_ping_results[i];
-    }
-  }
-  return NULL;
-}
-
-// True when this (tag, responder) pair was already seen recently; records it
-// otherwise. A discover response is often heard more than once — the zero-hop
-// direct copy and a re-flooded copy relayed by another repeater carry
-// different packet hashes, so the mesh duplicate filter passes both. Without
-// this, the standalone scan appended the same node twice and an app-driven
-// discover had both copies forwarded, so the app listed one repeater as two.
-bool MyMesh::isDupDiscoverResp(uint32_t tag, const uint8_t* pub_key) {
-  for (int i = 0; i < DISCOVER_SEEN_MAX; i++) {
-    DiscoverSeen& e = _disc_seen[i];
-    if (e.until != 0 && !millisHasNowPassed(e.until)
-        && e.tag == tag && memcmp(e.pk, pub_key, sizeof(e.pk)) == 0) {
-      return true;
-    }
-  }
-  DiscoverSeen& s = _disc_seen[_disc_seen_head];
-  _disc_seen_head = (_disc_seen_head + 1) % DISCOVER_SEEN_MAX;
-  s.tag = tag;
-  memcpy(s.pk, pub_key, sizeof(s.pk));
-  s.until = futureMillis(10000);   // copies of one response arrive within seconds
-  return false;
-}
-
 void MyMesh::onControlDataRecv(mesh::Packet *packet) {
-  // If we have an active standalone discover, check if this is a matching response.
-  // Tag matching provides isolation — no isBLEConnected check needed.
-  if ((packet->payload[0] & 0xF0) == CTL_TYPE_NODE_DISCOVER_RESP &&
-      packet->payload_len >= 6 + PUB_KEY_SIZE &&
-      _pending_node_discover_tag != 0 &&
-      !millisHasNowPassed(_pending_node_discover_until)) {
-    uint32_t tag;
-    memcpy(&tag, &packet->payload[2], 4);
-    if (tag == _pending_node_discover_tag) {
-      uint8_t node_type = packet->payload[0] & 0x0F;
-      const uint8_t* pub_key = &packet->payload[6];
-      if (isDupDiscoverResp(tag, pub_key)) return;  // second copy of the same response
-      if (node_type == ADV_TYPE_REPEATER)
-        _repeater_signal.noteDiscovery((int8_t)(_radio->getLastSNR() * 4));
-      if (_pending_node_discover_silent) return;
-      ContactInfo* known = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
-      if (known) {
-        known->lastmod = getRTCClock()->getCurrentTime();
-      }
-      if (_discover_count < DISCOVER_RESULTS_MAX) {
-        DiscoverResult& r = _discover_results[_discover_count++];
-        if (known) {
-          strncpy(r.name, known->name, sizeof(r.name) - 1);
-          r.name[sizeof(r.name) - 1] = '\0';
-          r.is_known = true;
-        } else {
-          r.name[0] = '\0';
-          r.is_known = false;
-        }
-        r.type = node_type;
-        r.rssi = (int8_t)_radio->getLastRSSI();
-        r.snr_x4 = (int8_t)(_radio->getLastSNR() * 4);
-        r.remote_snr_x4 = (int8_t)packet->payload[1];
-        memcpy(r.pub_key, pub_key, PUB_KEY_SIZE);
-        r.timestamp = getRTCClock()->getCurrentTime();
-      }
-      return;  // our discover — don't forward to BLE app
-    }
-  }
-
-  // App-driven discover: drop duplicate copies of the same response before
-  // forwarding, so the app doesn't list one responder twice. (Our own
-  // standalone discover already returned above on a tag match.)
-  if ((packet->payload[0] & 0xF0) == CTL_TYPE_NODE_DISCOVER_RESP &&
-      packet->payload_len >= 6 + PUB_KEY_SIZE) {
-    uint32_t fwd_tag;
-    memcpy(&fwd_tag, &packet->payload[2], 4);
-    if (isDupDiscoverResp(fwd_tag, &packet->payload[6])) return;
-  }
-
   if (packet->payload_len + 4 > sizeof(out_frame)) {
     MESH_DEBUG_PRINTLN("onControlDataRecv(), payload_len too long: %d", packet->payload_len);
     return;
@@ -1463,49 +821,6 @@ void MyMesh::onRawDataRecv(mesh::Packet *packet) {
 void MyMesh::onTraceRecv(mesh::Packet *packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
                          const uint8_t *path_snrs, const uint8_t *path_hashes, uint8_t path_len) {
   uint8_t path_sz = flags & 0x03;  // NEW v1.11+
-  
-  // Check if this is a response to our local ping
-  for (int i = 0; i < PING_RESULT_MAX; i++) {
-    if (_ping_results[i].tag == tag && _ping_results[i].auth_code == auth_code && !_ping_results[i].received) {
-      PingResult& result = _ping_results[i];
-      
-      // Extract SNR values
-      // path_snrs contains signed SNR values in dB×4 for each hop (in order).
-      // The last value is the SNR at the destination hearing our request (snr_out).
-      // The final SNR from packet is the SNR at us hearing the response (snr_back).
-      uint8_t snr_count = path_len >> path_sz;
-      
-      if (snr_count > 0) {
-        // Keep the encoded quarter-dB value; the UI converts it back to dB.
-        result.snr_out_x4 = (int16_t)(int8_t)path_snrs[0];
-      } else {
-        result.snr_out_x4 = 0;
-      }
-      
-      // SNR back is from the final SNR in the packet (SNR at us receiving response).
-      result.snr_back_x4 = (int16_t)(packet->getSNR() * 4);
-      
-      // Calculate RTT
-      unsigned long now = millis();
-      if (now >= result.sent_ms) {
-        result.rtt_ms = now - result.sent_ms;
-      } else {
-        result.rtt_ms = 0xFFFFFFFF; // Overflow
-      }
-      
-      result.received = true;
-      
-      // Notify callback if set
-      if (_ping_callback) {
-        _ping_callback(tag, result.snr_out_x4, result.snr_back_x4, result.rtt_ms);
-      }
-      // The UI copies the result out of the callback, so reuse the slot immediately.
-      memset(&result, 0, sizeof(result));
-      break;
-    }
-  }
-
-  // Forward to serial app regardless (for compatibility)
   if (12 + path_len + (path_len >> path_sz) + 1 > sizeof(out_frame)) {
     MESH_DEBUG_PRINTLN("onTraceRecv(), path_len is too long: %d", (uint32_t)path_len);
     return;
@@ -1543,104 +858,24 @@ uint32_t MyMesh::calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis, uint8_t
           (path_hash_count + 1));
 }
 
-void MyMesh::onSendTimeout() {
-  // Required BaseChatMesh hook. Delivery retries are managed by the UI policy.
-}
-
-// A queued send can wait for CAD or duty-cycle budget. Only start its relay
-// window after radio transmission completes; allow time for the repeater's
-// randomised flood delay, which scales with packet airtime.
-void MyMesh::logTx(mesh::Packet* packet, int len) {
-  (void)len;
-  if (_relay_active == 0) return;
-  uint8_t hash[MAX_HASH_SIZE];
-  bool hashed = false;
-  for (int i = 0; i < RELAY_RING; i++) {
-    RelaySlot& s = _relay[i];
-    if (!s.pending || s.transmitted || s.len != packet->payload_len) continue;
-    if (!hashed) { packet->calculatePacketHash(hash); hashed = true; }
-    if (memcmp(hash, s.hash, MAX_HASH_SIZE) != 0) continue;
-    uint32_t airtime = _radio->getEstAirtimeFor(packet->getRawLength());
-    s.deadline = futureMillis(solo::RelayEchoTiming::echoWindow(airtime));
-    s.transmitted = true;
-    break;
-  }
-}
-
-// Arm the UI "relayed into mesh" tracker for a channel send.
-// A repeater rebroadcast heard within the window = relayed; no echo = simply not
-// shown as relayed (NOT a failure — direct/0-hop neighbours never echo).
-void MyMesh::trackRelaySend(const mesh::Packet* pkt) {
-  RelaySlot& s = _relay[_relay_head];
-  if (!s.pending) _relay_active++;   // overwriting an empty slot adds one pending
-  pkt->calculatePacketHash(s.hash);
-  s.len = pkt->payload_len;
-  s.deadline = futureMillis(solo::RelayEchoTiming::QUEUE_WINDOW_MS);
-  _relay_seq = (_relay_seq == 0xFFFFFFFFu) ? 1 : _relay_seq + 1;   // never 0 (0 = "no relay")
-  s.seq = _relay_seq;
-  s.heard = 0;
-  s.transmitted = false;
-  s.pending = true;
-  _last_relay_seq = _relay_seq;
-  _relay_head = (_relay_head + 1) % RELAY_RING;
-}
+void MyMesh::onSendTimeout() {}
 
 MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables, DataStore& store, AbstractUITask* ui)
-    // Sized to match simple_repeater's pool (32), not the old client-only 16: with the
-    // on-device Repeater toggle, queued retransmits (adverts/channel flood from
-    // neighbours) can now hold packet-pool slots for their retransmit delay window. A
-    // pool too small for that starves Dispatcher::checkRecv()'s allocNew(), which then
-    // silently drops every incoming packet — DMs and channels included — until a slot
-    // frees up.
-    : BaseChatMesh(radio, *new ArduinoMillis(), rng, rtc, *new StaticPoolPacketManager(32), tables),
+    : BaseChatMesh(radio, *new ArduinoMillis(), rng, rtc, *new StaticPoolPacketManager(16), tables),
       _serial(NULL), telemetry(MAX_PACKET_PAYLOAD - 4), _store(&store), _ui(ui), _iter(0) {
   _iter_started = false;
   _cli_rescue = false;
-  for (int i = 0; i < RELAY_RING; i++) _relay[i].pending = false;
-  _relay_head = 0;
-  _relay_active = 0;
-  _relay_seq = 0;
-  _last_relay_seq = 0;
   offline_queue_len = 0;
   app_target_ver = 0;
-  _next_auto_advert_ms = 0;
-  _advert_indicator_until_ms = 0;
-#if SOLO_FEAT_REMOTE_BOT
-  _bot_last_ch_reply_ms = 0;
-  _bot_last_room_reply_ms = 0;
-  memset(_bot_dm_log, 0, sizeof(_bot_dm_log));
-  _bot_reply_count = 0;
-  _loc_fix.active = false;
-  _locfix_requested = false;
-  _locfix_requested_timeout_ms = LOCFIX_TIMEOUT_MS;
-  _bot_gps_action_pending = false;
-  _bot_buzz_action_secs = 0;
-  _bot_advert_action_pending = false;
-  for (int i = 0; i < 4; i++) _bot_gpio_action[i] = -1;
-#endif
   clearPendingReqs();
   next_ack_idx = 0;
   sign_data = NULL;
   dirty_contacts_expiry = 0;
   memset(advert_paths, 0, sizeof(advert_paths));
   memset(send_scope.key, 0, sizeof(send_scope.key));
-  _discover_count = 0;
-  _pending_node_discover_tag = 0;
-  _pending_node_discover_until = 0;
-  _pending_node_discover_silent = false;
-  _repeater_signal.reset();
-  memset(_disc_seen, 0, sizeof(_disc_seen));
-  _disc_seen_head = 0;
-
-  // Ping state
-  _ping_callback = NULL;
-  _ping_callback_arg = NULL;
-  memset(_ping_results, 0, sizeof(_ping_results));
-
   send_unscoped = false;
 
   // defaults
-  memset(&_prefs, 0, sizeof(_prefs));
   _prefs.airtime_factor = 1.0;
   strcpy(_prefs.node_name, "NONAME");
   _prefs.freq = LORA_FREQ;
@@ -1649,44 +884,11 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.cr = LORA_CR;
   _prefs.tx_power_dbm = LORA_TX_POWER;
   _prefs.gps_enabled = 0;       // GPS disabled by default
-  _prefs.gps_interval = 0;      // Adaptive uses the continuous interval value
-  _prefs.gps_adaptive = 1;      // Retain Adaptive while GPS power defaults off
-  _prefs.display_brightness = 4; // full brightness (level 5 in the UI) by default
-  _prefs.buzzer_volume = 4;      // max volume by default
-  _prefs.ringtone_bpm_idx = 2;   // 120 bpm default
-  _prefs.ringtone_len = 0;       // no custom ringtone by default
-  _prefs.ringtone2_bpm_idx = 2;  // 120 bpm default
-  _prefs.notif_melody_dm = solo::BuiltinMelodies::MESSAGE;
-  _prefs.notif_melody_ch = solo::BuiltinMelodies::KERPLOP;
-  _prefs.notif_melody_ad = solo::BuiltinMelodies::NONE;
-  _prefs.notif_melody_new_contact = solo::BuiltinMelodies::NONE;
-  _prefs.notification_screen_wake = 1; // message wakes are enabled by default
-  _prefs.advert_sound_scope = ADVERT_SOUND_SCOPE_ALL;  // apply to all adverts when a sound is selected
-  _prefs.home_pages_mask = NodePrefs::HP_ALL;  // all available carousel pages visible by default
-  solo::PrefsDefaults::apply(_prefs);
-  _prefs.bot_enabled = 0;
-  _prefs.bot_channel_enabled = 0;
-  _prefs.bot_channel_idx = 0;
-  _prefs.bot_trigger[0] = '\0';
-  _prefs.bot_reply_dm[0] = '\0';
-  _prefs.bot_reply_ch[0] = '\0';
-  _prefs.bot_trigger_ch[0] = '\0';
-  _prefs.bot_commands_enabled = 0;
-  _prefs.bot_quiet_start = 0;
-  _prefs.bot_quiet_end = 0;       // start==end → quiet hours disabled
-  _prefs.dm_show_all = 1;        // show all contacts by default
-  _prefs.reserved_dm_resend_count = 0;
-  memset(_prefs.dm_notif, 0, sizeof(_prefs.dm_notif));
-  _prefs.auto_off_secs = 15;    // 15 seconds auto-off by default
-  _prefs.clock_hide_seconds = Features::CLOCK_HIDE_SECONDS_DEFAULT ? 1 : 0;
-  _prefs.clock_12h = 1;        // 12-hour clock with AM/PM by default
-  _prefs.tz_offset_hours = 0;  // UTC by default
-  _prefs.timezone_mode = solo::TimezonePolicy::MANUAL;
-  _prefs.timezone_city = solo::TimezonePolicy::DEFAULT_CITY;
-  _prefs.timezone_manual_min = 0;
-  _prefs.low_batt_mv = 0;  // reserved legacy field; ignored by BatteryPolicy
-  _prefs.batt_display_mode = 0; // icon by default
+  _prefs.gps_interval = 0;      // No automatic GPS updates by default
+  _prefs.radio_fem_rxgain = 1;
+  _prefs.radio_fem_txgain = 0;
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
+  _prefs.setRepeatEn(false);
 #if defined(USE_SX1262) || defined(USE_SX1268)
 #ifdef SX126X_RX_BOOSTED_GAIN
   _prefs.rx_boosted_gain = SX126X_RX_BOOSTED_GAIN;
@@ -1731,20 +933,11 @@ void MyMesh::begin(bool has_display) {
 #endif
 
   // load persisted prefs
-  bool imported_meshcore_prefs = false;
-  bool prefs_loaded = _store->loadPrefs(_prefs, sensors.node_lat, sensors.node_lon,
-                                        &imported_meshcore_prefs);
-  if (prefs_loaded && !imported_meshcore_prefs)
-    _prefs_save_tracker.markSaved(_prefs, sensors.node_lat, sensors.node_lon);
+  _store->loadPrefs(_prefs);
+  sensors.node_lat = _prefs.node_lat;
+  sensors.node_lon = _prefs.node_lon;
 
-  // sanitise bad pref values. NaN/inf must be reset BEFORE constrain(): constrain
-  // is a min/max macro and NaN compares false against both bounds, so it would
-  // pass a NaN straight through to setParams() and hang the radio (a corrupted or
-  // layout-shifted prefs file easily decodes a float field as NaN/inf).
-  if (isnan(_prefs.freq) || isinf(_prefs.freq)) _prefs.freq = LORA_FREQ;
-  if (isnan(_prefs.bw)   || isinf(_prefs.bw))   _prefs.bw   = LORA_BW;
-  if (isnan(_prefs.airtime_factor) || isinf(_prefs.airtime_factor)) _prefs.airtime_factor = 0;
-  if (isnan(_prefs.rx_delay_base)  || isinf(_prefs.rx_delay_base))  _prefs.rx_delay_base  = 0;
+  // sanitise bad pref values
   _prefs.rx_delay_base = constrain(_prefs.rx_delay_base, 0, 20.0f);
   _prefs.airtime_factor = constrain(_prefs.airtime_factor, 0, 9.0f);
   _prefs.freq = constrain(_prefs.freq, 150.0f, 2500.0f);
@@ -1754,16 +947,6 @@ void MyMesh::begin(bool has_display) {
   _prefs.tx_power_dbm = constrain(_prefs.tx_power_dbm, -9, MAX_LORA_TX_POWER);
   _prefs.gps_enabled = constrain(_prefs.gps_enabled, 0, 1);  // Ensure boolean 0 or 1
   _prefs.gps_interval = constrain(_prefs.gps_interval, 0, 86400);  // Max 24 hours
-  bool prefs_changed = solo::ConfigMaintenance::apply(_prefs);
-  if (!prefs_loaded || imported_meshcore_prefs) {
-    _prefs.timezone_mode = solo::TimezonePolicy::DEFAULT_MODE;
-    _prefs.timezone_city = solo::TimezonePolicy::DEFAULT_CITY;
-    _prefs.timezone_manual_min = 0;
-    prefs_changed = true;
-  }
-  if (prefs_changed || imported_meshcore_prefs) {
-    savePrefs();
-  }
 
 #ifdef BLE_PIN_CODE // 123456 by default
   if (_prefs.ble_pin == 0) {
@@ -1787,39 +970,16 @@ void MyMesh::begin(bool has_display) {
   resetContacts();
   _store->loadContacts(this);
   bootstrapRTCfromContacts();
-  // A saved channel list is authoritative, including the deliberate absence
-  // of Public. Seed it only on a genuinely fresh device.
-  if (!_store->loadChannels(this)) {
-    addChannel("Public", PUBLIC_GROUP_PSK);
-  }
+  addChannel("Public", PUBLIC_GROUP_PSK); // pre-configure Andy's public channel
+  _store->loadChannels(this);
 
-  applyRadioParams();
+  radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+  radio_driver.setTxPower(_prefs.tx_power_dbm);
   radio_driver.setRxBoostedGainMode(_prefs.rx_boosted_gain);
+  board.setLoRaFemLnaEnabled(_prefs.radio_fem_rxgain);
+  board.setLoRaFemPaGainEnabled(_prefs.radio_fem_txgain);
   MESH_DEBUG_PRINTLN("RX Boosted Gain Mode: %s",
                      radio_driver.getRxBoostedGainMode() ? "Enabled" : "Disabled");
-}
-
-bool MyMesh::hasMeshCorePrefs() const {
-  return _store->hasMeshCorePrefs();
-}
-
-bool MyMesh::restoreMeshCorePrefs() {
-  // Deliberate recovery for a device that already booted Zen. Preserve all
-  // Zen-only preferences and do not alter the live settings unless the
-  // imported record has been safely committed.
-  NodePrefs candidate = _prefs;
-  double lat = sensors.node_lat, lon = sensors.node_lon;
-  if (!_store->importMeshCorePrefs(candidate, lat, lon)) return false;
-  if (!_store->savePrefs(candidate, lat, lon)) return false;
-  _prefs = candidate;
-  sensors.node_lat = lat;
-  sensors.node_lon = lon;
-  _prefs_save_tracker.markSaved(_prefs, lat, lon);
-  return true;
-}
-
-void MyMesh::applyRadioParams() {
-  radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
 }
 
 const char *MyMesh::getNodeName() {
@@ -1859,34 +1019,6 @@ void MyMesh::startInterface(BaseSerialInterface &serial) {
   serial.enable();
 }
 
-static bool isAllZero(const uint8_t* buf, size_t n) {
-  for (size_t i = 0; i < n; i++) if (buf[i]) return false;
-  return true;
-}
-
-// Shared by the BLE/USB CMD_SET_CHANNEL handler below and the on-device
-// Channels add/edit/delete UI (ChannelsView) -- one place computing "was this
-// a delete" so the two callers can't drift on the cleanup step.
-MyMesh::ChannelSaveResult MyMesh::setChannelLocal(uint8_t idx, const ChannelDetails& ch) {
-  ChannelDetails current;
-  if (!getChannel(idx, current)) return CHANNEL_INVALID_SLOT;
-  if (solo::ChannelSlotPolicy::duplicate<ChannelDetails>(*this, MAX_GROUP_CHANNELS,
-                                                           idx, ch.channel.secret) >= 0)
-    return CHANNEL_DUPLICATE;
-  if (strncmp(current.name, ch.name, sizeof(ch.name)) == 0 &&
-      memcmp(current.channel.secret, ch.channel.secret, sizeof(ch.channel.secret)) == 0)
-    return CHANNEL_SAVED;
-  if (!solo::ChannelSlotPolicy::saveWithRollback(idx, ch, current,
-      [this](int slot, const ChannelDetails& value) { return setChannel(slot, value); },
-      [this]() { return saveChannels(); })) return CHANNEL_SAVE_FAILED;
-  // An all-zero secret is this codebase's "empty slot" sentinel (same check
-  // loadChannels()/saveChannels() use) -- drop anything that referenced it by
-  // index, the same way onContactRemoved() does for contacts.
-  if (_ui && isAllZero(ch.channel.secret, sizeof(ch.channel.secret)))
-    _ui->onChannelRemoved(idx);
-  return CHANNEL_SAVED;
-}
-
 void MyMesh::handleCmdFrame(size_t len) {
   if (cmd_frame[0] == CMD_DEVICE_QUERY && len >= 2) { // sent when app establishes connection
     app_target_ver = cmd_frame[1];                    // which version of protocol does app understand
@@ -1905,7 +1037,7 @@ void MyMesh::handleCmdFrame(size_t len) {
     i += 40;
     StrHelper::strzcpy((char *)&out_frame[i], FIRMWARE_VERSION, 20);
     i += 20;
-    out_frame[i++] = _prefs.client_repeat;   // v9+
+    out_frame[i++] = _prefs.isRepeatEn() ? 1 : 0;   // v9+
     out_frame[i++] = _prefs.path_hash_mode;  // v10+
     _serial->writeFrame(out_frame, i);
   } else if (cmd_frame[0] == CMD_APP_START &&
@@ -1968,19 +1100,13 @@ void MyMesh::handleCmdFrame(size_t len) {
       int result;
       uint32_t expected_ack;
       if (txt_type == TXT_TYPE_CLI_DATA) {
-        // Do not reject or consume the app's request. Stop the local wait,
-        // so app and local edits cannot race, and drain late replies.
-        bool local_waiting = _admin_session.pending();
-        uint8_t local_key[PUB_KEY_SIZE];
-        memcpy(local_key, _admin_session.key(), sizeof(local_key));
         msg_timestamp = getRTCClock()->getCurrentTimeUnique(); // Use node's RTC instead of app timestamp to avoid tripping replay protection
         result = sendCommandData(*recipient, msg_timestamp, attempt, text, est_timeout);
-        _admin_session.appCommand(millis(), result == MSG_SEND_FAILED ? 0 : est_timeout + 4000);
-        if (local_waiting && _ui) _ui->onAdminReply(local_key, "App command active; result uncertain");
         expected_ack = 0; // no Ack expected
       } else {
         result = sendMessage(*recipient, msg_timestamp, attempt, text, expected_ack, est_timeout);
       }
+      // TODO: add expected ACK to table
       if (result == MSG_SEND_FAILED) {
         writeErrFrame(ERR_CODE_TABLE_FULL);
       } else {
@@ -1996,16 +1122,6 @@ void MyMesh::handleCmdFrame(size_t len) {
         memcpy(&out_frame[2], &expected_ack, 4);
         memcpy(&out_frame[6], &est_timeout, 4);
         _serial->writeFrame(out_frame, 10);
-
-#ifdef DISPLAY_CLASS
-        if (_ui && txt_type == TXT_TYPE_PLAIN) {
-          uint32_t deadline = expected_ack ? millis() + est_timeout + 4000 : 0;
-          uint8_t path_len = result == MSG_SEND_SENT_FLOOD
-                               ? OUT_PATH_UNKNOWN : recipient->out_path_len;
-          _ui->addAppDMMsg(recipient->id.pub_key, text, msg_timestamp, attempt,
-                           expected_ack, deadline, path_len);
-        }
-#endif
       }
     } else {
       writeErrFrame(recipient == NULL
@@ -2028,14 +1144,6 @@ void MyMesh::handleCmdFrame(size_t len) {
       bool success = getChannel(channel_idx, channel);
       if (success && sendGroupMessage(msg_timestamp, channel.channel, _prefs.node_name, text, len - i)) {
         writeOKFrame();
-#ifdef DISPLAY_CLASS
-        if (_ui) {
-          int text_len = len - i;
-          if (text_len > MAX_TEXT_LEN) text_len = MAX_TEXT_LEN;
-          int pos = _ui->addOwnChannelMsg(channel_idx, text, text_len, msg_timestamp);
-          if (pos >= 0) _ui->armChannelRelay(pos, lastChannelRelaySeq());
-        }
-#endif
       } else {
         writeErrFrame(ERR_CODE_NOT_FOUND); // bad channel_idx
       }
@@ -2133,20 +1241,28 @@ void MyMesh::handleCmdFrame(size_t len) {
     uint32_t secs;
     memcpy(&secs, &cmd_frame[1], 4);
     uint32_t curr = getRTCClock()->getCurrentTime();
-    if (solo::DeviceTimePolicy::valid(secs)) {
-      bool persist = solo::DeviceTimePolicy::shouldPersist(curr, secs);
-      // Companion time is authoritative. Always call setCurrentTime(), even
-      // for a zero-delta correction, so BootTimeSync observes a live source
-      // and clears SYNC TIME without waiting for GPS.
+    if (secs >= curr) {
       getRTCClock()->setCurrentTime(secs);
-      if (persist) saveRTCTime();
       writeOKFrame();
     } else {
       writeErrFrame(ERR_CODE_ILLEGAL_ARG);
     }
   } else if (cmd_frame[0] == CMD_SEND_SELF_ADVERT) {
-    // Optional parameter: 1 = flood, 0 (or omitted) = zero hop.
-    if (sendConfiguredSelfAdvert(len >= 2 && cmd_frame[1] == 1)) {
+    mesh::Packet* pkt;
+    if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
+      pkt = createSelfAdvert(_prefs.node_name);
+    } else {
+      pkt = createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
+    }
+    if (pkt) {
+      if (len >= 2 && cmd_frame[1] == 1) { // optional param (1 = flood, 0 = zero hop)
+        unsigned long delay_millis = 0;
+        TransportKey default_scope;
+        memcpy(&default_scope.key, _prefs.default_scope_key, sizeof(default_scope.key));
+        sendFloodScoped(default_scope, pkt, delay_millis);
+      } else {
+        sendZeroHop(pkt);
+      }
       writeOKFrame();
     } else {
       writeErrFrame(ERR_CODE_TABLE_FULL);
@@ -2167,9 +1283,7 @@ void MyMesh::handleCmdFrame(size_t len) {
     ContactInfo *recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
     uint32_t last_mod = getRTCClock()->getCurrentTime();  // fallback value if not present in cmd_frame
     if (recipient) {
-      uint8_t saved_type = recipient->type; // type is authoritative from advert, not app
       updateContactFromFrame(*recipient, last_mod, cmd_frame, len);
-      if (saved_type != ADV_TYPE_NONE) recipient->type = saved_type;
       recipient->lastmod = last_mod;
       dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
       writeOKFrame();
@@ -2186,8 +1300,15 @@ void MyMesh::handleCmdFrame(size_t len) {
       }
     }
   } else if (cmd_frame[0] == CMD_REMOVE_CONTACT) {
-    if (deleteContactByKey(&cmd_frame[1])) writeOKFrame();
-    else writeErrFrame(ERR_CODE_NOT_FOUND); // not found, or unable to remove
+    uint8_t *pub_key = &cmd_frame[1];
+    ContactInfo *recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
+    if (recipient && removeContact(*recipient)) {
+      _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE);
+      dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+      writeOKFrame();
+    } else {
+      writeErrFrame(ERR_CODE_NOT_FOUND); // not found, or unable to remove
+    }
   } else if (cmd_frame[0] == CMD_SHARE_CONTACT) {
     uint8_t *pub_key = &cmd_frame[1];
     ContactInfo *recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
@@ -2211,7 +1332,12 @@ void MyMesh::handleCmdFrame(size_t len) {
   } else if (cmd_frame[0] == CMD_EXPORT_CONTACT) {
     if (len < 1 + PUB_KEY_SIZE) {
       // export SELF
-      mesh::Packet* pkt = createConfiguredSelfAdvert();
+      mesh::Packet* pkt;
+      if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
+        pkt = createSelfAdvert(_prefs.node_name);
+      } else {
+        pkt = createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
+      }
       if (pkt) {
         pkt->header |= ROUTE_TYPE_FLOOD; // would normally be sent in this mode
 
@@ -2265,24 +1391,18 @@ void MyMesh::handleCmdFrame(size_t len) {
       repeat = cmd_frame[i++];   // FIRMWARE_VER_CODE  9+
     }
 
-    // Dedicated-band requirement for app-driven repeat disabled, to match the
-    // on-device Repeater toggle (Tools > Repeater), which repeats on whatever
-    // frequency is already set with no band restriction. Uncomment to restore
-    // the old behaviour (repeat=1 only accepted on repeat_freq_ranges, i.e.
-    // 433.000/869.495/918.000 MHz exactly, by default).
-    // if (repeat && !isValidClientRepeatFreq(freq)) {
-    //   writeErrFrame(ERR_CODE_ILLEGAL_ARG);
-    // } else
-    if (freq >= 150000 && freq <= 2500000 && sf >= 5 && sf <= 12 && cr >= 5 && cr <= 8 && bw >= 7000 &&
+    if (repeat && !isValidClientRepeatFreq(freq)) {
+      writeErrFrame(ERR_CODE_ILLEGAL_ARG);
+    } else if (freq >= 150000 && freq <= 2500000 && sf >= 5 && sf <= 12 && cr >= 5 && cr <= 8 && bw >= 7000 &&
         bw <= 500000) {
       _prefs.sf = sf;
       _prefs.cr = cr;
       _prefs.freq = (float)freq / 1000.0;
       _prefs.bw = (float)bw / 1000.0;
-      _prefs.client_repeat = repeat;
+      _prefs.setRepeatEn(repeat != 0);
       savePrefs();
 
-      applyRadioParams();
+      radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
       MESH_DEBUG_PRINTLN("OK: CMD_SET_RADIO_PARAMS: f=%d, bw=%d, sf=%d, cr=%d", freq, bw, (uint32_t)sf,
                          (uint32_t)cr);
 
@@ -2345,21 +1465,17 @@ void MyMesh::handleCmdFrame(size_t len) {
       writeOKFrame();
     }
   } else if (cmd_frame[0] == CMD_REBOOT && memcmp(&cmd_frame[1], "reboot", 6) == 0) {
-    if (_ui) _ui->shutdown(true);
-    else {
-      savePrefs();
-      saveRTCTime();
-      flushDirtyContacts();
-      board.reboot();
+    if (dirty_contacts_expiry) { // is there are pending dirty contacts write needed?
+      saveContacts();
     }
+    board.reboot();
   } else if (cmd_frame[0] == CMD_GET_BATT_AND_STORAGE) {
     uint8_t reply[11];
     int i = 0;
     reply[i++] = RESP_CODE_BATT_AND_STORAGE;
     uint16_t battery_millivolts = board.getBattMilliVolts();
-    DataStore::StorageStatus storage = _store->getStorageStatus(true);
-    uint32_t used = storage.used_kb;
-    uint32_t total = storage.total_kb;
+    uint32_t used = _store->getStorageUsedKb();
+    uint32_t total = _store->getStorageTotalKb();
     memcpy(&reply[i], &battery_millivolts, 2); i += 2;
     memcpy(&reply[i], &used, 4); i += 4;
     memcpy(&reply[i], &total, 4); i += 4;
@@ -2422,16 +1538,6 @@ void MyMesh::handleCmdFrame(size_t len) {
       } else {
         clearPendingReqs();
         memcpy(&pending_login, recipient->id.pub_key, 4); // match this to onContactResponse()
-        // App login takes priority over an ambiguous UI login. Cancel the UI
-        // wait explicitly without treating its saved credential as rejected.
-        if (ui_pending_login) {
-          uint32_t cancelled = ui_pending_login;
-          ui_pending_login = 0;
-          _ui->onNodeLoginCancelled((const uint8_t*)&cancelled);
-        }
-        _app_login_deadline = millis() + est_timeout + 4000;
-        strncpy(pending_login_pw, password, sizeof(pending_login_pw) - 1); // saved on success if it's a room
-        pending_login_pw[sizeof(pending_login_pw) - 1] = 0;
         out_frame[0] = RESP_CODE_SENT;
         out_frame[1] = (result == MSG_SEND_SENT_FLOOD) ? 1 : 0;
         memcpy(&out_frame[2], &pending_login, 4);
@@ -2450,6 +1556,7 @@ void MyMesh::handleCmdFrame(size_t len) {
       memcpy(anon.id.pub_key, pub_key, PUB_KEY_SIZE);
       anon.out_path_len = 0;   // default to zero-hop direct
       anon.type = ADV_TYPE_NONE;  // unknown
+      anon.lastmod = getRTCClock()->getCurrentTime();
 
       if (addContact(anon)) recipient = &anon;
     }
@@ -2544,6 +1651,11 @@ void MyMesh::handleCmdFrame(size_t len) {
   } else if (cmd_frame[0] == CMD_SEND_TELEMETRY_REQ && len == 4) {  // 'self' telemetry request
     telemetry.reset();
     telemetry.addVoltage(TELEM_CHANNEL_SELF, (float)board.getBattMilliVolts() / 1000.0f);
+    float temperature = board.getMCUTemperature();
+    if(!isnan(temperature)) { // Supported boards with built-in temperature sensor. ESP32-C3 may return NAN
+      telemetry.addTemperature(TELEM_CHANNEL_SELF, temperature); // Built-in MCU Temperature
+    }
+
     // query other sensors -- target specific
     sensors.querySensors(0xFF, telemetry);
 
@@ -2604,29 +1716,18 @@ void MyMesh::handleCmdFrame(size_t len) {
       writeErrFrame(ERR_CODE_NOT_FOUND);
     }
   } else if (cmd_frame[0] == CMD_SET_CHANNEL && len >= 2 + 32 + 32) {
-    uint8_t channel_idx = cmd_frame[1];
-    ChannelDetails channel;
-    StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
-    memcpy(channel.channel.secret, &cmd_frame[2 + 32], 32); // 256-bit key
-    ChannelSaveResult result = setChannelLocal(channel_idx, channel);
-    if (result == CHANNEL_SAVED) {
-      writeOKFrame();
-    } else {
-      writeErrFrame(result == CHANNEL_DUPLICATE ? ERR_CODE_ILLEGAL_ARG :
-                    result == CHANNEL_SAVE_FAILED ? ERR_CODE_FILE_IO_ERROR : ERR_CODE_NOT_FOUND);
-    }
+    writeErrFrame(ERR_CODE_UNSUPPORTED_CMD); // not supported (yet)
   } else if (cmd_frame[0] == CMD_SET_CHANNEL && len >= 2 + 32 + 16) {
     uint8_t channel_idx = cmd_frame[1];
     ChannelDetails channel;
     StrHelper::strncpy(channel.name, (char *)&cmd_frame[2], 32);
     memset(channel.channel.secret, 0, sizeof(channel.channel.secret));
-    memcpy(channel.channel.secret, &cmd_frame[2 + 32], 16); // 128-bit key
-    ChannelSaveResult result = setChannelLocal(channel_idx, channel);
-    if (result == CHANNEL_SAVED) {
+    memcpy(channel.channel.secret, &cmd_frame[2 + 32], 16); // NOTE: only 128-bit supported
+    if (setChannel(channel_idx, channel)) {
+      saveChannels();
       writeOKFrame();
     } else {
-      writeErrFrame(result == CHANNEL_DUPLICATE ? ERR_CODE_ILLEGAL_ARG :
-                    result == CHANNEL_SAVE_FAILED ? ERR_CODE_FILE_IO_ERROR : ERR_CODE_NOT_FOUND);
+      writeErrFrame(ERR_CODE_NOT_FOUND); // bad channel_idx
     }
   } else if (cmd_frame[0] == CMD_SIGN_START) {
     out_frame[0] = RESP_CODE_SIGN_START;
@@ -2730,7 +1831,6 @@ void MyMesh::handleCmdFrame(size_t len) {
         } else if (strcmp(sp, "gps_interval") == 0) {
           uint32_t interval_seconds = atoi(np);
           _prefs.gps_interval = constrain(interval_seconds, 0, 86400);
-          if (_prefs.gps_interval != 0) _prefs.gps_adaptive = 0;
           savePrefs();
         }
         #endif
@@ -2839,19 +1939,20 @@ void MyMesh::handleCmdFrame(size_t len) {
     writeOKFrame();
   } else if (cmd_frame[0] == CMD_SET_DEFAULT_FLOOD_SCOPE && len >= 1) {
     if (len >= 1+31+16) {
-      // strnlen, not strlen: the name field is always 31 bytes in the frame
-      // even if the actual name is shorter, so we must bound the search to
-      // avoid reading into the key (or past the frame) when no NUL is present.
-      int n = (int)strnlen((char *) &cmd_frame[1], 31);
+      int n = strlen((char *) &cmd_frame[1]);
       if (n > 0 && n < 31) {
-        if (setDefaultFloodScope((char*)&cmd_frame[1], &cmd_frame[1+31])) writeOKFrame();
-        else writeErrFrame(ERR_CODE_FILE_IO_ERROR);
+        strcpy(_prefs.default_scope_name, (char *) &cmd_frame[1]);
+        memcpy(_prefs.default_scope_key, &cmd_frame[1+31], 16);
+        savePrefs();
+        writeOKFrame();
       } else {
         writeErrFrame(ERR_CODE_ILLEGAL_ARG);
       }
     } else {
-      if (setDefaultFloodScope("", nullptr)) writeOKFrame();
-      else writeErrFrame(ERR_CODE_FILE_IO_ERROR);
+      memset(_prefs.default_scope_name, 0, sizeof(_prefs.default_scope_name));  // set default scope to null
+      memset(_prefs.default_scope_key, 0, sizeof(_prefs.default_scope_key));
+      savePrefs();
+      writeOKFrame();
     }
   } else if (cmd_frame[0] == CMD_GET_DEFAULT_FLOOD_SCOPE) {
     out_frame[0] = RESP_CODE_DEFAULT_FLOOD_SCOPE;
@@ -2900,92 +2001,24 @@ void MyMesh::handleCmdFrame(size_t len) {
         sendPacket(pkt, priority, 0);
         writeOKFrame();
       } else {
+        releasePacket(pkt);
         writeErrFrame(ERR_CODE_ILLEGAL_ARG);
       }
     } else {
       writeErrFrame(ERR_CODE_TABLE_FULL);
     }
-#ifdef ENABLE_SCREENSHOT
-  } else if (cmd_frame[0] == CMD_GET_SCREENSHOT) {
-    handleScreenshotRequest();
-#endif
   } else {
     writeErrFrame(ERR_CODE_UNSUPPORTED_CMD);
     MESH_DEBUG_PRINTLN("ERROR: unknown command: %02X", cmd_frame[0]);
   }
 }
 
-#ifdef ENABLE_SCREENSHOT
-void MyMesh::handleScreenshotRequest() {
-    #ifdef DISPLAY_CLASS
-    UITask* ui_task = static_cast<UITask*>(getUITask());
-    if (!ui_task || !ui_task->hasDisplay()) {
-        writeErrFrame(ERR_CODE_UNSUPPORTED_CMD);
-        return;
-    }
-
-    DisplayDriver* display = ui_task->getDisplay();
-    if (!display) {
-        writeErrFrame(ERR_CODE_UNSUPPORTED_CMD);
-        return;
-    }
-
-    const uint8_t* buffer = display->getBuffer();
-    uint16_t bufferSize = display->getBufferSize();
-
-    if (buffer && bufferSize > 0) {
-        sendScreenshotResponse(display, buffer, bufferSize);
-    } else {
-        writeErrFrame(ERR_CODE_UNSUPPORTED_CMD);
-    }
-    #else
-    writeErrFrame(ERR_CODE_UNSUPPORTED_CMD);
-    #endif
-}
-
-void MyMesh::sendScreenshotResponse(DisplayDriver* display, const uint8_t* buffer, uint16_t bufferSize) {
-    // Frame format (11-byte header, little-endian multi-byte fields):
-    //   [0]    resp_code = RESP_CODE_SCREENSHOT
-    //   [1]    display_type (0=OLED page-based, 1=e-ink row-major MSB-first 1=white)
-    //   [2]    rotation     (0-3, GxEPD2/Adafruit_GFX value; only meaningful for e-ink)
-    //   [3..4] width  (uint16 LE — GxEPD2-reported visible width)
-    //   [5..6] height (uint16 LE — GxEPD2-reported visible height)
-    //   [7..8] chunk_idx    (uint16 LE)
-    //   [9..10] total_chunks (uint16 LE)
-    //   [11..] chunk data
-    const int HEADER_SIZE = 11;
-    const int MAX_DATA_PER_FRAME = MAX_FRAME_SIZE - HEADER_SIZE;
-    const uint16_t width  = (uint16_t)display->screenshotWidth();
-    const uint16_t height = (uint16_t)display->screenshotHeight();
-    const uint16_t totalChunks = (bufferSize + MAX_DATA_PER_FRAME - 1) / MAX_DATA_PER_FRAME;
-
-    for (uint16_t chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
-        int i = 0;
-        out_frame[i++] = RESP_CODE_SCREENSHOT;
-        out_frame[i++] = display->getDisplayType();
-        out_frame[i++] = display->screenshotRotation();
-        out_frame[i++] = width  & 0xFF; out_frame[i++] = width  >> 8;
-        out_frame[i++] = height & 0xFF; out_frame[i++] = height >> 8;
-        out_frame[i++] = chunkIdx    & 0xFF; out_frame[i++] = chunkIdx    >> 8;
-        out_frame[i++] = totalChunks & 0xFF; out_frame[i++] = totalChunks >> 8;
-
-        int chunkSize = min(MAX_DATA_PER_FRAME, (int)bufferSize - chunkIdx * MAX_DATA_PER_FRAME);
-        memcpy(&out_frame[i], buffer + chunkIdx * MAX_DATA_PER_FRAME, chunkSize);
-        i += chunkSize;
-
-        _serial->writeFrame(out_frame, i);
-    }
-}
-#endif // ENABLE_SCREENSHOT
-
 static bool save_filter(const ContactInfo& c) {
   return c.type != ADV_TYPE_NONE;   // don't save the transient/anon entries
 }
 
-bool MyMesh::saveContacts() {
-  bool ok = _store->saveContacts(this, save_filter);
-  if (!ok && _ui) _ui->onOperationFailure("Contacts", "Save failed");
-  return ok;
+void MyMesh::saveContacts() {
+  _store->saveContacts(this, save_filter);
 }
 
 void MyMesh::enterCLIRescue() {
@@ -3157,13 +2190,7 @@ void MyMesh::checkCLIRescueCmd() {
       }
 
     } else if (strcmp(cli_command, "reboot") == 0) {
-      if (_ui) _ui->shutdown(true);
-      else {
-        savePrefs();
-        saveRTCTime();
-        flushDirtyContacts();
-        board.reboot();
-      }
+      board.reboot();  // doesn't return
     } else {
       Serial.println("  Error: unknown command");
     }
@@ -3180,15 +2207,7 @@ void MyMesh::checkSerialInterface() {
              && !_serial->isWriteBusy() // don't spam the Serial Interface too quickly!
   ) {
     ContactInfo contact;
-    bool found = false;
-    while (_iter.hasNext(this, contact)) {
-      if (contact.type != ADV_TYPE_NONE) {
-        found = true;
-        break;
-      }
-    }
-
-    if (found) {
+    if (_iter.hasNext(this, contact)) {
       if (contact.lastmod > _iter_filter_since) { // apply the 'since' filter
         writeContactRespFrame(RESP_CODE_CONTACT, contact);
         if (contact.lastmod > _most_recent_lastmod) {
@@ -3210,32 +2229,6 @@ void MyMesh::checkSerialInterface() {
 void MyMesh::loop() {
   BaseChatMesh::loop();
 
-  if (_pending_node_discover_tag != 0 &&
-      millisHasNowPassed(_pending_node_discover_until)) {
-    _repeater_signal.finishDiscovery(millis());
-    _pending_node_discover_tag = 0;
-    _pending_node_discover_silent = false;
-  }
-
-  if (_low_power_mode && !_emergency_mode) return;
-
-  // Close UI relay-count windows. A zero count becomes a failed-to-hear marker;
-  // one or more echoes retain their final count.
-  if (_relay_active > 0) {
-    for (int i = 0; i < RELAY_RING; i++) {
-      if (_relay[i].pending && millisHasNowPassed(_relay[i].deadline)) {
-        if (_ui) _ui->onChannelRelayExpired(_relay[i].seq, _relay[i].heard,
-                                            _relay[i].transmitted);
-        _relay[i].pending = false;
-        _relay_active--;
-      }
-    }
-  }
-
-#if SOLO_FEAT_REMOTE_BOT
-  tickLocFix();
-#endif
-
   if (_cli_rescue) {
     checkCLIRescueCmd();
   } else {
@@ -3248,73 +2241,27 @@ void MyMesh::loop() {
     dirty_contacts_expiry = 0;
   }
 
-  if (!_low_power_mode && _prefs.advert_auto_interval_sec > 0 && millisHasNowPassed(_next_auto_advert_ms)) {
-    if (!sendConfiguredSelfAdvert(false) && _ui)
-      _ui->onOperationFailure("Auto advert", "Send failed");
-    _next_auto_advert_ms = futureMillis(_prefs.advert_auto_interval_sec * 1000UL);
-  }
-
 #ifdef DISPLAY_CLASS
-  // hasConnection() means "a BLE companion app is connected". Not isConnected()
-  // (a dual interface hardcodes that true as a USB send-fallback). Drives the BT
-  // status indicator, pairing PIN, and the GPX-export collision warning — all
-  // BLE-specific. The Auto buzzer mute / message-wake use isClientConnected()
-  // (BLE *or* an open USB port) directly instead.
-  if (_ui) _ui->setHasConnection(_serial->isBLEConnected());
+  if (_ui) _ui->setHasConnection(_serial->isConnected());
 #endif
 }
 
 bool MyMesh::advert() {
-  if (_low_power_mode) return false;
-  return sendConfiguredSelfAdvert(false);
-}
-
-// One privacy gate for every self-advert producer. advert_loc_policy is the
-// existing MeshCore setting exposed by companion apps; any location-sharing
-// mode includes the current stored/fixed position, while NONE emits no
-// coordinates at all.
-mesh::Packet* MyMesh::createConfiguredSelfAdvert() {
-  if (_prefs.advert_loc_policy == ADVERT_LOC_NONE)
-    return createSelfAdvert(_prefs.node_name);
-  return createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
-}
-
-// Shared transmit path for timed, on-device, and companion-app adverts.
-// The caller chooses reach; payload/privacy and UI state cannot drift between
-// triggers. Contact export deliberately uses createConfiguredSelfAdvert()
-// directly because it serializes a packet without transmitting it.
-bool MyMesh::sendConfiguredSelfAdvert(bool flood) {
-  mesh::Packet* pkt = createConfiguredSelfAdvert();
-  if (!pkt) return false;
-
-  if (flood) {
-    TransportKey default_scope;
-    memcpy(&default_scope.key, _prefs.default_scope_key, sizeof(default_scope.key));
-    sendFloodScoped(default_scope, pkt, 0);
+  mesh::Packet* pkt;
+  if (_prefs.advert_loc_policy == ADVERT_LOC_NONE) {
+    pkt = createSelfAdvert(_prefs.node_name);
   } else {
-    sendZeroHop(pkt);
+    pkt = createSelfAdvert(_prefs.node_name, sensors.node_lat, sensors.node_lon);
   }
-  noteAdvertQueued();
-  return true;
-}
-
-// The RF send itself is normally shorter than a UI refresh interval, so expose
-// a brief wrap-safe pulse after an advert is queued. This is presentation state
-// only: it does not alter advert timing, routing, or the outbound queue.
-void MyMesh::noteAdvertQueued() {
-  _advert_indicator_until_ms = futureMillis(5000);
-}
-
-bool MyMesh::advertIndicatorActive() const {
-  return _advert_indicator_until_ms != 0 &&
-         (int32_t)(_advert_indicator_until_ms - millis()) > 0;
+  if (pkt) {
+    sendZeroHop(pkt);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 // To check if there is pending work
 bool MyMesh::hasPendingWork() const {
   return _mgr->getOutboundTotal() > 0 || dirty_contacts_expiry != 0;
 }
-
-#if SOLO_FEAT_REMOTE_BOT
-#include "MyMeshBot.h"
-#endif

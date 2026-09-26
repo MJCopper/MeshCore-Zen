@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <helpers/sensors/GpsAdaptivePolicy.h>
+#include "../../examples/companion_radio/zen-overlay/src/helpers/sensors/GpsAdaptivePolicy.h"
 
 TEST(GpsAdaptivePolicy, InitialFixTracksThenLostFixBacksOff) {
   GpsAdaptivePolicy policy;

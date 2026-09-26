@@ -63,37 +63,11 @@ const uint32_t g_ADigitalPinMap[] = {
     0xFF, // 37 MISO
 };
 
-// GPIO3/GPIO4 (P0.09/P0.10) are the nRF52840's NFC1/NFC2 pins. Factory UICR
-// reserves them for NFC antenna operation -- nrf_gpio_cfg_output/cfg_input
-// alone won't work on them until UICR.NFCPINS.PROTECT flips from NFC to
-// GPIO, which only takes effect after a reset. This clears a single bit
-// (1=NFC -> 0=GPIO), which flash permits without an erase cycle, so no other
-// UICR field (BOOTLOADERADDR, APPROTECT, ...) is touched. One-way: going back
-// to NFC needs a full chip erase via debugger. No-ops on every boot after the
-// first (reads as GPIO already). Adapted from Adafruit's own
-// Bluefruit52Lib/examples/Hardware/nfc_to_gpio example.
-static void ensureNfcPinsAsGpio() {
-    if ((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) ==
-        (UICR_NFCPINS_PROTECT_NFC << UICR_NFCPINS_PROTECT_Pos)) {
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
-        while (NRF_NVMC->READY == NVMC_READY_READY_Busy);
-        NRF_UICR->NFCPINS &= ~UICR_NFCPINS_PROTECT_Msk;
-        while (NRF_NVMC->READY == NVMC_READY_READY_Busy);
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-        while (NRF_NVMC->READY == NVMC_READY_READY_Busy);
-        NVIC_SystemReset();   // UICR is only latched at boot
-    }
-}
-
 void initVariant() {
-    ensureNfcPinsAsGpio();   // must run first: may reset the board
-
     pinMode(PIN_QSPI_CS, OUTPUT);
     digitalWrite(PIN_QSPI_CS, HIGH);
 
-    // VBAT_ENABLE: hold HIGH so the battery voltage divider is always on and its
-    // node stays settled for the ADC read (getBattMilliVolts). Per-read gating
-    // left it unsettled at sample time -> high/jittery readings.
+    // VBAT_ENABLE
     pinMode(VBAT_ENABLE, OUTPUT);
     digitalWrite(VBAT_ENABLE, HIGH);
 
@@ -104,4 +78,5 @@ void initVariant() {
     // set buzzer pin as output and set it low
     pinMode(12, OUTPUT);
     digitalWrite(12, LOW);
+    pinMode(12, OUTPUT);
 }

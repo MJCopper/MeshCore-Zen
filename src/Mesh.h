@@ -28,7 +28,6 @@ class Mesh : public Dispatcher {
   RTCClock* _rtc;
   RNG* _rng;
   MeshTables* _tables;
-  uint32_t n_forwarded;   // packets actually re-transmitted (repeater/transport role)
 
   void removeSelfFromPath(Packet* packet);
   void routeDirectRecvAcks(Packet* packet, uint32_t delay_millis);
@@ -56,10 +55,6 @@ protected:
    *     Is sub-classes responsibility to make sure given packet is only transmitted ONCE (by this node)
    */
   virtual bool allowPacketForward(const Packet* packet);
-
-  // Keep the forward counter honest when an overhear cancels a queued retransmit:
-  // the packet was counted at the ACTION_RETRANSMIT decision, so back it out here.
-  void onRetransmitCancelled(Packet* packet) override { if (n_forwarded) n_forwarded--; }
 
   /**
    * \returns  number of milliseconds delay to apply to retransmitting the given packet.
@@ -183,13 +178,6 @@ public:
   void loop();
 
   LocalIdentity self_id;
-
-  // packets actually re-transmitted (vs. just permitted by allowPacketForward()) —
-  // confirms a repeater/transport role is really forwarding, not just configured to.
-  uint32_t getNumForwarded() const { return n_forwarded; }
-
-  // also clear the forward counter alongside the Dispatcher packet counters.
-  void resetStats() override { Dispatcher::resetStats(); n_forwarded = 0; }
 
   RNG* getRNG() const { return _rng; }
   RTCClock* getRTCClock() const { return _rtc; }

@@ -22,12 +22,11 @@ public:
 #endif
 
   uint16_t getBattMilliVolts() override {
-    // VBAT_ENABLE is held HIGH continuously (see begin()/initVariant()) so the
-    // divider node is already settled — don't gate it per-read, that reads high
-    // and jittery because 10ms wasn't enough for the divider to stabilize.
+    int adcvalue = 0;
     analogReadResolution(12);
     analogReference(AR_INTERNAL);
-    int adcvalue = analogRead(PIN_VBAT_READ);
+    delay(10);
+    adcvalue = analogRead(PIN_VBAT_READ);
     return (adcvalue * ADC_MULTIPLIER * AREF_VOLTAGE) / 4.096;
   }
 

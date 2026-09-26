@@ -8,10 +8,6 @@ void WioTrackerL1Board::begin() {
   btn_prev_state = HIGH;
 
   pinMode(PIN_VBAT_READ, INPUT); // VBAT ADC input
-  pinMode(VBAT_ENABLE, OUTPUT);
-  digitalWrite(VBAT_ENABLE, HIGH); // voltage divider always on: gating it per-read left
-                                   // the divider node unsettled at sample time (10ms was
-                                   // too short), reading high & jittery. ~2uA standby cost.
   // Set all button pins to INPUT_PULLUP
   pinMode(PIN_BUTTON1, INPUT_PULLUP);
   pinMode(PIN_BUTTON2, INPUT_PULLUP);

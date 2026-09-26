@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 #include <Stream.h>
 
-#include "../../examples/companion_radio/ui-new/QuietTimePolicy.h"
-#include "../../examples/companion_radio/ui-new/QuietTime.h"
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/QuietTimePolicy.h"
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/QuietTime.h"
 
 TEST(QuietTime, RequiresLiveSyncEvenWithPlausibleRestoredTimestamp) {
-  NodePrefs prefs = {};
+  ZenPrefs prefs = {};
   prefs.quiet_time_enabled = 1;
   prefs.quiet_time_start_min = 21 * 60;
   prefs.quiet_time_end_min = 7 * 60;
-  prefs.timezone_mode = solo::TimezonePolicy::MANUAL;
+  prefs.timezone_mode = zen::TimezonePolicy::MANUAL;
   prefs.timezone_manual_min = 10 * 60;
   const uint32_t utc = 20000UL * 86400 + 12 * 3600; // 22:00 local
   EXPECT_FALSE(quiettime::active(&prefs, utc, false));

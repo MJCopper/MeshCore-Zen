@@ -87,7 +87,18 @@ session. A successful change plays the standard acknowledgement sound when the
 buzzer is enabled. Hold Enter to open **Settings › Bluetooth**, where the saved
 startup state and pairing PIN can be configured. PIN Mode can generate a random
 PIN at each boot or retain a fixed six-digit PIN. PIN changes take effect after
-reboot. BLE takes priority over USB serial.
+reboot. Zen does not expose the companion protocol over USB; USB remains
+available for charging and bootloader DFU flashing.
+
+MeshCore owns Bluetooth initialization, advertising, pairing, bond storage,
+reconnection, packet framing and the companion protocol. Zen supplies only the
+requested On/Off state and restrictions from Child Mode, Low Power and Emergency
+Mode through one policy adapter. It observes connection changes for the RAM
+diagnostic log without replacing or delaying MeshCore callbacks. Pairing bonds
+remain in MeshCore's internal storage; normal Zen setting saves use external
+flash. MeshCore's own settings retain their baseline internal `/prefs.json`
+path. The two stores are not mirrored, and neither path rewrites or erases
+Bluetooth bonds.
 
 ## Adverts and location privacy
 

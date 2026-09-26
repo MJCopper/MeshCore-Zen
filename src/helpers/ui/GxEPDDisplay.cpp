@@ -1,18 +1,5 @@
-#include "GxEPDDisplay.h"
-#include "LemonIcons.h"
-#include "MiscFixedRenderer.h"
 
-// This driver retains the monochrome UI's semantic colour mapping: DARK means
-// white paper/background and LIGHT means black ink/foreground (see setColor).
-ColorVal UIColor::window_bkg = DisplayDriver::DARK;
-ColorVal UIColor::title_bkg = DisplayDriver::DARK;
-ColorVal UIColor::title_txt = DisplayDriver::LIGHT;
-ColorVal UIColor::primary_txt = DisplayDriver::LIGHT;
-ColorVal UIColor::secondary_txt = DisplayDriver::LIGHT;
-ColorVal UIColor::warning_txt = DisplayDriver::LIGHT;
-ColorVal UIColor::popup_bkg = DisplayDriver::DARK;
-ColorVal UIColor::popup_txt = DisplayDriver::LIGHT;
-ColorVal UIColor::corp_blue = DisplayDriver::LIGHT;
+#include "GxEPDDisplay.h"
 
 #ifdef EXP_PIN_BACKLIGHT
   #include <PCA9557.h>
@@ -20,25 +7,24 @@ ColorVal UIColor::corp_blue = DisplayDriver::LIGHT;
 #endif
 
 #ifndef DISPLAY_ROTATION
-  #define DISPLAY_ROTATION 0
+  #define DISPLAY_ROTATION 3
 #endif
 
 #ifdef ESP32
   SPIClass SPI1 = SPIClass(FSPI);
 #endif
 
-// GFX fonts use the baseline as the cursor origin. UI code assumes top-of-cell
-// coordinates (same convention as the OLED driver). Add the font ascender so
-// the two conventions match.
-static int fontAscender(int sz, int scale) {
-  if (sz == 3) return 26;                       // FreeSans18pt7b: proportional, baseline origin
-  if (sz == 1) return 7 * scale;                // misc-fixed 6x9 GFX font
-  return 0;                                     // GFX built-in font: cursor is top-left of cell
-}
+// Color scheme
+ColorVal UIColor::window_bkg = GxEPD_WHITE;
+ColorVal UIColor::title_bkg = GxEPD_WHITE;
+ColorVal UIColor::title_txt = GxEPD_BLACK;
+ColorVal UIColor::primary_txt = GxEPD_BLACK;
+ColorVal UIColor::secondary_txt = GxEPD_BLACK;
+ColorVal UIColor::warning_txt = GxEPD_BLACK;
+ColorVal UIColor::popup_bkg = GxEPD_WHITE;
+ColorVal UIColor::popup_txt = GxEPD_BLACK;
+ColorVal UIColor::corp_blue = GxEPD_BLACK;
 
-uint8_t GxEPDDisplay::glyphXAdvance(uint32_t cp, int sc) {
-  return miscFixedXAdvance(cp, sc);
-}
 
 bool GxEPDDisplay::begin() {
   display.epd2.selectSPI(SPI1, SPISettings(4000000, MSBFIRST, SPI_MODE0));
@@ -49,14 +35,15 @@ bool GxEPDDisplay::begin() {
 #endif
   display.init(115200, true, 2, false);
   display.setRotation(DISPLAY_ROTATION);
-  setTextSize(1);
+  setTextSize(1);  // Default to size 1
   display.setPartialWindow(0, 0, display.width(), display.height());
+
   display.fillScreen(GxEPD_WHITE);
   display.display(true);
-#if DISP_BACKLIGHT
+  #if DISP_BACKLIGHT
   digitalWrite(DISP_BACKLIGHT, LOW);
   pinMode(DISP_BACKLIGHT, OUTPUT);
-#endif
+  #endif
   _init = true;
   return true;
 }
@@ -87,89 +74,43 @@ void GxEPDDisplay::clear() {
 }
 
 void GxEPDDisplay::startFrame(ColorVal bkg) {
-  display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(_curr_color = GxEPD_BLACK);
-  _text_sz = 1;
-  int sc = scale();
-  display.setFont(&MiscFixed);
-  display.setTextSize(sc);
+  display.fillScreen(bkg);
+  display.setTextColor(_curr_color = UIColor::primary_txt);
   display_crc.reset();
 }
 
 void GxEPDDisplay::setTextSize(int sz) {
-  _text_sz = sz;
-  _vw_dirty = true;
   display_crc.update<int>(sz);
-  // Size 1 scales with orientation: 1× in portrait (≈OLED width), 2× in landscape.
-  // Size 2 always uses 2× built-in (12×16) — fixed because layout Y-positions are hardcoded.
-  // Size 3 always uses FreeSans18pt for large headings.
-  int sc = scale();
-  switch (sz) {
-    case 4:
-      // Huge clock digits: built-in font scaled up. Cursor stays top-left
-      // (fontAscender returns 0 for the built-in font), so layout maths is plain.
-      display.setFont(NULL);
-      display.setTextSize(BIG_TEXT_SCALE);
+  switch(sz) {
+    case 1:  // Small
+      display.setFont(&FreeSans9pt7b);
       break;
-    case 3:
+    case 2:  // Medium Bold
+      display.setFont(&FreeSansBold12pt7b);
+      break;
+    case 3:  // Large
       display.setFont(&FreeSans18pt7b);
-      display.setTextSize(1);
-      break;
-    case 2:
-      display.setFont(NULL);
-      display.setTextSize(scale() * 2);
       break;
     default:
-      display.setFont(&MiscFixed);
-      display.setTextSize(sc);
+      display.setFont(&FreeSans9pt7b);
       break;
   }
 }
 
 void GxEPDDisplay::setColor(ColorVal c) {
-  display_crc.update<ColorVal>(c);
-  // e-ink: DARK background = white paper, LIGHT foreground = black ink
-  if (c == DARK) {
-    display.setTextColor(_curr_color = GxEPD_WHITE);
-  } else {
-    display.setTextColor(_curr_color = GxEPD_BLACK);
-  }
+  display_crc.update<ColorVal> (c);
+  display.setTextColor(_curr_color = c);
 }
 
 void GxEPDDisplay::setCursor(int x, int y) {
   display_crc.update<int>(x);
   display_crc.update<int>(y);
-  // Offset y by the font ascender: callers pass top-of-cell y, GFX fonts
-  // expect baseline y. Without this, text would be clipped at the top.
-  int sc = scale();
-  display.setCursor(x, y + fontAscender(_text_sz, sc));
+  display.setCursor((x+offset_x)*scale_x, (y+offset_y)*scale_y);
 }
 
 void GxEPDDisplay::print(const char* str) {
   display_crc.update<char>(str, strlen(str));
-  // misc-fixed path only for sz=1 — setTextSize(2/3) switches GFX to other fonts.
-  if (_text_sz == 1) {
-    const int sc = scale();
-    // Adapt the GFX baseline to the shared renderer's top-of-row coordinates.
-    display.setCursor(display.getCursorX(), display.getCursorY() - 7 * sc);
-    miscFixedPrint(display, str, sc, _curr_color);
-    display.setCursor(display.getCursorX(), display.getCursorY() + 7 * sc);
-    return;
-  }
-  int sc = scale();
-  for (const char* p = str; *p; p++) {
-    if ((uint8_t)*p == 0xDB) {
-      int cx = display.getCursorX();
-      int cy = display.getCursorY();
-      // Default GFX font: cursor is top-left of cell (fontAscender=0), so cy=original_y.
-      // Draw block at cy (not cy-8*sc — that formula assumes Lemon's baseline offset).
-      display.fillRect(cx, cy, 5 * sc, 8 * sc, _curr_color);
-      display.setCursor(cx + 6 * sc, cy);
-    } else {
-      char tmp[2] = {*p, 0};
-      display.print(tmp);
-    }
-  }
+  display.print(str);
 }
 
 void GxEPDDisplay::fillRect(int x, int y, int w, int h) {
@@ -177,7 +118,7 @@ void GxEPDDisplay::fillRect(int x, int y, int w, int h) {
   display_crc.update<int>(y);
   display_crc.update<int>(w);
   display_crc.update<int>(h);
-  display.fillRect(x, y, w, h, _curr_color);
+  display.fillRect(x*scale_x, y*scale_y, w*scale_x, h*scale_y, _curr_color);
 }
 
 void GxEPDDisplay::drawRect(int x, int y, int w, int h) {
@@ -185,9 +126,7 @@ void GxEPDDisplay::drawRect(int x, int y, int w, int h) {
   display_crc.update<int>(y);
   display_crc.update<int>(w);
   display_crc.update<int>(h);
-  display.drawRect(x, y, w, h, _curr_color);
-  if (scale() == 2 && w > 2 && h > 2)
-    display.drawRect(x + 1, y + 1, w - 2, h - 2, _curr_color);
+  display.drawRect(x*scale_x, y*scale_y, w*scale_x, h*scale_y, _curr_color);
 }
 
 void GxEPDDisplay::drawXbm(int x, int y, const uint8_t* bits, int w, int h) {
@@ -195,63 +134,53 @@ void GxEPDDisplay::drawXbm(int x, int y, const uint8_t* bits, int w, int h) {
   display_crc.update<int>(y);
   display_crc.update<int>(w);
   display_crc.update<int>(h);
-  display_crc.update<uintptr_t>((uintptr_t)bits);
+  display_crc.update<uint8_t>(bits, w * h / 8);
+  // Calculate the base position in display coordinates
+  uint16_t startX = x * scale_x;
+  uint16_t startY = y * scale_y;
+  
+  // Width in bytes for bitmap processing
   uint16_t widthInBytes = (w + 7) / 8;
+  
+  // Process the bitmap row by row
   for (uint16_t by = 0; by < h; by++) {
+    // Calculate the target y-coordinates for this logical row
+    int y1 = startY + (int)(by * scale_y);
+    int y2 = startY + (int)((by + 1) * scale_y);
+    int block_h = y2 - y1;
+    
+    // Scan across the row bit by bit
     for (uint16_t bx = 0; bx < w; bx++) {
+      // Calculate the target x-coordinates for this logical column
+      int x1 = startX + (int)(bx * scale_x);
+      int x2 = startX + (int)((bx + 1) * scale_x);
+      int block_w = x2 - x1;
+      
+      // Get the current bit
       uint16_t byteOffset = (by * widthInBytes) + (bx / 8);
       uint8_t bitMask = 0x80 >> (bx & 7);
-      if (pgm_read_byte(bits + byteOffset) & bitMask) {
-        display.drawPixel(x + bx, y + by, _curr_color);
+      bool bitSet = pgm_read_byte(bits + byteOffset) & bitMask;
+      
+      // If the bit is set, draw a block of pixels
+      if (bitSet) {
+        // Draw the block as a filled rectangle
+        display.fillRect(x1, y1, block_w, block_h, _curr_color);
       }
     }
   }
 }
 
 uint16_t GxEPDDisplay::getTextWidth(const char* str) {
-  if (_text_sz == 1) {
-    return miscFixedTextWidth(str, scale());
-  }
-  display.setTextWrap(false);
   int16_t x1, y1;
   uint16_t w, h;
   display.getTextBounds(str, 0, 0, &x1, &y1, &w, &h);
-  display.setTextWrap(true);
-  return w;
-}
-
-void GxEPDDisplay::setDisplayRotation(uint8_t rot) {
-  display.setRotation(rot & 3);
-  setDimensions(display.width(), display.height());
-  last_display_crc_value = -1;  // force redraw on next endFrame
+  return ceil((w + 1) / scale_x);
 }
 
 void GxEPDDisplay::endFrame() {
   uint32_t crc = display_crc.finalize();
   if (crc != last_display_crc_value) {
-    bool partial = true;
-    if (_full_refresh_interval > 0 && ++_partial_count >= _full_refresh_interval) {
-      partial = false;
-      _partial_count = 0;
-    }
-    // Drive every pixel, not just the ones that changed since the last frame.
-    // A partial update is differential — it drives only what differs from the
-    // controller's "previous image" RAM and leaves the rest to hold its own
-    // charge, which this panel doesn't do well: text went grey a few updates
-    // after it was drawn while whatever had just changed stayed crisp. Priming
-    // that RAM with the inverse of the incoming frame makes every pixel a
-    // difference, so all of them get driven to their target.
-    //
-    // It must be the inverse and not a flat white — white makes only
-    // white->black a difference, so ink gets re-driven but never erased and
-    // every screen ever shown accumulates as a ghost.
-    //
-    // Costs one extra full-screen RAM write (a few ms of SPI); the refresh
-    // itself takes the same time either way, as the waveform clocks the whole
-    // panel regardless of how many pixels it actually drives. Clearing ghosts
-    // is a separate job and stays with the periodic full refresh above.
-    if (partial) display.writeInverseForRedrive();
-    display.display(partial);
+    display.display(true);
     last_display_crc_value = crc;
   }
 }

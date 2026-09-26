@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <limits.h>
 
-#include "../../examples/companion_radio/solo/GpsCourse.h"
-#include "../../examples/companion_radio/solo/GpsCourseTape.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/GpsCourse.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/GpsCourseTape.h"
 
-using solo::GpsCourse;
+using zen::GpsCourse;
 
 TEST(GpsCourse, RequiresFixValidValuesAndMovement) {
   EXPECT_TRUE(GpsCourse::available(true, 90000, 800));
@@ -32,23 +32,23 @@ TEST(GpsCourse, CompassTapeWrapsAroundNorth) {
 }
 
 TEST(GpsCourseTape, UsesDotsAsElevenPointTwoFiveDegreeDirections) {
-  EXPECT_EQ(solo::GpsCourseTape::index(0), 0);
-  EXPECT_EQ(solo::GpsCourseTape::index(11250), 1);
-  EXPECT_EQ(solo::GpsCourseTape::index(22500), 2);
-  EXPECT_STREQ(solo::GpsCourseTape::label(0), "N");
-  EXPECT_STREQ(solo::GpsCourseTape::label(1), ".");
-  EXPECT_STREQ(solo::GpsCourseTape::label(3), ".");
-  EXPECT_STREQ(solo::GpsCourseTape::label(4), "NE");
-  EXPECT_STREQ(solo::GpsCourseTape::label(8), "E");
+  EXPECT_EQ(zen::GpsCourseTape::index(0), 0);
+  EXPECT_EQ(zen::GpsCourseTape::index(11250), 1);
+  EXPECT_EQ(zen::GpsCourseTape::index(22500), 2);
+  EXPECT_STREQ(zen::GpsCourseTape::label(0), "N");
+  EXPECT_STREQ(zen::GpsCourseTape::label(1), ".");
+  EXPECT_STREQ(zen::GpsCourseTape::label(3), ".");
+  EXPECT_STREQ(zen::GpsCourseTape::label(4), "NE");
+  EXPECT_STREQ(zen::GpsCourseTape::label(8), "E");
 }
 
 TEST(GpsCourseTape, WrapsAndAppliesBoundaryHysteresis) {
-  EXPECT_EQ(solo::GpsCourseTape::offset(0, -1), 31);
-  EXPECT_EQ(solo::GpsCourseTape::offset(31, 1), 0);
-  EXPECT_EQ(solo::GpsCourseTape::index(359000), 0);
-  EXPECT_EQ(solo::GpsCourseTape::stabilise(0, 6000), 0);
-  EXPECT_EQ(solo::GpsCourseTape::stabilise(0, 8000), 1);
-  EXPECT_EQ(solo::GpsCourseTape::stabilise(0, 352000), 31);
+  EXPECT_EQ(zen::GpsCourseTape::offset(0, -1), 31);
+  EXPECT_EQ(zen::GpsCourseTape::offset(31, 1), 0);
+  EXPECT_EQ(zen::GpsCourseTape::index(359000), 0);
+  EXPECT_EQ(zen::GpsCourseTape::stabilise(0, 6000), 0);
+  EXPECT_EQ(zen::GpsCourseTape::stabilise(0, 8000), 1);
+  EXPECT_EQ(zen::GpsCourseTape::stabilise(0, 352000), 31);
 }
 
 TEST(GpsCourse, RequiresTenMetresAndRetainsLastCourseForFifteenMinutes) {
@@ -59,7 +59,7 @@ TEST(GpsCourse, RequiresTenMetresAndRetainsLastCourseForFifteenMinutes) {
   EXPECT_EQ(course.read(2000, value), GpsCourse::NONE);
   course.update(3000, true, false, 0, true, 0, 91, 90000, 3000, 10);  // approximately 10.1 m
   ASSERT_EQ(course.read(3000, value), GpsCourse::LIVE);
-  EXPECT_NEAR(value, 90000, solo::GpsCourseTape::HALF_STEP_MILLIDEG);
+  EXPECT_NEAR(value, 90000, zen::GpsCourseTape::HALF_STEP_MILLIDEG);
 
   course.update(9001, true, false, 0, true, 0, 91, 90000, 0, 10);
   EXPECT_EQ(course.read(9001, value), GpsCourse::LAST);

@@ -90,26 +90,6 @@ public:
     return false; 
   }
 
-  bool isBluetoothConnected() const {
-    for(auto iface : _interfaces){
-      if(iface.instance && iface.type == InterfaceType::Bluetooth){
-        return iface.instance->isConnected();
-      }
-    }
-    return false;
-  }
-
-  bool isBLEConnected() const override { return isBluetoothConnected(); }
-
-  bool isClientConnected() const override {
-    for(auto iface : _interfaces){
-      if(iface.instance && iface.instance->isEnabled() && iface.instance->isConnected()){
-        return true;
-      }
-    }
-    return false;
-  }
-
   // enable all interfaces
   void enable() override {
     _enabled = true;

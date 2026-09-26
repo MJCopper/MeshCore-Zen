@@ -23,12 +23,6 @@ public:
   virtual const char* getSettingValue(int i) const { return NULL; }
   virtual bool setSettingValue(const char* name, const char* value) { return false; }
   virtual LocationProvider* getLocationProvider() { return NULL; }
-  virtual int getAvailableLPPTypes(uint8_t* types, int max_count) const { return 0; }
-  virtual void onUserDisplayWake() { }
-  virtual bool getGpsAdaptiveRetry(uint32_t& remaining_ms) const {
-    (void)remaining_ms;
-    return false;
-  }
 
   // Helper functions to manage setting by keys (useful in many places ...)
   const char* getSettingByKey(const char* key) {

@@ -6,6 +6,8 @@ permissions:
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'zen/main'
     tags:
       - 'v*'
 
@@ -13,7 +15,20 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repo
+        uses: actions/checkout@v4
+      - name: Setup Build Environment
+        uses: ./.github/actions/setup-build-environment
+      - name: Verify MeshCore boundary
+        run: python3 tools/check_zen_baseline.py
+      - name: Run native tests
+        run: pio test -e native
+
   build:
+    needs: validate
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,7 +47,7 @@ jobs:
 
       - name: Resolve build version
         run: |
-          SOURCE_VERSION=$(sed -n 's/^#define FIRMWARE_VERSION "\(v[0-9][0-9.]*\)"/\1/p' examples/companion_radio/MyMesh.h)
+          SOURCE_VERSION=$(python3 tools/zen_version.py)
           if [ -z "$SOURCE_VERSION" ]; then
             echo "Unable to read Zen version from MyMesh.h"
             exit 1

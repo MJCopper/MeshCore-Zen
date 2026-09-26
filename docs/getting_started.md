@@ -5,9 +5,15 @@
 ## Before installing
 
 Zen supports the Seeed Wio Tracker L1 with either the OLED or E-ink display.
-Back up the identity, contacts, channels and messages with a companion app before
-changing firmware. Follow the [flashing instructions](../README.md#flashing)
-and choose the UF2 matching the display.
+
+> [!WARNING]
+> Always export a fresh settings backup with the MeshCore companion app before
+> installing or updating firmware. Store it off the device and follow the
+> complete [flashing instructions](../README.md#flashing).
+
+Choose the UF2 matching the display. After flashing, verify the identity,
+radio settings, contacts and channels, and confirm persistence after a
+reboot.
 
 ## First setup
 
@@ -39,7 +45,8 @@ returns to Clock after five minutes without input.
 
 Enable Bluetooth from its home page or under **Settings › System**. While the
 device is waiting to pair, the Bluetooth page displays its PIN. BLE takes
-priority over USB serial, so disconnect BLE before using USB.
+care of companion-app communication; USB is reserved for charging and DFU
+flashing.
 
 Settings are normally staged while editing and written only when leaving the
 section with a changed value.

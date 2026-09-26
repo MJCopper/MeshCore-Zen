@@ -19,10 +19,7 @@ namespace mesh {
 void Dispatcher::begin() {
   n_sent_flood = n_sent_direct = 0;
   n_recv_flood = n_recv_direct = 0;
-  memset(n_sent_by_type, 0, sizeof(n_sent_by_type));
-  memset(n_recv_by_type, 0, sizeof(n_recv_by_type));
   _err_flags = 0;
-  radio_suspend_requested = radio_suspended = false;
   radio_nonrx_start = _ms->getMillis();
 
   duty_cycle_window_ms = getDutyCycleWindowMs();
@@ -67,20 +64,6 @@ uint32_t Dispatcher::getCADFailMaxDuration() const {
 }
 
 void Dispatcher::loop() {
-  if (radio_suspend_requested && outbound == NULL) {
-    // Drop unsent work so restoring power cannot unexpectedly transmit stale
-    // adverts, replies or application requests.
-    while (_mgr->getOutboundTotal() > 0) {
-      Packet* pkt = _mgr->removeOutboundByIdx(0);
-      if (!pkt) break;
-      _mgr->free(pkt);
-    }
-    if (!radio_suspended) {
-      _radio->suspend();
-      radio_suspended = true;
-    }
-    return;
-  }
   if (millisHasNowPassed(next_floor_calib_time)) {
     _radio->triggerNoiseFloorCalibrate(getInterferenceThreshold());
     _radio->setCADEnabled(getCADEnabled());
@@ -124,7 +107,6 @@ void Dispatcher::loop() {
 
       _radio->onSendFinished();
       logTx(outbound, 2 + outbound->getPathByteLen() + outbound->payload_len);
-      n_sent_by_type[outbound->getPayloadType()]++;
       if (outbound->isRouteFlood()) {
         n_sent_flood++;
       } else {
@@ -148,19 +130,6 @@ void Dispatcher::loop() {
     next_agc_reset_time = futureMillis(getAGCResetInterval());
   }
 
-  // A suspension requested during an active transmission takes effect as soon
-  // as that packet finishes; do not start the next queued packet.
-  if (radio_suspend_requested) {
-    while (_mgr->getOutboundTotal() > 0) {
-      Packet* pkt = _mgr->removeOutboundByIdx(0);
-      if (!pkt) break;
-      _mgr->free(pkt);
-    }
-    _radio->suspend();
-    radio_suspended = true;
-    return;
-  }
-
   if (getAGCResetInterval() > 0 && millisHasNowPassed(next_agc_reset_time)) {
     _radio->resetAGC();
     next_agc_reset_time = futureMillis(getAGCResetInterval());
@@ -175,17 +144,6 @@ void Dispatcher::loop() {
   }
   checkRecv();
   checkSend();
-}
-
-void Dispatcher::setRadioSuspended(bool suspended) {
-  radio_suspend_requested = suspended;
-  if (!suspended && radio_suspended) {
-    _radio->resume();
-    radio_suspended = false;
-    prev_isrecv_mode = _radio->isInRecvMode();
-    radio_nonrx_start = _ms->getMillis();
-    next_floor_calib_time = next_agc_reset_time = 0;
-  }
 }
 
 bool Dispatcher::tryParsePacket(Packet* pkt, const uint8_t* raw, int len) {
@@ -279,10 +237,6 @@ void Dispatcher::checkRecv() {
     #endif
     logRx(pkt, pkt->getRawLength(), score);   // hook for custom logging
 
-    n_recv_by_type[pkt->getPayloadType()]++;
-    // Overhear suppression: if we just heard a flood packet that we still have
-    // queued to retransmit, another node beat us to it — drop our copy.
-    if (pkt->isRouteFlood() && wantsOverhearSuppress()) suppressQueuedDuplicate(pkt);
     if (pkt->isRouteFlood()) {
       n_recv_flood++;
 
@@ -300,27 +254,6 @@ void Dispatcher::checkRecv() {
     } else {
       n_recv_direct++;
       processRecvPacket(pkt);
-    }
-  }
-}
-
-void Dispatcher::suppressQueuedDuplicate(Packet* pkt) {
-  uint8_t h[MAX_HASH_SIZE];
-  pkt->calculatePacketHash(h);
-  // Scan the whole outbound queue (not just due entries). hasSeen() already
-  // keeps at most one copy queued, so the first hash match is the only one.
-  int n = _mgr->getOutboundTotal();
-  for (int i = 0; i < n; i++) {
-    Packet* q = _mgr->getOutboundByIdx(i);
-    if (q == NULL || !q->isRouteFlood()) continue;   // only ever suppress a queued flood retransmit
-    uint8_t qh[MAX_HASH_SIZE];
-    q->calculatePacketHash(qh);
-    if (memcmp(h, qh, MAX_HASH_SIZE) == 0) {
-      _mgr->removeOutboundByIdx(i);
-      onRetransmitCancelled(q);
-      _mgr->free(q);
-      MESH_DEBUG_PRINTLN("%s Dispatcher: overhear suppressed a queued retransmit", getLogDateTime());
-      return;
     }
   }
 }

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../../src/helpers/ui/CardKBController.h"
+#include "../../examples/companion_radio/zen-overlay/src/helpers/ui/CardKBController.h"
 
 TEST(CardKB, SuspendsBusTrafficAndDiscardsQueuedWakeKey) {
   g_mock_millis = 0;
@@ -7,11 +7,14 @@ TEST(CardKB, SuspendsBusTrafficAndDiscardsQueuedWakeKey) {
   CardKBController keyboard;
   CardKBController::Event event;
   keyboard.begin(wire);
+  EXPECT_TRUE(keyboard.isActive());
   keyboard.suspend();
+  EXPECT_FALSE(keyboard.isActive());
   wire.next = 'x';
   EXPECT_FALSE(keyboard.poll(event));
   EXPECT_EQ(0u, wire.reads);
   keyboard.resume();
+  EXPECT_TRUE(keyboard.isActive());
   EXPECT_FALSE(keyboard.poll(event));
   g_mock_millis += 30;
   EXPECT_FALSE(keyboard.poll(event));

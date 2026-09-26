@@ -83,7 +83,6 @@ uint32_t AutoDiscoverRTCClock::getCurrentTime() {
 }
 
 void AutoDiscoverRTCClock::setCurrentTime(uint32_t time) { 
-  _set_generation++;
   if (ds3231_success) {
     rtc_3231.adjust(DateTime(time));
   } else if (rv3028_success) {

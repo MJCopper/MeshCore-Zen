@@ -91,17 +91,6 @@
 #define PIN_GPS_STANDBY         (0)
 #define PIN_GPS_EN              (PIN_GPS_STANDBY)
 
-// User-assignable GPIO: 4 pins with no board function, exposed for bot
-// commands (!gpio1..!gpio4) and the Tools > GPIO screen. Raw nRF52 pin
-// addressing via NRF_GPIO_PIN_MAP (NOT Arduino pin numbers -- these aren't in
-// g_ADigitalPinMap[], so pinMode()/digitalWrite() would silently hit whatever
-// Arduino pin index happens to equal the raw value instead). See
-// initVariant()'s ensureNfcPinsAsGpio() for the GPIO3/GPIO4 NFC-pin caveat.
-#define PIN_GPIO1               NRF_GPIO_PIN_MAP(0, 2)
-#define PIN_GPIO2               NRF_GPIO_PIN_MAP(0, 29)
-#define PIN_GPIO3               NRF_GPIO_PIN_MAP(0, 9)    // NFC1
-#define PIN_GPIO4               NRF_GPIO_PIN_MAP(0, 10)   // NFC2
-
 // QSPI Pins
 #define PIN_QSPI_SCK            (19)
 #define PIN_QSPI_CS             (20)

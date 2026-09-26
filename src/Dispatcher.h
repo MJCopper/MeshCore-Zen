@@ -61,11 +61,6 @@ public:
    */
   virtual void loop() { }
 
-  // Reversible runtime sleep, distinct from whole-device shutdown. Generic
-  // radios may reinitialise on resume; concrete drivers can preserve config.
-  virtual void suspend() { }
-  virtual void resume() { begin(); }
-
   virtual int getNoiseFloor() const { return 0; }
 
   virtual void triggerNoiseFloorCalibrate(int threshold) { }
@@ -130,11 +125,9 @@ class Dispatcher {
   bool  prev_isrecv_mode;
   uint32_t n_sent_flood, n_sent_direct;
   uint32_t n_recv_flood, n_recv_direct;
-  uint32_t n_sent_by_type[16], n_recv_by_type[16];   // indexed by getPayloadType() (4-bit field)
   unsigned long tx_budget_ms;
   unsigned long last_budget_update;
   unsigned long duty_cycle_window_ms;
-  bool radio_suspend_requested, radio_suspended;
 
   void processRecvPacket(Packet* pkt);
   void updateTxBudget();
@@ -179,19 +172,9 @@ protected:
   virtual int getAGCResetInterval() const { return 0; }    // disabled by default
   virtual unsigned long getDutyCycleWindowMs() const { return 3600000; }
 
-  // When true, a received flood packet whose hash matches one still waiting in
-  // the outbound queue cancels that queued retransmit (overhear suppression):
-  // another node already relayed it, so this node stays quiet. Default off.
-  virtual bool wantsOverhearSuppress() const { return false; }
-  // Hook fired when such a queued retransmit is cancelled — lets a sub-class
-  // keep its forward counter honest. Default no-op.
-  virtual void onRetransmitCancelled(Packet* packet) { }
-
 public:
   void begin();
   void loop();
-  void setRadioSuspended(bool suspended);
-  bool isRadioSuspended() const { return radio_suspend_requested; }
 
   Packet* obtainNewPacket();
   void releasePacket(Packet* packet);
@@ -204,15 +187,8 @@ public:
   uint32_t getNumSentDirect() const { return n_sent_direct; }
   uint32_t getNumRecvFlood() const { return n_recv_flood; }
   uint32_t getNumRecvDirect() const { return n_recv_direct; }
-  uint32_t getNumSentByType(uint8_t payload_type) const { return n_sent_by_type[payload_type & 0x0F]; }
-  uint32_t getNumRecvByType(uint8_t payload_type) const { return n_recv_by_type[payload_type & 0x0F]; }
-  int getPoolFreeCount() const { return _mgr->getFreeCount(); }
-  int getOutboundQueueLen() const { return _mgr->getOutboundTotal(); }
-  uint16_t getErrFlags() const { return _err_flags; }   // ERR_EVENT_* bitmask since last resetStats()
-  virtual void resetStats() {
+  void resetStats() {
     n_sent_flood = n_sent_direct = n_recv_flood = n_recv_direct = 0;
-    memset(n_sent_by_type, 0, sizeof(n_sent_by_type));
-    memset(n_recv_by_type, 0, sizeof(n_recv_by_type));
     _err_flags = 0;
   }
 
@@ -225,7 +201,6 @@ public:
 private:
   void checkRecv();
   void checkSend();
-  void suppressQueuedDuplicate(Packet* pkt);   // overhear cancel (see wantsOverhearSuppress)
 };
 
 }

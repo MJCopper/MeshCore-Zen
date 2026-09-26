@@ -42,7 +42,7 @@ All secrets, hashes, and cryptographic values shown in this guide are example va
 
 ## BLE Connection
 
-> **Zen Child Mode:** BLE and USB companion protocol access is disabled while Child Mode is locked. A parent must unlock Settings with the device PIN, or disable Child Mode, before a companion client can connect. USB charging is unaffected.
+> **Zen Child Mode:** BLE companion protocol access is disabled while Child Mode is locked. A parent must unlock Settings with the device PIN, or disable Child Mode, before a companion client can connect. USB charging is unaffected.
 
 ### Service and Characteristics
 

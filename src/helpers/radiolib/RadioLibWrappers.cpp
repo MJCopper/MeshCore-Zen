@@ -43,18 +43,6 @@ void RadioLibWrapper::begin() {
   _floor_sample_sum = 0;
 }
 
-void RadioLibWrapper::suspend() {
-  _radio->sleep();
-  _ps_active = false;
-  state = STATE_IDLE;
-}
-
-void RadioLibWrapper::resume() {
-  // loop() will re-arm the configured continuous or duty-cycled receiver.
-  _ps_active = false;
-  state = STATE_IDLE;
-}
-
 uint32_t RadioLibWrapper::getRngSeed() {
   return _radio->random(0x7FFFFFFF);
 }

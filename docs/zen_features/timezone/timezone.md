@@ -62,6 +62,8 @@ The selected mode is applied consistently to:
 GPS and companion time synchronisation still provide UTC. They do not overwrite
 the selected city or fixed offset.
 
+All consumers use the same local-time service, so DST boundaries and day
+wrapping cannot differ between the Clock, Quiet Time and event timestamps.
+
 Existing installations retain their previous fixed UTC offset during migration.
 Selecting City opts into the embedded daylight-saving rules.
-

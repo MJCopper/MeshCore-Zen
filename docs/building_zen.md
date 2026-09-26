@@ -45,8 +45,9 @@ pio run -e WioTrackerL1_Zen_E-INK
 ```
 
 Flash a locally built UF2 with the same Reset-button and USB-drive procedure in
-the [README](../README.md#flashing). Verify that the target name matches the
-physical display before copying it.
+the [README](../README.md#flashing). Always export a fresh settings backup with
+the MeshCore companion app before flashing, including development builds.
+Verify that the target name matches the physical display before copying it.
 
 For release-style filenames, build both targets through the repository script:
 

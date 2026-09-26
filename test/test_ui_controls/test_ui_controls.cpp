@@ -1,11 +1,14 @@
+#define FIRMWARE_ZEN_BUILD 1
+
 #include <gtest/gtest.h>
 #include <vector>
 
-#include <helpers/ui/UIScreen.h>
-#include "../../examples/companion_radio/ui-new/icons.h"
-#include "../../examples/companion_radio/ui-new/ScreenHistory.h"
+#include <helpers/ui/ZenUIScreen.h>
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/icons.h"
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/ScreenHistory.h"
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/UIFramework.h"
 
-class RecordingDisplay : public DisplayDriver {
+class RecordingDisplay : public ZenDisplayDriver {
 public:
   struct Bounds { int x, y, w, h; };
   std::vector<Bounds> draws;
@@ -13,7 +16,7 @@ public:
   int char_w, line_h;
 
   RecordingDisplay(int w, int h, int cw = 6, int lh = 8)
-      : DisplayDriver(w, h), char_w(cw), line_h(lh) {}
+      : ZenDisplayDriver(w, h), char_w(cw), line_h(lh) {}
   bool isOn() override { return true; }
   void turnOn() override {}
   void turnOff() override {}
@@ -40,10 +43,10 @@ public:
   }
 };
 
-class TestScreen : public UIScreen {
+class TestScreen : public ZenUIScreen {
 public:
   int shown = 0, hidden = 0;
-  int render(DisplayDriver&) override { return UI_REFRESH_STATIC_MS; }
+  int render(ZenDisplayDriver&) override { return UI_REFRESH_STATIC_MS; }
   void onShow() override { shown++; }
   void onHide() override { hidden++; }
 };
@@ -54,6 +57,26 @@ TEST(UIControls, MenuSelectionWrapsInBothDirections) {
   EXPECT_EQ(wrapSelection(1, 4, 1), 2);
   EXPECT_EQ(wrapSelection(2, 4, -1), 1);
   EXPECT_EQ(wrapSelection(3, 0, 1), 0);
+}
+
+TEST(UIControls, FrameworkMenuMovementUsesTheSharedWrapContract) {
+  int selected = 0;
+  EXPECT_TRUE(zenui::moveWrapped(KEY_UP, 3, selected));
+  EXPECT_EQ(2, selected);
+  EXPECT_TRUE(zenui::moveWrapped(KEY_DOWN, 3, selected));
+  EXPECT_EQ(0, selected);
+  EXPECT_FALSE(zenui::moveWrapped(KEY_ENTER, 3, selected));
+}
+
+TEST(UIControls, MenuModelKeepsLabelsActionsAndAvailabilityTogether) {
+  static const zenui::MenuItem items[] = {
+    { "First", 7, true }, { "Second", 9, false },
+  };
+  zenui::MenuModel<2> model(items);
+  EXPECT_EQ(2, model.count());
+  EXPECT_STREQ("First", model.label(0));
+  EXPECT_EQ(9, model.action(1));
+  EXPECT_FALSE(model.enabled(1));
 }
 
 TEST(UILayout, EmbeddedListsScrollAndRemainInsideOLED) {
@@ -102,7 +125,7 @@ TEST(UINavigation, FixedHistoryRetainsMostRecentDestinations) {
 
 TEST(UINavigation, TransitionRunsSymmetricLifecycleOnce) {
   TestScreen a, b;
-  UIScreen* current = nullptr;
+  ZenUIScreen* current = nullptr;
   EXPECT_TRUE(ScreenTransition::apply(current, &a));
   EXPECT_EQ(a.shown, 1);
   EXPECT_TRUE(ScreenTransition::apply(current, &b));

@@ -10,7 +10,7 @@ Rules:
 
 ## Zen build version
 
-- Every completed change set must increment the Zen firmware build number in `examples/companion_radio/MyMesh.h` using the format `v1.32.x` (for example, `v1.32.1`, then `v1.32.2`). Increment once per requested update, including documentation or build-configuration changes, before validation and handoff. Read-only reviews and builds with no repository changes do not increment it.
+- Every completed change set must increment the Zen firmware build number in `examples/companion_radio/zen-overlay/app/MyMesh.h` using the format `v1.32.x` (for example, `v1.32.1`, then `v1.32.2`). Increment once per requested update, including documentation or build-configuration changes, before validation and handoff. Read-only reviews and builds with no repository changes do not increment it.
 - Keep the current release shown in `README.md` identical to the firmware version.
 
 ## Zen build artifacts

@@ -39,11 +39,10 @@ class SplashScreen : public UIScreen {
 
 public:
   SplashScreen(UITask* task) : _task(task) {
-    // strip off the commit-hash suffix build.sh always appends as the LAST
-    // dash-segment, e.g: v1.2.3-abcdef -> v1.2.3, v1.21-rc1-abcdef -> v1.21-rc1
-    // (must use the last dash, not the first, since a tag itself may contain one)
+    // strip off dash and commit hash by changing dash to null terminator
+    // e.g: v1.2.3-abcdef -> v1.2.3
     const char *ver = FIRMWARE_VERSION;
-    const char *dash = strrchr(ver, '-');
+    const char *dash = strchr(ver, '-');
 
     int len = dash ? dash - ver : strlen(ver);
     if (len >= sizeof(_version_info)) len = sizeof(_version_info) - 1;
@@ -155,6 +154,15 @@ public:
     char tmp[80];
 
     if (_page == HomePage::FIRST) {
+      // // node name
+      // display.setTextSize(1);
+      // display.setColor(DisplayDriver::GREEN);
+      // char filtered_name[sizeof(_node_prefs->node_name)];
+      // display.translateUTF8ToBlocks(filtered_name, _node_prefs->node_name, sizeof(filtered_name));
+      // display.setCursor(0, 0);
+      // display.print(filtered_name);
+
+
       display.setColor(UIColor::primary_txt);
       display.setTextSize(2);
       sprintf(tmp, "MSG: %d", _task->getMsgCount());
@@ -201,7 +209,9 @@ public:
         int timestamp_width = display.getTextWidth(tmp);
         int max_name_width = display.width() - timestamp_width - 1;
 
-        display.drawTextEllipsized(0, y, max_name_width, a->name);
+        char filtered_recent_name[sizeof(a->name)];
+        display.translateUTF8ToBlocks(filtered_recent_name, a->name, sizeof(filtered_recent_name));
+        display.drawTextEllipsized(0, y, max_name_width, filtered_recent_name);
         display.setCursor(display.width() - timestamp_width - 1, y);
         display.print(tmp);
       }
@@ -477,8 +487,7 @@ switch(t){
     buzzer.play("ack:d=32,o=8,b=120:c");
     break;
   case UIEventType::roomMessage:
-  case UIEventType::advertReceivedFlood:
-  case UIEventType::advertReceivedZeroHop:
+  case UIEventType::newContactMessage:
   case UIEventType::none:
   default:
     break;
@@ -501,10 +510,7 @@ void UITask::msgRead(int msgcount) {
   }
 }
 
-void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount,
-                    uint8_t contact_type, const uint8_t* pub_key) {
-  (void)contact_type;
-  (void)pub_key;
+void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) {
   _msgcount = msgcount;
 
   if (_display != NULL) {

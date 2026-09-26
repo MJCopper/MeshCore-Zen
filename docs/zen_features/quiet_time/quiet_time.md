@@ -2,7 +2,7 @@
 
 [Back to README](../../../README.md)
 
-Quiet Time suppresses incoming notification sounds during a daily local-time
+Quiet Time suppresses incoming notification sounds and vibration during a daily local-time
 period. Messages are still received, stored and counted. Eligible message and
 new-contact popups appear when the display is on, regardless of sound mode.
 Screen Wake On follows Notifications Mode (On, Off or Auto); Always wakes the

@@ -28,10 +28,6 @@ extern EnvironmentSensorManager sensors;
   extern MomentaryButton joystick_left;
   extern MomentaryButton joystick_right;
   extern MomentaryButton back_btn;
-  #ifdef UI_HAS_JOYSTICK_UPDOWN
-    extern MomentaryButton joystick_up;
-    extern MomentaryButton joystick_down;
-  #endif
 #endif
 
 bool radio_init();

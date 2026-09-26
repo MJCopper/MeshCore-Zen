@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "../../examples/companion_radio/solo/TimezonePolicy.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/TimezonePolicy.h"
 
-using solo::TimezonePolicy;
+using zen::TimezonePolicy;
 
 TEST(TimezonePolicy, FreshDefaultIsAutomaticSydney) {
   EXPECT_EQ(TimezonePolicy::DEFAULT_MODE, TimezonePolicy::CITY);

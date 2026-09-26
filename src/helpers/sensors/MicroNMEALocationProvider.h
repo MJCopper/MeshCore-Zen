@@ -86,9 +86,6 @@ public :
     }
 
     void reset() override {
-        // Do not let a cached valid sentence satisfy a new periodic acquisition.
-        nmea.clear();
-        time_valid = 0;
         if (_pin_reset != -1) {
             digitalWrite(_pin_reset, GPS_RESET_ACTIVE);
             delay(10);
@@ -125,9 +122,6 @@ public :
         return alt;
     }
     long satellitesCount() override { return nmea.getNumSatellites(); }
-    long getCourse() override { return nmea.getCourse(); }
-    long getSpeed() override { return nmea.getSpeed(); }
-    long getHDOP() override { return nmea.getHDOP(); }
     bool isValid() override { return nmea.isValid(); }
 
     long getTimestamp() override { 

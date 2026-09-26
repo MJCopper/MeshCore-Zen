@@ -68,14 +68,15 @@ adds a trailing space. Password and structured setting fields remain literal.
 
 Actions and console commands require confirmation. **Confirmed** means the
 remote node returned an OK response. **No reply** means the result is unknown
-(including reboot); changes are never automatically retried. The console shows
-other replies verbatim. **Start OTA** is a dedicated action and its confirmation
-opens on Cancel.
+(including reboot); changes are never automatically retried. Login, read-only
+requests and setting verification retry once over a known path, then clear a
+stale path and try by flood. The console shows other replies verbatim. **Start
+OTA** is a dedicated action and its confirmation opens on Cancel.
 
 Admin is unavailable while Child Mode is locked. Leaving Admin clears its
 session. Commands use tagged replies and current contact paths, without background
 polling. Local cancellation and timeout do not block the next command because
-reply tags reject late responses. Phone/USB commands retain priority; after app
+reply tags reject late responses. Phone commands retain priority; after app
 overlap, wait for its response timeout plus one minute. Nodes must support MeshCore's echoed
 CLI prefix; untagged replies cannot populate an editor.
 

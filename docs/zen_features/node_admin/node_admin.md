@@ -21,5 +21,7 @@ Hop names appear only when their hash matches one saved contact uniquely.
 
 Radio changes affect the remote node and may make it unreachable. Actions and
 console commands require confirmation and are not automatically retried.
-**No reply** means the outcome is unknown. Commands use current paths with
-route-to-flood retry handling. Admin is unavailable while Child Mode is locked.
+**Result unknown** means the command may have run even though its reply was
+lost. Login, status reads and setting verification use the shared known-path to
+flood retry lifecycle. Writes and actions are sent once to prevent duplicate
+side effects. Admin is unavailable while Child Mode is locked.

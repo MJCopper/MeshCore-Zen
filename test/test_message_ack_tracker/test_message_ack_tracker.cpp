@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "../../examples/companion_radio/solo/MessageAckTracker.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/MessageAckTracker.h"
 
 TEST(MessageAckTracker, AcceptsEarlierAndRepeatedAcknowledgements) {
-  solo::MessageAckTracker tracker;
+  zen::MessageAckTracker tracker;
   tracker.record(0, 100, 2);
   tracker.record(1, 101, 2);
   tracker.record(2, 102, 3);
@@ -17,11 +17,11 @@ TEST(MessageAckTracker, AcceptsEarlierAndRepeatedAcknowledgements) {
 }
 
 TEST(MessageAckTracker, CoversWireAttemptWrapWithoutGrowingStorage) {
-  solo::MessageAckTracker tracker;
+  zen::MessageAckTracker tracker;
   for (uint8_t i = 0; i < 5; i++) tracker.record(i, 100 + (i & 3), i < 2 ? 2 : 3);
   uint8_t route;
   for (uint32_t tag = 100; tag < 104; tag++) EXPECT_TRUE(tracker.match(tag, route));
-  tracker = solo::MessageAckTracker();
+  tracker = zen::MessageAckTracker();
   EXPECT_FALSE(tracker.match(100, route));
 }
 

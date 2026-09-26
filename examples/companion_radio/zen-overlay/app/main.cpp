@@ -1,0 +1,340 @@
+#include <Arduino.h>   // needed for PlatformIO
+#include <Mesh.h>
+#include "MyMesh.h"
+#include "zen/BootDiagnostics.h"
+#include "zen/ZenLegacyStorageCleanup.h"
+
+// Believe it or not, this std C function is busted on some platforms!
+static uint32_t _atoi(const char* sp) {
+  uint32_t n = 0;
+  while (*sp && *sp >= '0' && *sp <= '9') {
+    n *= 10;
+    n += (*sp++ - '0');
+  }
+  return n;
+}
+
+// interface manager
+#include <helpers/MultiSerialInterface.h>
+MultiSerialInterface interface_manager;
+
+// include bluetooth interface
+#if defined(BLE_PIN_CODE)
+  #ifdef ESP32
+    // include esp32 bluetooth interface
+    #include <helpers/esp32/SerialBLEInterface.h>
+    SerialBLEInterface bluetooth_interface;
+  #elif defined(NRF52_PLATFORM)
+    // include nrf52 bluetooth interface
+    #include <helpers/nrf52/SerialBLEInterface.h>
+    SerialBLEInterface bluetooth_interface;
+  #else
+    #error "SerialBLEInterface is not defined for this platform"
+  #endif
+#endif
+
+// include wifi interface
+#ifdef WIFI_SSID
+  #ifndef TCP_PORT
+    #define TCP_PORT 5000
+  #endif
+  #ifdef ESP32
+    // include esp32 wifi interface
+    #include <helpers/esp32/SerialWifiInterface.h>
+    SerialWifiInterface wifi_interface;
+  #else
+    #error "SerialWifiInterface is not defined for this platform"
+  #endif
+#endif
+
+// include ethernet interface
+#if defined(ETHERNET_ENABLED)
+  #include <helpers/ethernet/EthernetInterface.h>
+  ETHERNET_CLASS ethernet_interface;
+#endif
+
+// include hardware serial interface
+#if defined(SERIAL_RX)
+  #include <helpers/ArduinoSerialInterface.h>
+  ArduinoSerialInterface hardware_serial_interface;
+  HardwareSerial companion_serial(1);
+#endif
+
+// platform file system
+#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
+  #include <InternalFileSystem.h>
+  #if defined(QSPIFLASH)
+    #include <CustomLFS_QSPIFlash.h>
+    DataStore store(InternalFS, QSPIFlash, rtc_clock);
+  #else
+    #if defined(EXTRAFS)
+      #include <CustomLFS.h>
+      CustomLFS ExtraFS(0xD4000, 0x19000, 128);
+      DataStore store(InternalFS, ExtraFS, rtc_clock);
+    #else
+      DataStore store(InternalFS, rtc_clock);
+    #endif
+  #endif
+#elif defined(RP2040_PLATFORM)
+  #include <LittleFS.h>
+  DataStore store(LittleFS, rtc_clock);
+#elif defined(ESP32)
+  #include <SPIFFS.h>
+  DataStore store(SPIFFS, rtc_clock);
+#endif
+
+/* GLOBAL OBJECTS */
+#ifdef DISPLAY_CLASS
+  #include "UITask.h"
+  UITask ui_task(&board, &interface_manager, &bluetooth_interface);
+#endif
+
+StdRNG fast_rng;
+SimpleMeshTables tables;
+MyMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store
+   #ifdef DISPLAY_CLASS
+      , &ui_task
+   #endif
+);
+
+/* END GLOBAL OBJECTS */
+
+void halt() {
+  while (1) ;
+}
+
+#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
+static void haltStorage(const char* volume
+#ifdef DISPLAY_CLASS
+                        , ZenDisplayDriver* disp
+#endif
+                        ) {
+  Serial.print("Storage unavailable: ");
+  Serial.println(volume);
+#ifdef DISPLAY_CLASS
+  if (disp) {
+    disp->startFrame();
+    disp->drawTextCentered(disp->width() / 2, 18, "Storage unavailable");
+    disp->drawTextCentered(disp->width() / 2, 34, volume);
+    disp->endFrame();
+  }
+#endif
+  // Never continue with defaults and save over an unreadable filesystem.
+  // Leave USB bootloader recovery available through the hardware reset button.
+  while (1) delay(1000);
+}
+#endif
+
+/* WIFI RECONNECT TRACKERS */
+#if defined(ESP32) && defined(WIFI_SSID)
+  bool wifi_needs_reconnect = false;
+  unsigned long last_wifi_reconnect_attempt = 0;
+#endif
+
+void setup() {
+  Serial.begin(115200);
+  board.begin();
+
+#ifdef HAS_EXTERNAL_WATCHDOG
+  external_watchdog.begin();
+#endif
+
+#ifdef DISPLAY_CLASS
+  ZenDisplayDriver* disp = NULL;
+  if (display.begin()) {
+    disp = &display;
+    disp->startFrame();
+  #ifdef ST7789
+    disp->setTextSize(2);
+  #endif
+    disp->drawTextCentered(disp->width() / 2, 28, "Loading...");
+    disp->endFrame();
+  }
+#endif
+
+  if (!radio_init()) { halt(); }
+
+  fast_rng.begin(radio_driver.getRngSeed());
+
+#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
+  if (!InternalFS.begin()) haltStorage("Internal"
+    #ifdef DISPLAY_CLASS
+      , disp
+    #endif
+  );
+  #if defined(QSPIFLASH)
+    if (!QSPIFlash.begin()) {
+      haltStorage("Contacts"
+        #ifdef DISPLAY_CLASS
+          , disp
+        #endif
+      );
+    }
+    // Zen records now live on QSPI flash. Reclaim obsolete Zen-only files
+    // from the 28 KB internal filesystem before MeshCore or Bluefruit needs
+    // space for preferences and pairing bonds.
+    zen::LegacyStorageCleanup::run(InternalFS);
+  #else
+  #if defined(EXTRAFS)
+      if (!ExtraFS.begin()) haltStorage("Contacts"
+        #ifdef DISPLAY_CLASS
+          , disp
+        #endif
+      );
+  #endif
+  #endif
+  store.begin();
+  the_mesh.begin(
+    #ifdef DISPLAY_CLASS
+        disp != NULL
+    #else
+        false
+    #endif
+  );
+#elif defined(RP2040_PLATFORM)
+  LittleFS.begin();
+  store.begin();
+  the_mesh.begin(
+    #ifdef DISPLAY_CLASS
+        disp != NULL
+    #else
+        false
+    #endif
+  );
+#elif defined(ESP32)
+  SPIFFS.begin(true);
+  store.begin();
+  the_mesh.begin(
+    #ifdef DISPLAY_CLASS
+        disp != NULL
+    #else
+        false
+    #endif
+  );
+#else
+  #error "need to define filesystem"
+#endif
+
+// add bluetooth interface
+#if defined(BLE_PIN_CODE)
+  bluetooth_interface.begin(BLE_NAME_PREFIX, the_mesh.getNodePrefs()->node_name, the_mesh.getBLEPin());
+  interface_manager.addInterface(InterfaceType::Bluetooth, &bluetooth_interface);
+#endif
+
+// add wifi interface
+#ifdef WIFI_SSID
+  board.setInhibitSleep(true);   // prevent sleep when WiFi is active
+  WiFi.setAutoReconnect(true);
+
+  WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info){
+      if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+          WIFI_DEBUG_PRINTLN("WiFi disconnected. Flagging for reconnect...");
+          wifi_needs_reconnect = true;
+      } else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+          WIFI_DEBUG_PRINTLN("WiFi connected successfully!");
+          wifi_needs_reconnect = false;
+      }
+  });
+
+  WiFi.begin(WIFI_SSID, WIFI_PWD);
+  wifi_interface.begin(TCP_PORT);
+  interface_manager.addInterface(InterfaceType::WiFi, &wifi_interface);
+#endif
+
+// add ethernet interface
+#if defined(ETHERNET_ENABLED)
+  ethernet_interface.begin();
+  interface_manager.addInterface(InterfaceType::Ethernet, &ethernet_interface);
+#endif
+
+// add hardware serial interface
+#if defined(SERIAL_RX)
+  companion_serial.setPins(SERIAL_RX, SERIAL_TX);
+  companion_serial.begin(115200);
+  hardware_serial_interface.begin(companion_serial);
+  interface_manager.addInterface(InterfaceType::HardwareSerial, &hardware_serial_interface);
+#endif
+
+  the_mesh.startInterface(interface_manager);
+  sensors.begin();
+
+#if ENV_INCLUDE_GPS == 1
+#if !defined(FIRMWARE_ZEN_BUILD) || !defined(DISPLAY_CLASS)
+  the_mesh.applyGpsPrefs();
+#endif
+#endif
+
+#ifdef DISPLAY_CLASS
+  // Apply saved brightness as soon as preferences are available so the tail
+  // of the loading screen is not left at full brightness.
+  if (disp && the_mesh.getNodePrefs())
+    disp->setBrightness(the_mesh.getNodePrefs()->display_brightness);
+  ui_task.begin(disp, &sensors, &sensors, the_mesh.getNodePrefs());
+  if (the_mesh.zenPrefsIncompatible())
+    ui_task.operationWarning(zen::Operation::STORAGE,
+                             zen::OperationReason::PREFS_INVALID);
+  zen::OperationReason boot_fault;
+  if (zen::BootDiagnostics::abnormalReset(boot_fault))
+    ui_task.operationError(zen::Operation::POWER, zen::OperationOutcome::FAULT, boot_fault);
+#endif
+
+  board.onBootComplete();
+}
+
+void loop() {
+  // While the splash is active, display each major loop stage immediately
+  // before it runs. If a cold-start-only fault blocks or hard-faults, the OLED
+  // retains the responsible stage. Diagnostics stop with the splash.
+#ifdef DISPLAY_CLASS
+  static bool boot_probe_complete = false;
+  bool probe = !boot_probe_complete && ui_task.bootSplashActive();
+  if (probe) ui_task.showBootStage("Mesh");
+#endif
+  the_mesh.loop();
+#ifdef DISPLAY_CLASS
+  if (probe) ui_task.showBootStage("Interfaces");
+#endif
+  interface_manager.loop();
+#ifdef DISPLAY_CLASS
+  if (probe) ui_task.showBootStage("Sensors");
+#endif
+  sensors.loop();
+#ifdef DISPLAY_CLASS
+  if (probe) ui_task.showBootStage("UI");
+  ui_task.loop();
+#endif
+#ifdef DISPLAY_CLASS
+  if (probe) ui_task.showBootStage("Clock");
+#endif
+  rtc_clock.tick();
+#ifdef DISPLAY_CLASS
+  if (probe) {
+    ui_task.showBootStage("Ready");
+    boot_probe_complete = true;
+  }
+#endif
+#ifdef HAS_EXTERNAL_WATCHDOG
+  external_watchdog.loop();
+#endif
+
+#if defined(NRF52_PLATFORM)
+  if (!the_mesh.hasPendingWork()) {
+    board.sleep(0); // nrf ignores seconds param, sleeps whenever possible
+  } else {
+    // Pending work prevents event sleep, but the scheduler and SoftDevice must
+    // still receive a cooperative tick. This avoids a cold-boot tight loop
+    // without replacing MeshCore's normal idle path.
+    delay(1);
+  }
+#endif
+
+#if defined(ESP32) && defined(WIFI_SSID)
+  // Safely attempt to reconnect every 10 seconds if flagged
+  if (wifi_needs_reconnect && (millis() - last_wifi_reconnect_attempt > 10000)) {
+    WIFI_DEBUG_PRINTLN("Attempting manual WiFi reconnect...");
+    WiFi.disconnect();
+    WiFi.reconnect();
+    last_wifi_reconnect_attempt = millis();
+  }
+#endif
+}

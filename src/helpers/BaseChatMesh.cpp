@@ -62,9 +62,7 @@ void BaseChatMesh::bootstrapRTCfromContacts() {
       latest = contacts[i].lastmod;
     }
   }
-  // Contact time is only a lower bound. Never roll a valid RTC backwards to
-  // an older contact-table timestamp during boot.
-  if (latest != 0 && latest + 1 > getRTCClock()->getCurrentTime()) {
+  if (latest != 0) {
     getRTCClock()->setCurrentTime(latest + 1);
   }
 }
@@ -154,13 +152,11 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   }
 
   bool is_new = false; // true = not in contacts[], false = exists in contacts[]
-  bool contact_added = false;
   if (from == NULL) {
     if (!shouldAutoAddContactType(parser.getType())) {
       ContactInfo ci;
       populateContactFromAdvert(ci, id, parser, timestamp);
       onDiscoveredContact(ci, true, packet->path_len, packet->path);       // let UI know
-      onDiscoveredAdvert(packet->isRouteFlood());
       return;
     }
 
@@ -170,7 +166,6 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
       ContactInfo ci;
       populateContactFromAdvert(ci, id, parser, timestamp);
       onDiscoveredContact(ci, true, packet->path_len, packet->path);       // let UI know
-      onDiscoveredAdvert(packet->isRouteFlood());
       return;
     }
 
@@ -179,7 +174,6 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
       ContactInfo ci;
       populateContactFromAdvert(ci, id, parser, timestamp);
       onDiscoveredContact(ci, true, packet->path_len, packet->path);
-      onDiscoveredAdvert(packet->isRouteFlood());
       onContactsFull();
       MESH_DEBUG_PRINTLN("onAdvertRecv: unable to allocate contact slot for new contact");
       return;
@@ -188,7 +182,6 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
     populateContactFromAdvert(*from, id, parser, timestamp);
     from->sync_since = 0;
     from->shared_secret_valid = false;
-    contact_added = true;
   }
 
   // update
@@ -202,10 +195,7 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   from->last_advert_timestamp = timestamp;
   from->lastmod = getRTCClock()->getCurrentTime();
 
-  if (contact_added) onContactAdded(*from);
   onDiscoveredContact(*from, is_new, packet->path_len, packet->path);       // let UI know
-  // One packet must not trigger both the new-contact and routine-advert alert.
-  if (!contact_added) onDiscoveredAdvert(packet->isRouteFlood());
 }
 
 int BaseChatMesh::searchPeersByHash(const uint8_t* hash) {
@@ -924,11 +914,6 @@ bool BaseChatMesh::setChannel(int idx, const ChannelDetails& src) {
   return false;
 }
 int BaseChatMesh::findChannelIdx(const mesh::GroupChannel& ch) {
-  // An all-zero secret is never a real channel key; without this guard it would
-  // match the first uninitialised (all-zero) slot and misroute incoming messages.
-  bool empty = true;
-  for (int b = 0; b < (int)sizeof(ch.secret); b++) if (ch.secret[b]) { empty = false; break; }
-  if (empty) return -1;
   for (int i = 0; i < MAX_GROUP_CHANNELS; i++) {
     if (memcmp(ch.secret, channels[i].channel.secret, sizeof(ch.secret)) == 0) return i;
   }
@@ -950,12 +935,9 @@ int BaseChatMesh::findChannelIdx(const mesh::GroupChannel& ch) {
 #endif
 
 bool BaseChatMesh::getContactByIdx(uint32_t idx, ContactInfo& contact) {
-  // Public contact indices are zero-based over real contacts. The first
-  // MAX_ANON_CONTACTS array slots are internal scratch identities for anonymous
-  // requests and must agree with getNumContacts(), which excludes them.
-  if (idx >= (uint32_t)getNumContacts()) return false;
+  if (idx >= num_contacts) return false;
 
-  contact = contacts[idx + MAX_ANON_CONTACTS];
+  contact = contacts[idx];
   return true;
 }
 

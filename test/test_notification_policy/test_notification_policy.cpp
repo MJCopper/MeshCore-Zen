@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "../../examples/companion_radio/solo/NotificationPolicy.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/NotificationPolicy.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/NotificationCoordinator.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/NotificationProfiles.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/NotificationEligibility.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/NotificationPopupState.h"
 
-using solo::NotificationPolicy;
+using zen::NotificationPolicy;
 using ScreenWake = NotificationPolicy::ScreenWake;
 
 TEST(NotificationPolicy, ModeFollowsExistingSavedBuzzerChoices) {
@@ -43,6 +47,129 @@ TEST(NotificationPolicy, ScreenWakeAndQuietTimeAreIndependent) {
       true, true, true, NotificationPolicy::AUTO, false, ScreenWake::ON, true);
   EXPECT_TRUE(quiet.wake_screen);
   EXPECT_FALSE(quiet.play_sound);
+  EXPECT_FALSE(quiet.vibrate);
+}
+
+TEST(NotificationCoordinator, ChildEligibilityRejectsEveryOutputAndUnread) {
+  zen::NotificationEvent event;
+  event.type = zen::NotificationType::DIRECT_MESSAGE;
+  event.eligible = false;
+  event.record_unread = true;
+  event.visual = true;
+  zen::NotificationContext context;
+  context.screen_wake = ScreenWake::ALWAYS;
+  auto result = zen::NotificationCoordinator::decide(event, context);
+  EXPECT_FALSE(result.record_unread);
+  EXPECT_FALSE(result.show_visual);
+  EXPECT_FALSE(result.wake_screen);
+  EXPECT_FALSE(result.play_sound);
+  EXPECT_FALSE(result.vibrate);
+}
+
+TEST(NotificationCoordinator, UrgentWarningUsesWakeSettingButRemainsSilent) {
+  zen::NotificationEvent event;
+  event.type = zen::NotificationType::WARNING;
+  event.visual = true;
+  event.audible = false;
+  event.quiet_affected = false;
+  event.urgent_wake = true;
+  zen::NotificationContext context;
+  context.mode = NotificationPolicy::OFF;
+  context.screen_wake = ScreenWake::ON;
+  auto result = zen::NotificationCoordinator::decide(event, context);
+  EXPECT_TRUE(result.show_visual);
+  EXPECT_TRUE(result.wake_screen);
+  EXPECT_FALSE(result.play_sound);
+}
+
+TEST(NotificationCoordinator, EmergencyDoesNotOverrideSilence) {
+  zen::NotificationEvent event;
+  event.type = zen::NotificationType::DIRECT_MESSAGE;
+  event.record_unread = true;
+  event.visual = true;
+  zen::NotificationContext context;
+  context.emergency = true;
+  context.silent = true;
+  auto result = zen::NotificationCoordinator::decide(event, context);
+  EXPECT_TRUE(result.record_unread);
+  EXPECT_TRUE(result.show_visual);
+  EXPECT_FALSE(result.play_sound);
+  EXPECT_FALSE(result.vibrate);
+}
+
+TEST(NotificationCoordinator, LowPowerDoesNotRewriteNotificationPreferences) {
+  auto event = zen::NotificationProfiles::event(
+      zen::NotificationType::DIRECT_MESSAGE);
+  zen::NotificationContext context;
+  context.low_power = true;
+  context.mode = NotificationPolicy::OFF;
+  context.screen_wake = ScreenWake::ALWAYS;
+  auto result = zen::NotificationCoordinator::decide(event, context);
+  EXPECT_TRUE(result.record_unread);
+  EXPECT_TRUE(result.show_visual);
+  EXPECT_TRUE(result.wake_screen);
+  EXPECT_FALSE(result.play_sound);
+}
+
+TEST(NotificationCoordinator, PopupPriorityProtectsWarningsAndErrors) {
+  EXPECT_LT(zen::NotificationCoordinator::popupPriority(
+                zen::NotificationType::DIRECT_MESSAGE),
+            zen::NotificationCoordinator::popupPriority(
+                zen::NotificationType::WARNING));
+  EXPECT_LT(zen::NotificationCoordinator::popupPriority(
+                zen::NotificationType::WARNING),
+            zen::NotificationCoordinator::popupPriority(
+                zen::NotificationType::ERROR));
+}
+
+TEST(NotificationProfiles, DefinesAllOutputsByEventClass) {
+  auto message = zen::NotificationProfiles::event(
+      zen::NotificationType::DIRECT_MESSAGE);
+  EXPECT_TRUE(message.record_unread);
+  EXPECT_TRUE(message.visual);
+  EXPECT_TRUE(message.audible);
+
+  auto advert = zen::NotificationProfiles::event(
+      zen::NotificationType::ADVERT_LOCAL);
+  EXPECT_FALSE(advert.record_unread);
+  EXPECT_FALSE(advert.visual);
+  EXPECT_TRUE(advert.audible);
+
+  auto warning = zen::NotificationProfiles::event(
+      zen::NotificationType::WARNING);
+  EXPECT_TRUE(warning.visual);
+  EXPECT_FALSE(warning.audible);
+  EXPECT_TRUE(warning.urgent_wake);
+}
+
+TEST(NotificationEligibility, ChildModeSuppressesAdvertPresentation) {
+  EXPECT_TRUE(zen::NotificationEligibility::advert(false));
+  EXPECT_FALSE(zen::NotificationEligibility::advert(true));
+}
+
+TEST(NotificationPopupState, ProtectsHigherPriorityUntilExpiry) {
+  zen::NotificationPopupState popup;
+  EXPECT_TRUE(popup.accept(3, 100, 0));
+  EXPECT_FALSE(popup.accept(1, 200, 1000));
+  EXPECT_TRUE(popup.accept(1, 1000, 1000));
+  EXPECT_EQ(1, popup.priority());
+  popup.clear();
+  EXPECT_EQ(0, popup.priority());
+}
+
+TEST(NotificationWakeController, NotificationWakeExpiresInFiveSeconds) {
+  zen::NotificationWakeController wake;
+  auto sleeping = wake.present(false, true, 1000, 60000);
+  EXPECT_TRUE(sleeping.turn_on);
+  EXPECT_TRUE(wake.active());
+  EXPECT_EQ(6000u, sleeping.deadline);
+
+  auto repeated = wake.present(true, false, 2000, 60000);
+  EXPECT_FALSE(repeated.turn_on);
+  EXPECT_EQ(7000u, repeated.deadline);
+  wake.interaction();
+  auto user_owned = wake.present(true, false, 3000, 60000);
+  EXPECT_EQ(63000u, user_owned.deadline);
 }
 
 TEST(NotificationPolicy, AdvertsAndAcknowledgementsNeverRequestWake) {

@@ -202,9 +202,9 @@ def main() -> None:
     parser.add_argument("--trigram-source", type=Path, required=True,
                         help="NUS English SMS XML zip archive")
     parser.add_argument("--core", type=Path,
-                        default=Path("examples/companion_radio/solo/WordCompleter.h"))
+                        default=Path("examples/companion_radio/zen-overlay/app/zen/WordCompleter.h"))
     parser.add_argument("--extra", type=Path,
-                        default=Path("examples/companion_radio/solo/ZenWordDictionaryExtra.h"))
+                        default=Path("examples/companion_radio/zen-overlay/app/zen/ZenWordDictionaryExtra.h"))
     args = parser.parse_args()
     words = dictionary_words(args.core, args.extra)
     args.output.write_text(render(generate_bigrams(args.source, words),

@@ -229,12 +229,6 @@ class GxEPD2_BW : public GxEPD2_GFX_BASE_CLASS
 {
   public:
     GxEPD2_Type epd2;
-#ifdef ENABLE_SCREENSHOT
-    // Expose framebuffer for screenshot capture.
-    // This file is a patched copy kept in lib/GxEPD2-patch/src/ and tracked by git.
-    const uint8_t* getBuffer() { return _buffer; }
-    uint16_t getBufferSize() { return sizeof(_buffer); }
-#endif
     // Prime the controller's "previous image" RAM with the inverse of the frame
     // display(true) is about to send, so that update drives every pixel instead
     // of only the changed ones. Rationale in GxEPDDisplay::endFrame(); it lives

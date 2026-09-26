@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "../../examples/companion_radio/solo/AdminSession.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/AdminSession.h"
 
 TEST(AdminSession, RequiresAuthorizationAndFullIdentity) {
-  solo::AdminSession session;
+  zen::AdminSession session;
   uint8_t key[32] = {1};
   uint8_t other[32] = {1}; other[31] = 2;
   EXPECT_FALSE(session.ready(key, 0));
@@ -14,7 +14,7 @@ TEST(AdminSession, RequiresAuthorizationAndFullIdentity) {
 }
 
 TEST(AdminSession, MatchesTaggedReplyAndRejectsStaleAndAppReplies) {
-  solo::AdminSession session;
+  zen::AdminSession session;
   uint8_t key[32] = {1};
   uint8_t other[32] = {1}; other[31] = 2;
   session.authorize(key);
@@ -34,7 +34,7 @@ TEST(AdminSession, MatchesTaggedReplyAndRejectsStaleAndAppReplies) {
 }
 
 TEST(AdminSession, LocalCancellationRemainsUsableButAppOverlapQuarantines) {
-  solo::AdminSession session;
+  zen::AdminSession session;
   uint8_t key[32] = {1};
   session.authorize(key);
   session.begin(0, 1000);
@@ -48,7 +48,7 @@ TEST(AdminSession, LocalCancellationRemainsUsableButAppOverlapQuarantines) {
 }
 
 TEST(AdminSession, ExpiryAndDrainSurviveMillisRollover) {
-  solo::AdminSession session;
+  zen::AdminSession session;
   uint8_t key[32] = {1};
   char request[161];
   session.authorize(key);
@@ -62,7 +62,7 @@ TEST(AdminSession, ExpiryAndDrainSurviveMillisRollover) {
 }
 
 TEST(AdminSession, BoundsWireTextAndNeverReusesRequestIds) {
-  solo::AdminSession session;
+  zen::AdminSession session;
   char request[161];
   char text[159]; memset(text, 'a', 158); text[158] = 0;
   EXPECT_FALSE(session.formatRequest(request, sizeof(request), text));

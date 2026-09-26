@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <cstring>
 
-#include "../../examples/companion_radio/solo/ChannelSlotPolicy.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/ChannelSlotPolicy.h"
 
 struct TestChannel {
   struct { uint8_t secret[32]; } channel;
@@ -20,10 +20,10 @@ struct TestChannels {
 TEST(ChannelSlots, BlankNameDoesNotMakeAnOccupiedSlotFree) {
   TestChannels channels;
   channels.slots[0].channel.secret[0] = 1;
-  EXPECT_EQ(1, solo::ChannelSlotPolicy::firstFree<TestChannel>(channels, 3));
+  EXPECT_EQ(1, zen::ChannelSlotPolicy::firstFree<TestChannel>(channels, 3));
   channels.slots[1].channel.secret[0] = 2;
   channels.slots[2].channel.secret[0] = 3;
-  EXPECT_EQ(-1, solo::ChannelSlotPolicy::firstFree<TestChannel>(channels, 3));
+  EXPECT_EQ(-1, zen::ChannelSlotPolicy::firstFree<TestChannel>(channels, 3));
 }
 
 TEST(ChannelSlots, DuplicateUsesFullKeyNotNameAndExcludesEditedSlot) {
@@ -32,18 +32,18 @@ TEST(ChannelSlots, DuplicateUsesFullKeyNotNameAndExcludesEditedSlot) {
   std::strcpy(channels.slots[0].name, "Public");
   channels.slots[1].channel.secret[0] = 2;
   std::strcpy(channels.slots[1].name, "Public");
-  EXPECT_EQ(0, solo::ChannelSlotPolicy::duplicate<TestChannel>(
+  EXPECT_EQ(0, zen::ChannelSlotPolicy::duplicate<TestChannel>(
       channels, 3, 2, channels.slots[0].channel.secret));
-  EXPECT_EQ(-1, solo::ChannelSlotPolicy::duplicate<TestChannel>(
+  EXPECT_EQ(-1, zen::ChannelSlotPolicy::duplicate<TestChannel>(
       channels, 3, 0, channels.slots[0].channel.secret));
-  EXPECT_EQ(-1, solo::ChannelSlotPolicy::duplicate<TestChannel>(
+  EXPECT_EQ(-1, zen::ChannelSlotPolicy::duplicate<TestChannel>(
       channels, 3, 1, channels.slots[1].channel.secret));
   uint8_t longer_key[32] = {};
   longer_key[0] = 1;
   longer_key[16] = 1;
-  EXPECT_EQ(-1, solo::ChannelSlotPolicy::duplicate<TestChannel>(channels, 3, 2, longer_key));
+  EXPECT_EQ(-1, zen::ChannelSlotPolicy::duplicate<TestChannel>(channels, 3, 2, longer_key));
   uint8_t empty[32] = {};
-  EXPECT_EQ(-1, solo::ChannelSlotPolicy::duplicate<TestChannel>(channels, 3, 2, empty));
+  EXPECT_EQ(-1, zen::ChannelSlotPolicy::duplicate<TestChannel>(channels, 3, 2, empty));
 }
 
 TEST(ChannelSlots, FailedSaveRestoresPreviousRamValue) {
@@ -53,7 +53,7 @@ TEST(ChannelSlots, FailedSaveRestoresPreviousRamValue) {
   TestChannel next = previous;
   next.channel.secret[0] = 2;
   int writes = 0;
-  bool saved = solo::ChannelSlotPolicy::saveWithRollback(0, next, previous,
+  bool saved = zen::ChannelSlotPolicy::saveWithRollback(0, next, previous,
       [&channels, &writes](int idx, const TestChannel& value) {
         channels.slots[idx] = value;
         writes++;
@@ -62,7 +62,7 @@ TEST(ChannelSlots, FailedSaveRestoresPreviousRamValue) {
   EXPECT_FALSE(saved);
   EXPECT_EQ(2, writes);
   EXPECT_EQ(1, channels.slots[0].channel.secret[0]);
-  EXPECT_TRUE(solo::ChannelSlotPolicy::saveWithRollback(0, next, previous,
+  EXPECT_TRUE(zen::ChannelSlotPolicy::saveWithRollback(0, next, previous,
       [&channels](int idx, const TestChannel& value) {
         channels.slots[idx] = value;
         return true;

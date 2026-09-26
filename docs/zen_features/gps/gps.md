@@ -21,6 +21,10 @@ While sleeping, the state includes the age of the most recent fix, for example
 `Sleep <1m`, `Sleep 12m` or `Sleep 2h`. The fix and its age are held in RAM and
 do not create flash writes.
 
+Each receiver session is identified as Continuous, Scheduled, Adaptive, Time
+Sync, Manual or Emergency. This prevents a temporary clock-sync acquisition
+from being treated as a normal location poll.
+
 - Press **Enter** to turn GPS on or off for the current session. This does not
   alter the saved startup setting.
 - Hold **Enter** to open **Settings › System › GPS Polling**.
@@ -107,6 +111,8 @@ and a maximum of two hours with the available polling choices. A failed
 acquisition retains the previous Travel
 result. A successful acquisition without enough movement clears the displayed
 Travel result while retaining the anchor for later accumulated movement.
+Temporary Time Sync acquisitions are excluded from live and Travel course
+calculation.
 
 The display chooses the freshest useful source in this order:
 
@@ -129,6 +135,12 @@ and companion-triggered adverts.
 
 Low Power Mode turns GPS off. During its ten-minute Emergency Mode, GPS remains
 off initially but may be enabled manually from the emergency or GPS home page.
+
+**Tools › Diagnostics › Location** shows the effective GPS purpose, receiver
+and fix state, fix age, satellites, HDOP, Adaptive phase, next acquisition,
+course source, most recent lifecycle event, time-sync state and synchronization
+source. These values are RAM-only. Bluetooth companion clock updates use the
+**App** source.
 
 ## Troubleshooting
 

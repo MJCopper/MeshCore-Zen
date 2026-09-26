@@ -50,11 +50,10 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     _display->turnOn();
   }
 
-  // strip off the commit-hash suffix build.sh always appends as the LAST
-  // dash-segment, e.g: v1.2.3-abcdef -> v1.2.3, v1.21-rc1-abcdef -> v1.21-rc1
-  // (must use the last dash, not the first, since a tag itself may contain one)
+  // strip off dash and commit hash by changing dash to null terminator
+  // e.g: v1.2.3-abcdef -> v1.2.3
   char *version = strdup(FIRMWARE_VERSION);
-  char *dash = strrchr(version, '-');
+  char *dash = strchr(version, '-');
   if (dash) {
     *dash = 0;
   }
@@ -117,8 +116,7 @@ switch(t){
     buzzer.play("ack:d=32,o=8,b=120:c");
     break;
   case UIEventType::roomMessage:
-  case UIEventType::advertReceivedFlood:
-  case UIEventType::advertReceivedZeroHop:
+  case UIEventType::newContactMessage:
   case UIEventType::none:
   default:
     break;
@@ -141,10 +139,7 @@ void UITask::clearMsgPreview() {
   _need_refresh = true;
 }
 
-void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount,
-                    uint8_t contact_type, const uint8_t* pub_key) {
-  (void)contact_type;
-  (void)pub_key;
+void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) {
   _msgcount = msgcount;
 
 #ifdef HAS_DRV2605
@@ -154,7 +149,7 @@ void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, i
   if (path_len == 0xFF) {
     sprintf(_origin, "(F) %s", from_name);
   } else {
-    sprintf(_origin, "(%d) %s", (uint32_t)(path_len & 63), from_name);  // low 6 bits = hop count; high 2 bits are the path hash-size mode
+    sprintf(_origin, "(%d) %s", (uint32_t) path_len, from_name);
   }
   StrHelper::strncpy(_msg, text, sizeof(_msg));
 

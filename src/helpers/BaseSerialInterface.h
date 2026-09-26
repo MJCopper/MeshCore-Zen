@@ -14,11 +14,6 @@ public:
   virtual bool isEnabled() const = 0;
 
   virtual bool isConnected() const = 0;
-  // Transport-specific compatibility hooks used by legacy single/dual
-  // interfaces. MultiSerialInterface derives equivalent state from its
-  // registered transport types.
-  virtual bool isBLEConnected() const { return isConnected(); }
-  virtual bool isClientConnected() const { return isConnected(); }
   virtual void loop() {};
 
   virtual bool isWriteBusy() const = 0;

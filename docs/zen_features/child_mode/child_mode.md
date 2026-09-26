@@ -31,7 +31,7 @@ While locked:
 - Other messages remain available to the baseline companion protocol but are
   not copied into Zen's on-device history, do not alert or wake the display,
   and do not count as child-visible unread messages.
-- Bluetooth and USB companion access are disabled.
+- Bluetooth companion access is disabled.
 - Parent-controlled Settings, Tools, Radio, GPS and Advert pages are hidden.
 - Mesh routing and acknowledgements continue normally.
 - Automatic adverts continue on their configured schedule and use the existing

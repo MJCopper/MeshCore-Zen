@@ -135,9 +135,9 @@ build_firmware() {
 
   # Zen's source version is canonical; other targets receive it from the environment.
   if [[ "$1" == WioTrackerL1_Zen_* ]]; then
-    SOURCE_ZEN_VERSION=$(sed -n 's/^#define FIRMWARE_VERSION "\(v[0-9][0-9.]*\)"/\1/p' examples/companion_radio/MyMesh.h)
+    SOURCE_ZEN_VERSION=$(python3 tools/zen_version.py)
     if [ -z "$SOURCE_ZEN_VERSION" ]; then
-      echo "Unable to read the Zen version from examples/companion_radio/MyMesh.h"
+      echo "Unable to read the canonical Zen overlay version"
       exit 1
     fi
     if [ -n "$FIRMWARE_VERSION" ] && [ "$FIRMWARE_VERSION" != "$SOURCE_ZEN_VERSION" ]; then

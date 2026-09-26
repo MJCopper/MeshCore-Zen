@@ -107,28 +107,6 @@ void halt() {
   while (1) ;
 }
 
-#if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-static void haltStorage(const char* volume
-#ifdef DISPLAY_CLASS
-                        , DisplayDriver* disp
-#endif
-                        ) {
-  Serial.print("Storage unavailable: ");
-  Serial.println(volume);
-#ifdef DISPLAY_CLASS
-  if (disp) {
-    disp->startFrame();
-    disp->drawTextCentered(disp->width() / 2, 18, "Storage unavailable");
-    disp->drawTextCentered(disp->width() / 2, 34, volume);
-    disp->endFrame();
-  }
-#endif
-  // Never continue with defaults and save over an unreadable filesystem.
-  // Leave USB bootloader recovery available through the hardware reset button.
-  while (1) delay(1000);
-}
-#endif
-
 /* WIFI RECONNECT TRACKERS */
 #if defined(ESP32) && defined(WIFI_SSID)
   bool wifi_needs_reconnect = false;
@@ -161,26 +139,17 @@ void setup() {
   fast_rng.begin(radio_driver.getRngSeed());
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
-  if (!InternalFS.begin()) haltStorage("Internal"
-    #ifdef DISPLAY_CLASS
-      , disp
-    #endif
-  );
+  InternalFS.begin();
   #if defined(QSPIFLASH)
     if (!QSPIFlash.begin()) {
-      haltStorage("Contacts"
-        #ifdef DISPLAY_CLASS
-          , disp
-        #endif
-      );
+      // debug output might not be available at this point, might be too early. maybe should fall back to InternalFS here?
+      MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: failed to initialize");
+    } else {
+      MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: initialized successfully");
     }
   #else
   #if defined(EXTRAFS)
-      if (!ExtraFS.begin()) haltStorage("Contacts"
-        #ifdef DISPLAY_CLASS
-          , disp
-        #endif
-      );
+      ExtraFS.begin();
   #endif
   #endif
   store.begin();
@@ -214,8 +183,6 @@ void setup() {
 #else
   #error "need to define filesystem"
 #endif
-
-  store.restoreRTCTime();
 
 // add bluetooth interface
 #if defined(BLE_PIN_CODE)
@@ -271,10 +238,6 @@ void setup() {
 #endif
 
 #ifdef DISPLAY_CLASS
-  // Apply saved brightness as soon as preferences are available so the tail
-  // of the loading screen is not left at full brightness.
-  if (disp && the_mesh.getNodePrefs())
-    disp->setBrightness(the_mesh.getNodePrefs()->display_brightness);
   ui_task.begin(disp, &sensors, the_mesh.getNodePrefs());  // still want to pass this in as dependency, as prefs might be moved
 #endif
 

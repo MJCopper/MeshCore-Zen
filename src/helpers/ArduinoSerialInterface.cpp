@@ -1,9 +1,4 @@
 #include "ArduinoSerialInterface.h"
-#include "StreamUtils.h"
-
-// Worst-case time we'll let writeFrame() block waiting for the host to drain
-// the link, before giving up on the rest of the frame. See StreamUtils.h.
-#define SERIAL_WRITE_TIMEOUT_MS  300
 
 #define RECV_STATE_IDLE        0
 #define RECV_STATE_HDR_FOUND   1
@@ -37,11 +32,8 @@ size_t ArduinoSerialInterface::writeFrame(const uint8_t src[], size_t len) {
   hdr[1] = (len & 0xFF);  // LSB
   hdr[2] = (len >> 8);    // MSB
 
-  // Single deadline shared across header + payload, so a stalled host costs
-  // at most SERIAL_WRITE_TIMEOUT_MS total, not that much per write() call.
-  uint32_t deadline = millis() + SERIAL_WRITE_TIMEOUT_MS;
-  if (streamWriteUntil(*_serial, hdr, 3, deadline) < 3) return 0;
-  return streamWriteUntil(*_serial, src, len, deadline);
+  _serial->write(hdr, 3);
+  return _serial->write(src, len);
 }
 
 size_t ArduinoSerialInterface::checkRecvFrame(uint8_t dest[]) {

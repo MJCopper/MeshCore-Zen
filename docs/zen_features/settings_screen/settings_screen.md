@@ -49,7 +49,7 @@ reaches 0% and shuts down at 3.3 V.
 
 ## Notifications
 
-Mode controls notification sound: On sounds even when a phone or USB client is
+Mode controls notification sound: On sounds even when a phone is
 connected; Off is silent; Auto sounds when no client is connected. Changing
 Mode updates its row without a sound or popup, and saves on exit. Messages are
 still received and counted in every mode. Eligible message and new-contact
@@ -60,14 +60,16 @@ Screen Wake controls a sleeping display: Off never wakes for these alerts; On
 wakes when Mode permits a local alert; Always wakes even with Mode Off, a
 connected client in Auto, Quiet Time or DND. It defaults to On. A notification
 wake lasts five seconds unless a button is pressed. Routine adverts and
-acknowledgements do not wake the screen. Low Battery may wake with On or Always,
-independently of Mode.
+acknowledgements do not wake the screen. Low Battery follows the same wake rule:
+On follows Mode, while Always can wake despite Mode, Quiet Time or DND.
 Triple-press Back to toggle RAM-only DND with the same sound policy as Quiet
 Time. The crossed-speaker icon shows the default notification-audio state;
 Local overrides in Auto and manual previews may still sound. Neither DND nor
 the passage of Quiet Time writes preferences to flash.
-Low-battery and diagnostic warnings remain visible even when message
-notifications are Off. The Low Battery beep follows Mode, Quiet Time and DND.
+Low-battery and diagnostic warnings remain visible when the screen is on even
+when message notifications are Off. The Low Battery beep and vibration follow
+Mode, Quiet Time and DND. Diagnostic warnings are silent and use popup priority
+so routine status messages cannot immediately replace them.
 
 ## Sound
 

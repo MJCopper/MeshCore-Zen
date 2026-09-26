@@ -7,7 +7,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v1.32.110**, based on **MeshCore v1.17.1**.
+Current release: **Zen v2.2.1**, based on **MeshCore v1.17.1**.
 
 ## Supported hardware
 
@@ -16,7 +16,8 @@ Current release: **Zen v1.32.110**, based on **MeshCore v1.17.1**.
 | Wio Tracker L1 OLED | 128 × 64 SSD1306/SH1106 | `WioTrackerL1_Zen_OLED.<version>.uf2` |
 | Wio Tracker L1 E-ink | 250 × 122 GxEPD2 | `WioTrackerL1_Zen_E-INK.<version>.uf2` |
 
-Both builds support BLE and USB serial. Firmware is available from the
+Both builds use Bluetooth for companion-app connections. USB remains available
+for charging and bootloader DFU flashing. Firmware is available from the
 [releases page](https://github.com/MJCopper/MeshCore-Zen/releases).
 
 ## Features
@@ -44,42 +45,37 @@ See [FEATURES.md](./FEATURES.md) for the complete Zen feature summary.
 
 ## Flashing
 
-For a first installation, back up anything you want to keep. A normal UF2
-upgrade from MeshCore v1.17.1 keeps the existing filesystem; Zen imports its
-shared settings from `/prefs.json` on first boot. Do not erase the device if
-you want to keep its identity, contacts, channels and messages. If an erase is
-needed for another firmware or a damaged filesystem, use the
-[MeshCore Flasher](https://meshcore.io/flasher), then restore your backup.
-Erasing removes the stored identity, contacts, channels, messages and settings.
+> [!WARNING]
+> Always create a current settings backup with the MeshCore companion app
+> before installing or updating firmware. Keep the backup off the device so
+> its identity, radio settings, contacts and channels can be restored if the
+> update or filesystem operation fails.
 
-1. Download the correct `.uf2` for your OLED or E-ink Wio Tracker from the
+A normal UF2 upgrade keeps the existing filesystem, identity, contacts,
+channels and settings. An erase is only needed when moving from another
+firmware or recovering from a damaged filesystem; use the Wio Tracker erase
+procedure provided by the [MeshCore Flasher](https://meshcore.io/flasher) for
+that, then restore your backup.
+
+1. Connect with the MeshCore companion app and export a fresh settings backup.
+   Save it somewhere other than the Wio Tracker.
+2. Download the correct `.uf2` for your OLED or E-ink Wio Tracker from the
    [releases page](https://github.com/MJCopper/MeshCore-Zen/releases).
-2. Connect the Wio Tracker directly to your computer with a USB data cable. A
+3. Connect the Wio Tracker directly to your computer with a USB data cable. A
    charge-only cable will power the device but cannot transfer the firmware.
-3. Quickly press the Wio Tracker's **Reset** button twice. A new removable USB
+4. Quickly press the Wio Tracker's **Reset** button twice. A new removable USB
    bootloader drive should appear on the computer.
-4. Copy the downloaded `.uf2` file onto the bootloader drive. Do not copy the
+5. Copy the downloaded `.uf2` file onto the bootloader drive. Do not copy the
    ZIP file or place the UF2 inside a folder on the drive.
-5. Wait for the copy to finish. The bootloader drive normally disconnects and
+6. Wait for the copy to finish. The bootloader drive normally disconnects and
    the Wio Tracker restarts automatically; this indicates that flashing has
    completed.
-6. If the bootloader drive does not appear, check that the cable supports data,
+7. If the bootloader drive does not appear, check that the cable supports data,
    reconnect it, and repeat the quick double-press of **Reset**.
-7. Check the radio settings after first boot. If you erased the device, use
-   your companion app to restore the backup you created before flashing.
+8. Check the restored identity, radio settings, contacts and channels, then
+   reboot once and confirm that settings and Bluetooth pairing persist.
 
-If Zen was already installed before settings import was available, open
-**Settings → System → Import MeshCore** to restore shared settings from the
-original `/prefs.json`. The action asks for confirmation and restarts the
-device; Zen-only settings are retained. If the file is absent or invalid, use
-your companion-app backup instead.
-
-For later Zen updates, repeat the numbered steps. An erase is normally only
-needed when changing from another firmware or when troubleshooting damaged
-stored configuration.
-
-BLE takes priority over USB serial. Disconnect BLE before using a USB companion
-connection.
+Repeat the complete procedure, including a fresh backup, for every Zen update.
 
 ## Guides
 

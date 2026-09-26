@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - 'zen/main'
   pull_request:
   workflow_dispatch:
 

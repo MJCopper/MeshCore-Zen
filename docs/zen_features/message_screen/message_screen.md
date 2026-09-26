@@ -87,7 +87,7 @@ sent. Hold Enter on a room to log in again or log out.
 Contact and channel menus provide read state, notification and melody controls.
 Notification choices are Default, Off and Local. Off suppresses that source's
 local alert without discarding messages or unread counts. Local permits an
-alert even when Auto has a connected phone or USB client. Global Notifications
+alert even when Auto has a connected phone. Global Notifications
 Off suppresses the alert; Quiet Time and DND suppress its sound but retain any
 permitted visual alert and screen wake. Melody previews play on request even
 while notifications are silent.

@@ -21,9 +21,12 @@
 - [Repeater Mode](./zen_features/repeater_mode/repeater_mode.md)
 - [Node Administration](./zen_features/node_admin/node_admin.md)
 - [Diagnostics](./zen_features/diagnostics/diagnostics.md)
+- [Operation result design](./design/zen_operation_results.md)
+- [Time and location design](./design/zen_time_location.md)
 - [Battery and Low Power Mode](./zen_features/power/power.md)
 - [Build Zen](./building_zen.md)
 - [Zen UI framework](./design/zen_ui_framework.md)
+- [Zen feature and build boundaries](./design/zen_build_boundaries.md)
 
 ### Upstream MeshCore
 
