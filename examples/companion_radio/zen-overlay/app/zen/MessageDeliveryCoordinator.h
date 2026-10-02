@@ -35,14 +35,23 @@ struct MessageDeliveryCoordinator {
     entry.acknowledgements.record(attempt, ack, route);
   }
   static void begin(DirectMessageRecord& entry, bool outgoing, uint32_t ack,
-                    uint32_t deadline_ms, uint8_t route) {
+                    uint32_t deadline_ms, uint8_t route,
+                    uint8_t origin = DELIVERY_ORIGIN_ZEN) {
+    entry.delivery_origin = origin;
     entry.acknowledgements = MessageAckTracker();
     recordAttempt(entry, 0, outgoing ? ack : 0, deadline_ms,
                   outgoing ? route : ROUTE_NONE);
-    if (outgoing && ack)
+    if (outgoing && ack && origin == DELIVERY_ORIGIN_ZEN)
       entry.route_retry.begin(route == ROUTE_DIRECT || route == ROUTE_PATH);
     else
       entry.route_retry.reset();
+  }
+  static void recordCompanionAttempt(DirectMessageRecord& entry,
+                                     uint8_t attempt, uint32_t ack,
+                                     uint32_t deadline_ms, uint8_t route) {
+    entry.delivery_origin = DELIVERY_ORIGIN_COMPANION;
+    entry.route_retry.reset();
+    recordAttempt(entry, attempt, ack, deadline_ms, route);
   }
   static bool acknowledge(DirectMessageRecord& entry, uint32_t ack_crc,
                           uint8_t& route) {

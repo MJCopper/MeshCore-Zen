@@ -352,6 +352,10 @@ public:
                        uint32_t timestamp) override;
   void armChannelRelay(int history_pos, uint32_t seq) override;
   void onMsgAck(uint32_t ack_crc) override;
+  void onCompanionDMTransmission(const uint8_t* pub_key, const char* text,
+                                 uint32_t message_timestamp, uint8_t attempt,
+                                 uint32_t expected_ack, uint32_t deadline_ms,
+                                 uint8_t route) override;
   void onNodeLoginCancelled(const uint8_t* prefix) override;
   void onChannelRelayed(uint32_t seq) override;
   void onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) override;

@@ -4,6 +4,7 @@
 #include "zen/DeviceTimePolicy.h"
 #include "zen/BuiltinMelodies.h"
 #include "zen/ConfigMaintenance.h"
+#include "zen/MessageDeliveryCoordinator.h"
 #include "MsgExpand.h"
 #include "GeoUtils.h"
 #include "Features.h"
@@ -1987,8 +1988,15 @@ void MyMesh::handleCmdFrame(size_t len) {
         expected_ack = 0; // no Ack expected
       } else {
         result = sendMessage(*recipient, msg_timestamp, attempt, text, expected_ack, est_timeout);
-        if (result != MSG_SEND_FAILED && _ui)
-          _ui->addDMMsg(recipient->id.pub_key, true, text, msg_timestamp);
+        if (result != MSG_SEND_FAILED && _ui) {
+          uint8_t route = result == MSG_SEND_SENT_FLOOD
+              ? zen::ROUTE_FLOOD
+              : zen::MessageDeliveryCoordinator::routeForPath(recipient->out_path_len);
+          _ui->onCompanionDMTransmission(
+              recipient->id.pub_key, text, msg_timestamp, attempt, expected_ack,
+              zen::MessageDeliveryCoordinator::deadline(millis(), est_timeout),
+              route);
+        }
       }
       if (result == MSG_SEND_FAILED) {
         writeErrFrame(ERR_CODE_TABLE_FULL);

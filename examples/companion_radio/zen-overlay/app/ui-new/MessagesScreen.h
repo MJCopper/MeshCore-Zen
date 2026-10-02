@@ -751,6 +751,15 @@ public:
   bool markDmDelivered(uint32_t ack_crc, uint8_t* prefix = nullptr) {
     return _history.markDmDelivered(ack_crc, prefix);
   }
+  void observeCompanionDM(const uint8_t* pub_key, const char* text,
+                          uint32_t message_timestamp, uint8_t attempt,
+                          uint32_t expected_ack, uint32_t deadline_ms,
+                          uint8_t route) {
+    bool created = _history.observeCompanionDM(
+        pub_key, text, message_timestamp, attempt, expected_ack,
+        deadline_ms, route);
+    if (created && isViewingContact(pub_key)) _dm_transcript.messageAdded();
+  }
 
   bool isRoomLoggedIn(const uint8_t* pub_key) const {
     return _task->isRoomLoggedIn(pub_key);

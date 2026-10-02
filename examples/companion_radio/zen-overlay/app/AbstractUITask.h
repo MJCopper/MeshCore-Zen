@@ -71,6 +71,19 @@ public:
   // An end-to-end ACK (CRC) arrived for one of our sent messages — drives the
   // DM delivery-status marker. Default no-op for UIs that don't track it.
   virtual void onMsgAck(uint32_t ack_crc) { (void)ack_crc; }
+  // Observe an accepted companion-app DM attempt. MeshCore and the app retain
+  // ownership of transport and retries; Zen only updates one RAM transcript
+  // row and associates every attempt's ACK hash with it.
+  virtual void onCompanionDMTransmission(const uint8_t* pub_key,
+                                         const char* text,
+                                         uint32_t message_timestamp,
+                                         uint8_t attempt,
+                                         uint32_t expected_ack,
+                                         uint32_t deadline_ms,
+                                         uint8_t route) {
+    (void)pub_key; (void)text; (void)message_timestamp; (void)attempt;
+    (void)expected_ack; (void)deadline_ms; (void)route;
+  }
   virtual void onNodeLoginCancelled(const uint8_t* prefix) { (void)prefix; }
   // A repeater rebroadcast of one of our channel sends was heard (seq from
   // lastChannelRelaySeq()) — drives the channel "relayed into mesh" marker.

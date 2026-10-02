@@ -1950,6 +1950,17 @@ void UITask::onMsgAck(uint32_t ack_crc) {
     _next_refresh = 0;
 }
 
+void UITask::onCompanionDMTransmission(const uint8_t* pub_key, const char* text,
+                                       uint32_t message_timestamp, uint8_t attempt,
+                                       uint32_t expected_ack, uint32_t deadline_ms,
+                                       uint8_t route) {
+  ((MessagesScreen*)messages_screen)->observeCompanionDM(
+      pub_key, text, message_timestamp, attempt, expected_ack,
+      deadline_ms, route);
+  reconcileDMUnread();
+  _next_refresh = 0;
+}
+
 void UITask::onChannelRelayed(uint32_t seq) {
   ((MessagesScreen*)messages_screen)->markChannelRelayed(seq);
 }

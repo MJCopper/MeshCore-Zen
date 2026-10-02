@@ -62,6 +62,27 @@ TEST(MessageDeliveryCoordinator, TracksChannelRelayOutcome) {
   EXPECT_EQ(zen::DELIVERY_FAIL, entry.relay_status);
 }
 
+TEST(MessageDeliveryCoordinator, CompanionAttemptsShareOneDeliveryStateWithoutZenRetries) {
+  zen::DirectMessageRecord entry{};
+  entry.outgoing = 1;
+  zen::MessageDeliveryCoordinator::begin(
+      entry, true, 101, 5000, zen::ROUTE_PATH,
+      zen::DELIVERY_ORIGIN_COMPANION);
+  EXPECT_EQ(zen::DELIVERY_ORIGIN_COMPANION, entry.delivery_origin);
+  EXPECT_TRUE(entry.route_retry.exhausted());
+
+  zen::MessageDeliveryCoordinator::recordCompanionAttempt(
+      entry, 1, 202, 7000, zen::ROUTE_FLOOD);
+  EXPECT_EQ(1, entry.attempt);
+  EXPECT_EQ(zen::ROUTE_FLOOD, entry.delivery_route);
+  EXPECT_TRUE(entry.route_retry.exhausted());
+
+  uint8_t route = zen::ROUTE_NONE;
+  EXPECT_TRUE(zen::MessageDeliveryCoordinator::acknowledge(entry, 101, route));
+  EXPECT_EQ(zen::ROUTE_PATH, route);
+  EXPECT_EQ(zen::DELIVERY_OK, entry.ack_status);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

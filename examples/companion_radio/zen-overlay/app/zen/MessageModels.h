@@ -7,6 +7,7 @@
 namespace zen {
 
 enum MessageDeliveryStatus : uint8_t { DELIVERY_NONE = 0, DELIVERY_PENDING, DELIVERY_OK, DELIVERY_FAIL };
+enum MessageDeliveryOrigin : uint8_t { DELIVERY_ORIGIN_ZEN = 0, DELIVERY_ORIGIN_COMPANION };
 enum MessageDeliveryRoute : uint8_t {
   ROUTE_NONE = 0, ROUTE_DIRECT, ROUTE_PATH, ROUTE_FLOOD, ROUTE_RELAY
 };
@@ -26,6 +27,7 @@ struct ChannelMessageRecord {
 struct DirectMessageRecord {
   uint8_t prefix[4];
   uint8_t outgoing;
+  uint8_t delivery_origin;
   char text[MESSAGE_TEXT_BUFFER];
   uint32_t timestamp;
   uint32_t activity_seq;

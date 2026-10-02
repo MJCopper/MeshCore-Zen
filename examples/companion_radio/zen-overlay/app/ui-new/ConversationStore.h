@@ -176,7 +176,8 @@ public:
   // for incoming); initial_direct selects the fixed direct-then-flood policy.
   int storeDMMsg(const uint8_t* pub_key, bool outgoing, const char* text,
                  uint32_t ack_tag = 0, uint32_t ack_deadline_ms = 0,
-                 uint32_t msg_ts = 0, uint8_t initial_route = DELIVERY_ROUTE_NONE) {
+                 uint32_t msg_ts = 0, uint8_t initial_route = DELIVERY_ROUTE_NONE,
+                 uint8_t origin = zen::DELIVERY_ORIGIN_ZEN) {
     int pos;
     if (_dm_hist_count < DM_HIST_MAX) {
       pos = (_dm_hist_head + _dm_hist_count) % DM_HIST_MAX;
@@ -212,9 +213,45 @@ public:
       }
     }
     zen::MessageDeliveryCoordinator::begin(
-        _dm_hist[pos], outgoing, ack_tag, ack_deadline_ms, initial_route);
+        _dm_hist[pos], outgoing, ack_tag, ack_deadline_ms, initial_route, origin);
     scheduleDmMaintenance();
     return pos;
+  }
+
+  // The companion app owns its retry schedule. Attempt zero starts a logical
+  // message; later attempts update that same row and add their ACK hashes.
+  // Recipient + sender timestamp + text is the stable identity available in
+  // the baseline companion protocol.
+  bool observeCompanionDM(const uint8_t* pub_key, const char* text,
+                          uint32_t msg_ts, uint8_t attempt, uint32_t ack,
+                          uint32_t deadline_ms, uint8_t route) {
+    int pos = -1;
+    if (attempt != 0) {
+      for (int i = _dm_hist_count - 1; i >= 0; i--) {
+        int candidate = (_dm_hist_head + i) % DM_HIST_MAX;
+        const DmHistEntry& e = _dm_hist[candidate];
+        if (e.outgoing && e.delivery_origin == zen::DELIVERY_ORIGIN_COMPANION &&
+            e.msg_ts == msg_ts && memcmp(e.prefix, pub_key, 4) == 0 &&
+            strcmp(e.text, text) == 0) {
+          pos = candidate;
+          break;
+        }
+      }
+    }
+
+    bool created = pos < 0;
+    if (created) {
+      pos = storeDMMsg(pub_key, true, text, ack, deadline_ms, msg_ts, route,
+                       zen::DELIVERY_ORIGIN_COMPANION);
+      if (attempt != 0)
+        zen::MessageDeliveryCoordinator::recordCompanionAttempt(
+            _dm_hist[pos], attempt, ack, deadline_ms, route);
+    } else {
+      zen::MessageDeliveryCoordinator::recordCompanionAttempt(
+          _dm_hist[pos], attempt, ack, deadline_ms, route);
+      scheduleDmMaintenance();
+    }
+    return created;
   }
 
   bool addDMMsg(const uint8_t* pub_key, bool outgoing, const char* text,
