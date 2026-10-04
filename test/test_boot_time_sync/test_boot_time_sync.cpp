@@ -37,8 +37,16 @@ TEST(BootTimeSync, DoesNotStopGpsThatWasConfiguredOrManuallyEnabled) {
 
   zen::BootTimeSync manual;
   manual.begin(1, true, false, 0);
-  EXPECT_EQ(manual.tick(1, true, true, 10), zen::BootTimeSync::Action::NONE);
+  EXPECT_EQ(manual.tick(1, true, true, 10), zen::BootTimeSync::Action::STOP_TEMP_GPS);
   EXPECT_EQ(manual.tick(2, true, true, 20), zen::BootTimeSync::Action::NONE);
+}
+
+TEST(BootTimeSync, SyncDuringManualEnableStillReleasesTemporaryClaim) {
+  zen::BootTimeSync sync;
+  sync.begin(7, true, false, 100);
+  EXPECT_EQ(sync.tick(8, true, true, 200),
+            zen::BootTimeSync::Action::STOP_TEMP_GPS);
+  EXPECT_FALSE(sync.pending());
 }
 
 TEST(BootTimeSync, TimesOutTemporaryGpsButKeepsWaitingForAnotherSource) {

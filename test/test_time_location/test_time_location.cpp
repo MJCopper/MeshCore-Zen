@@ -43,6 +43,16 @@ static zen::GpsService::Status fix(
   return status;
 }
 
+TEST(TimeLocationCoordinator, CachedReadsDoNotRefreshFixAge) {
+  zen::TimeLocationCoordinator coordinator;
+  coordinator.begin(1, false, true, 0);
+  auto gps = fix(zen::GpsService::GPS_ADAPTIVE, 1, true, -33860000, 151200000);
+  gps.fix_received_ms = 1000;
+  coordinator.tick(1, true, true, true, 0, gps, true, 2000);
+  coordinator.tick(1, true, true, true, 0, gps, true, 4000);
+  EXPECT_EQ(3000U, coordinator.status().fix_age_ms);
+}
+
 TEST(TimeLocationCoordinator, ScheduledSessionsProduceTravelCourse) {
   zen::TimeLocationCoordinator coordinator;
   coordinator.begin(1, false, true, 0);

@@ -720,23 +720,18 @@ bool EnvironmentSensorManager::setSettingValue(const char* name, const char* val
     return applyConfiguration(config);
   }
   if (strcmp(name, "gps_interval") == 0) {
-    uint32_t interval_seconds = atoi(value);
-    gps_update_interval_sec = interval_seconds;
-    if (interval_seconds != 0) gps_adaptive = false;
-    gps_consecutive_failures = 0;
-    if (gps_configured) {
-      gps_adaptive_policy.setEnabled(millis(), gps_adaptive, gps_active);
-      if (gps_adaptive || gps_update_interval_sec == 0) start_gps();
-      else start_periodic_gps();
-    }
-    return true;
+    Configuration config;
+    config.enabled = gps_configured;
+    config.interval_seconds = atoi(value);
+    config.adaptive = gps_adaptive && config.interval_seconds == 0;
+    return applyConfiguration(config);
   }
   if (strcmp(name, "gps_adaptive") == 0) {
-    gps_adaptive = strcmp(value, "0") != 0 && gps_update_interval_sec == 0;
-    gps_adaptive_policy.setEnabled(millis(), gps_configured && gps_adaptive,
-                                  gps_active);
-    if (gps_configured && gps_update_interval_sec == 0) start_gps();
-    return true;
+    Configuration config;
+    config.enabled = gps_configured;
+    config.interval_seconds = gps_update_interval_sec;
+    config.adaptive = strcmp(value, "0") != 0;
+    return applyConfiguration(config);
   }
   // Temporary hardware claim used by boot-time clock synchronisation. Unlike
   // the public "gps" setting, this deliberately leaves the saved user intent
@@ -951,12 +946,20 @@ bool EnvironmentSensorManager::applyConfiguration(
     const Configuration& config) {
 #if ENV_INCLUDE_GPS
   if (!gps_detected) return false;
+  bool changed = gps_configured != config.enabled ||
+      gps_update_interval_sec != config.interval_seconds ||
+      gps_adaptive != (config.adaptive && config.interval_seconds == 0) ||
+      gps_configured_purpose != config.purpose;
+  if (!changed) return true;
   gps_configured = config.enabled;
+  gps_configured_purpose = config.purpose;
   gps_update_interval_sec = config.interval_seconds;
   gps_adaptive = config.adaptive && config.interval_seconds == 0;
   gps_consecutive_failures = 0;
   gps_adaptive_policy.setEnabled(millis(), gps_configured && gps_adaptive,
                                  gps_active);
+  if (changed && gps_configured && gps_adaptive)
+    gps_adaptive_policy.restart(millis());
   // A temporary Time Sync or Emergency claim has higher runtime priority than
   // a configuration edit. Store the new policy now and restore its purpose
   // when the temporary claim is released.
@@ -964,24 +967,26 @@ bool EnvironmentSensorManager::applyConfiguration(
     start_gps();
     return true;
   }
-  if (!gps_configured) {
-    if (!gps_force_active) stop_gps();
-    gps_purpose = gps_force_active ? gps_purpose : GPS_NONE;
-  } else if (gps_adaptive) {
-    gps_purpose = config.purpose != GPS_NONE ? config.purpose : GPS_ADAPTIVE;
-    start_gps();
-  } else if (gps_update_interval_sec == 0) {
-    gps_purpose = config.purpose != GPS_NONE ? config.purpose : GPS_CONTINUOUS;
-    start_gps();
-  } else {
-    if (config.purpose != GPS_NONE) {
-      gps_purpose = config.purpose;
-      start_gps();
-    } else start_periodic_gps();
-  }
+  if (!gps_configured || changed || !gps_active) resume_gps_policy();
   return true;
 #else
   (void)config; return false;
+#endif
+}
+
+void EnvironmentSensorManager::resume_gps_policy() {
+#if ENV_INCLUDE_GPS
+  if (!gps_configured) {
+    stop_gps();
+    gps_purpose = GPS_NONE;
+  } else if (gps_adaptive) {
+    gps_purpose = GPS_ADAPTIVE;
+    gps_adaptive_policy.restart(millis());
+    start_gps();
+  } else if (gps_update_interval_sec == 0) {
+    gps_purpose = GPS_CONTINUOUS;
+    start_gps();
+  } else start_periodic_gps();
 #endif
 }
 
@@ -989,16 +994,13 @@ bool EnvironmentSensorManager::setPowerClaim(bool active,
                                               Purpose purpose) {
 #if ENV_INCLUDE_GPS
   if (!gps_detected) return false;
+  if (gps_force_active == active) return true;
   gps_force_active = active;
   if (active) {
     gps_purpose = purpose;
     start_gps();
-  } else if (!gps_configured || gps_update_interval_sec > 0) {
-    stop_gps();
-    gps_purpose = GPS_NONE;
   } else {
-    gps_purpose = gps_adaptive ? GPS_ADAPTIVE : GPS_CONTINUOUS;
-    start_gps();
+    resume_gps_policy();
   }
   return true;
 #else
@@ -1019,7 +1021,16 @@ zen::GpsService::Status EnvironmentSensorManager::runtimeStatus() const {
   out.consecutive_failures = gps_consecutive_failures;
   out.session_id = gps_session_id;
   out.sample_id = gps_sample_id;
+  out.fix_received_ms = gps_fix_received_ms;
+  out.position_available = gps_sample_id != 0;
+  out.latitude = (int32_t)(node_lat * 1000000.);
+  out.longitude = (int32_t)(node_lon * 1000000.);
+  out.altitude = (long)(node_altitude * 1000.);
   out.next_acquire_ms = gps_next_acquire_ms;
+  if (_location && gps_active) {
+    out.satellites = _location->satellitesCount();
+    out.hdop = _gps_metrics ? _gps_metrics->hdop() : -1;
+  }
   if (_location && out.fix_valid) {
     out.latitude = (int32_t)_location->getLatitude();
     out.longitude = (int32_t)_location->getLongitude();
@@ -1083,7 +1094,10 @@ void EnvironmentSensorManager::loop() {
     #ifdef RAK_WISBLOCK_GPS
     valid = (i2cGPSFlag || serialGPSFlag) && valid;
     #endif
-    if (valid && (int32_t)(now - gps_next_cache_ms) >= 0) {
+    uint32_t provider_sample = _gps_metrics ? _gps_metrics->fixSequence() : 0;
+    if (valid && provider_sample != gps_provider_sample) {
+      gps_provider_sample = provider_sample;
+      gps_fix_received_ms = _gps_metrics->fixReceivedMs();
       node_lat = ((double)_location->getLatitude())/1000000.;
       node_lon = ((double)_location->getLongitude())/1000000.;
       MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);

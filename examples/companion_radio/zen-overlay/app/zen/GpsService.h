@@ -41,6 +41,8 @@ public:
     uint8_t consecutive_failures = 0;
     uint32_t session_id = 0;
     uint32_t sample_id = 0;
+    uint32_t fix_received_ms = 0;
+    bool position_available = false;
     uint32_t next_acquire_ms = 0;
     int32_t latitude = 0;
     int32_t longitude = 0;

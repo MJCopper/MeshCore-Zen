@@ -46,7 +46,7 @@ public:
 
     if (generation != _generation) {
       _pending = false;
-      bool stop = _owns_gps && !gps_configured_on;
+      bool stop = _owns_gps;
       _owns_gps = false;
       return stop ? Action::STOP_TEMP_GPS : Action::NONE;
     }
@@ -56,14 +56,17 @@ public:
     // Clock screen on SYNC while allowing the receiver to remain powered down.
     if (_retry_window_open && (int32_t)(now - _stop_at) >= 0) {
       _retry_window_open = false;
-      bool stop = _owns_gps && !gps_configured_on;
+      bool stop = _owns_gps;
       _owns_gps = false;
       return stop ? Action::STOP_TEMP_GPS : Action::NONE;
     }
 
     // A manual enable takes ownership from the boot helper. A manual disable
     // has already stopped the receiver, so there is nothing left to release.
-    if (_owns_gps && (gps_configured_on || !gps_enabled)) _owns_gps = false;
+    if (_owns_gps && (gps_configured_on || !gps_enabled)) {
+      _owns_gps = false;
+      return Action::STOP_TEMP_GPS;
+    }
 
     if (_owns_gps && (int32_t)(now - _deadline) >= 0) {
       _owns_gps = false;

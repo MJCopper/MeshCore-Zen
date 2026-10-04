@@ -46,6 +46,14 @@ standby periods. After 15 minutes in backoff, standby increases to five minutes.
 A good fix returns immediately to continuous tracking. The backoff state is held
 only in RAM and does not write preferences.
 
+Enabling GPS or changing its polling mode starts a new acquisition allowance.
+Temporary time-sync and emergency claims release back to the selected polling
+policy; Adaptive receives a fresh five-minute search and timed modes a new
+90-second acquisition. Reapplying unchanged settings preserves the active policy.
+Fixes expire after five seconds without a fresh valid GPS sentence. The page
+retains the last received position while searching or sleeping, and shows dashes
+until the first fix. Satellite count and HDOP remain available during Search.
+
 A timed acquisition ends when one of these conditions is met:
 
 - a stationary, acceptable-quality fix has remained stable for four seconds;

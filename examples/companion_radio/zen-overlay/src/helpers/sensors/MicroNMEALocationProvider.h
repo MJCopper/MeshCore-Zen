@@ -5,6 +5,7 @@
 #include <RTClib.h>
 #include <helpers/RefCountedDigitalPin.h>
 #include "../../../app/zen/GpsMetrics.h"
+#include "../../../app/zen/GpsFreshness.h"
 
 #ifndef GPS_EN
     #ifdef PIN_GPS_EN
@@ -50,6 +51,7 @@ class MicroNMEALocationProvider : public LocationProvider, public zen::GpsMetric
     unsigned long next_check = 0;
     long time_valid = 0;
     unsigned long _last_time_sync = 0;
+    zen::GpsFreshness _fix;
     static const unsigned long TIME_SYNC_INTERVAL = 1800000; // Re-sync every 30 minutes
 
 public :
@@ -90,6 +92,8 @@ public :
         // Do not let a cached valid sentence satisfy a new periodic acquisition.
         nmea.clear();
         time_valid = 0;
+        _fix.reset();
+        while (_gps_serial->available()) _gps_serial->read();
         if (_pin_reset != -1) {
             digitalWrite(_pin_reset, GPS_RESET_ACTIVE);
             delay(10);
@@ -117,7 +121,7 @@ public :
         }
     }
 
-    void syncTime() override { nmea.clear(); LocationProvider::syncTime(); }
+    void syncTime() override { time_valid = 0; LocationProvider::syncTime(); }
     long getLatitude() override { return nmea.getLatitude(); }
     long getLongitude() override { return nmea.getLongitude(); }
     long getAltitude() override { 
@@ -128,8 +132,12 @@ public :
     long satellitesCount() override { return nmea.getNumSatellites(); }
     long course() override { return nmea.getCourse(); }
     long speed() override { return nmea.getSpeed(); }
-    long hdop() override { return nmea.getHDOP(); }
-    bool isValid() override { return nmea.isValid(); }
+    long hdop() override { return nmea.getHDOP() == 255 ? -1 : nmea.getHDOP(); }
+    uint32_t fixSequence() const override { return _fix.sequence(); }
+    uint32_t fixReceivedMs() const override { return _fix.receivedMs(); }
+    bool isValid() override {
+        return _fix.valid(millis()) && nmea.isValid();
+    }
 
     long getTimestamp() override { 
         DateTime dt(nmea.getYear(), nmea.getMonth(),nmea.getDay(),nmea.getHour(),nmea.getMinute(),nmea.getSecond());
@@ -147,7 +155,11 @@ public :
             #ifdef GPS_NMEA_DEBUG
             Serial.print(c);
             #endif
-            nmea.process(c);
+            if (nmea.process(c) && MicroNMEA::testChecksum(_nmeaBuffer) &&
+                (strcmp(nmea.getMessageID(), "GGA") == 0 ||
+                 strcmp(nmea.getMessageID(), "RMC") == 0)) {
+                _fix.record(millis(), nmea.isValid());
+            }
         }
 
         if (!isValid()) time_valid = 0;

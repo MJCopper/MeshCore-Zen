@@ -88,6 +88,10 @@ public:
 
   Phase phase() const { return _phase; }
 
+  void restart(uint32_t now) {
+    if (_phase != DISABLED) beginInitial(now);
+  }
+
 private:
   Phase _phase = DISABLED;
   uint32_t _deadline = 0;

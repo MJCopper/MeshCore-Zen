@@ -462,6 +462,9 @@ public:
   void applyGpsPrefs();
   void applyBluetoothPrefs();
   bool hasGPS();   // true if this board exposes a toggleable GPS (distinct from GPS being off)
+  zen::GpsService::Status gpsStatus() const {
+    return _gps ? _gps->runtimeStatus() : zen::GpsService::Status();
+  }
   zen::GpsCourse::Source getGpsCourse(long& course_millideg) const {
 #if ENV_INCLUDE_GPS == 1
     return _time_location.course(course_millideg);

@@ -38,6 +38,10 @@ protected:
   Purpose gps_purpose = GPS_NONE;
   uint32_t gps_session_id = 0;
   uint32_t gps_sample_id = 0;
+  uint32_t gps_provider_sample = 0;
+  uint32_t gps_fix_received_ms = 0;
+  Purpose gps_configured_purpose = GPS_NONE;
+  void resume_gps_policy();
   bool gps_quality_good = false;
   static const uint8_t GPS_EVENT_CAPACITY = 6;
   Event gps_events[GPS_EVENT_CAPACITY]{};

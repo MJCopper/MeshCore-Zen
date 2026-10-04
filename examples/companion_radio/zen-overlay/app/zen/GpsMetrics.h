@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits.h>
+#include <stdint.h>
 
 namespace zen {
 
@@ -12,6 +13,8 @@ public:
   virtual long course() = 0;
   virtual long speed() = 0;
   virtual long hdop() = 0;
+  virtual uint32_t fixSequence() const { return 0; }
+  virtual uint32_t fixReceivedMs() const { return 0; }
 };
 
 }  // namespace zen

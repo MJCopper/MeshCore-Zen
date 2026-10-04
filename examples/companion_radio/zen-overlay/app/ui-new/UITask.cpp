@@ -905,17 +905,20 @@ public:
         // complete coordinate pair to the common right edge. Reduce precision
         // only until the two regions have one character of separation.
         int pos_width = display.width() - 1 - display.getTextWidth(pos_label) - display.getCharWidth();
-        double lat = nmea->getLatitude() / 1000000.0;
-        double lon = nmea->getLongitude() / 1000000.0;
+        zen::GpsService::Status gps = _task->gpsStatus();
+        double lat = gps.latitude / 1000000.0;
+        double lon = gps.longitude / 1000000.0;
         int precision = 4;
         do {
           snprintf(buf, sizeof(buf), "%.*f %.*f", precision, lat, precision, lon);
         } while (precision > 1 && display.getTextWidth(buf) > pos_width && --precision);
+        if (!gps.position_available) strcpy(buf, "---- ----");
         display.drawTextLeftAlign(0, y, pos_label);
         display.drawTextRightAlign(display.width()-1, y, buf);
         y += step;
         display.drawTextLeftAlign(0, y, "Alt");
-        snprintf(buf, sizeof(buf), "%.1f", nmea->getAltitude() / 1000.);
+        if (gps.position_available) snprintf(buf, sizeof(buf), "%.1f", gps.altitude / 1000.);
+        else strcpy(buf, "----");
         display.drawTextLeftAlign(display.getCharWidth() * 4, y, buf);
         snprintf(buf, sizeof(buf), "Sat %ld", nmea->satellitesCount());
         display.drawTextRightAlign(display.width()-1, y, buf);
@@ -1538,7 +1541,7 @@ void UITask::begin(ZenDisplayDriver* display, SensorManager* sensors,
 
 void UITask::beginBootTimeSync() {
   LocationProvider* loc = _sensors ? _sensors->getLocationProvider() : nullptr;
-  bool configured_on = _node_prefs && _node_prefs->gps_enabled;
+  bool configured_on = _power.effective().gps_policy_on;
   zen::TimeLocationCoordinator::Actions actions = _time_location.begin(
       rtc_clock.getSetGeneration(), loc != nullptr, configured_on, millis());
   if (!loc) return;
@@ -1555,7 +1558,7 @@ void UITask::onTimeSynchronized(zen::TimeSyncSource source) {
 
 void UITask::tickBootTimeSync() {
   LocationProvider* loc = _sensors ? _sensors->getLocationProvider() : nullptr;
-  bool configured_on = _node_prefs && _node_prefs->gps_enabled;
+  bool configured_on = _power.effective().gps_policy_on;
   bool low_power = isLowPowerMode();
   // A suspended temporary claim remains owned while Low Power is active. Feed
   // that logical state to BootTimeSync so it can still observe an external RTC

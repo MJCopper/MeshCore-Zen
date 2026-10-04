@@ -61,7 +61,7 @@ private:
                    periodic, configured_interval, gps.fix_valid,
                    gps.latitude, gps.longitude, gps.course, gps.speed, gps.hdop);
     if (gps.fix_valid) {
-      _last_fix_ms = now;
+      _last_fix_ms = gps.fix_received_ms;
       _status.fix_age_available = true;
     }
   }
