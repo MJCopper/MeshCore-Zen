@@ -10,6 +10,7 @@ namespace zen {
 class PrefsDefaults {
 public:
   static void apply(ZenPrefs& prefs) {
+    prefs.pet_enabled = 0;
     prefs.child_visible_pages = ZenPrefs::HP_FAVOURITES;
     prefs.child_rooms_enabled = 0;
     prefs.quiet_time_start_min = 21 * 60;
@@ -22,6 +23,7 @@ public:
   }
 
   static void normalize(ZenPrefs& prefs) {
+    if (prefs.pet_enabled > 1) prefs.pet_enabled = 0;
     if (prefs.child_mode_enabled > 1) prefs.child_mode_enabled = 0;
     if (prefs.child_channels_enabled > 1) prefs.child_channels_enabled = 0;
     if (prefs.child_rooms_enabled > 1) prefs.child_rooms_enabled = 0;

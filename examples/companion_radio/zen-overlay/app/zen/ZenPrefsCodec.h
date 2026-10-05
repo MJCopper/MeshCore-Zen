@@ -27,6 +27,7 @@ class ZenPrefsCodec {
     REC_RADIO_PRESETS = 7,
     REC_ADVERT = 8,
     REC_ZEN_TAIL = 9,
+    REC_PET = 10,
   };
 
   class Writer {
@@ -136,6 +137,8 @@ public:
     w.u8(p.child_mode_enabled); w.u32(p.child_mode_pin_hash); w.u16(p.child_visible_pages);
     w.u8(p.child_channels_enabled); w.u8(p.child_rooms_enabled);
 
+    beginRecord(w, REC_PET, 1);
+    w.u8(p.pet_enabled);
     beginRecord(w, REC_QUIET, 5);
     w.u8(p.quiet_time_enabled); w.u16(p.quiet_time_start_min); w.u16(p.quiet_time_end_min);
 
@@ -224,13 +227,16 @@ public:
     const uint8_t* payload = nullptr;
     uint16_t payload_len = 0;
     if (!inspectEnvelope(data, size, generation, &payload, &payload_len)) return false;
+    p.pet_enabled = 0;
     Reader records(payload, payload_len);
     while (records.remaining()) {
       uint8_t id = records.u8();
       uint16_t len = records.u16();
       const uint8_t* body = records.position();
       Reader r(body, len);
-      if (id == REC_CHILD && len == 9) {
+      if (id == REC_PET && len == 1) {
+        p.pet_enabled = r.u8() == 1;
+      } else if (id == REC_CHILD && len == 9) {
         p.child_mode_enabled = r.u8(); p.child_mode_pin_hash = r.u32();
         p.child_visible_pages = r.u16(); p.child_channels_enabled = r.u8(); p.child_rooms_enabled = r.u8();
       } else if (id == REC_QUIET && len == 5) {

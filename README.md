@@ -7,7 +7,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v2.2.4**, based on **MeshCore v1.17.1**.
+Current release: **Zen v2.2.26**, based on **MeshCore v1.17.1**.
 
 ## Supported hardware
 
@@ -35,6 +35,9 @@ for charging and bootloader DFU flashing. Firmware is available from the
 - Node discovery, companion repeater mode, ringtone editor and RAM event log.
 - Remote repeater, room and sensor administration from the Node List action menu.
 - Sensors carousel with on-demand remote telemetry.
+- Optional [RAM-only virtual pet](docs/zen_features/pet.md), with twelve levels and 189 forms,
+  feeding, five training minigames, daily mesh rewards, pet alerts and Quiet Time sleep. Off by default;
+  reboot starts a new pet.
 
 See [FEATURES.md](./FEATURES.md) for the complete Zen feature summary.
 

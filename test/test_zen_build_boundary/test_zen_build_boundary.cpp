@@ -1,6 +1,21 @@
 #include <gtest/gtest.h>
 #include "../../examples/companion_radio/zen-overlay/app/zen/ZenPrefsCodec.h"
 
+TEST(ZenBuildBoundary, PetEnableIsTheOnlyPersistedPetState) {
+  ZenPrefs source;
+  source.pet_enabled = 1;
+  uint8_t encoded[zen::ZenPrefsCodec::MAX_ENCODED_SIZE] = {};
+  size_t size = zen::ZenPrefsCodec::encode(source, 1, encoded, sizeof(encoded));
+  ASSERT_GT(size,0u);
+  ZenPrefs destination;
+  ASSERT_TRUE(zen::ZenPrefsCodec::decode(destination,encoded,size));
+  EXPECT_EQ(1,destination.pet_enabled);
+  source.pet_enabled=0;
+  size=zen::ZenPrefsCodec::encode(source,2,encoded,sizeof(encoded));
+  ASSERT_TRUE(zen::ZenPrefsCodec::decode(destination,encoded,size));
+  EXPECT_EQ(0,destination.pet_enabled);
+}
+
 TEST(ZenBuildBoundary, ZenCodecNeverChangesBaselinePreferences) {
   ZenPrefs source;
   source.freq = 915.0f;

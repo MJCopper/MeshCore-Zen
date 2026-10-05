@@ -1,0 +1,203 @@
+#pragma once
+
+#include "PetEngine.h"
+#include "PetAssets.h"
+#include "PetRenderer.h"
+#include "PetRewardsView.h"
+#include "PetNotifications.h"
+#include "PetTrainingView.h"
+#include "PetSleep.h"
+#include "PetBatteryPolicy.h"
+#include <helpers/ui/ZenDisplayDriver.h>
+#include <stdio.h>
+
+namespace zen { namespace pet {
+
+// Optional presentation/controller adapter. Ownership stays on the home screen;
+// the engine and assets never call Zen, MeshCore, notification or save APIs.
+class Page {
+  Engine _engine;
+  PetMeshRewards _rewards;
+  PetNotifications _notifications;
+  PetTrainingGames _training;
+  PetSleep _sleep;
+  PetBatteryPolicy _battery;
+  uint8_t _view = 0, _selection = 0, _pose = 0;
+  uint32_t _reaction_until = 0;
+  const char* _feedback = nullptr;
+  char _rest_feedback[24] = {};
+  bool _enabled = false;
+  bool _loss_reported = false;
+  bool completeTraining(uint32_t now) {
+    if (_training.phase() == PetTrainingGames::FAILED) {
+      if (!_loss_reported) { _notifications.training(false); _loss_reported = true; }
+    } else _loss_reported = false;
+    if (_training.phase() != PetTrainingGames::WON) return false;
+    // Revalidate at completion: gameplay never owns costs or rewards.
+    auto r = _engine.train();
+    if (r == Engine::OK) _notifications.training(true);
+    _training.finish();
+    if (r != Engine::OK) _feedback = result(r);
+    _view = r == Engine::OK ? 0 : 1; _selection = 1;
+    if (r == Engine::OK) { _pose = 3; _reaction_until = now + 1500; }
+    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+                           _engine.sleeping(),_engine.paused());
+    return true;
+  }
+  const char* result(Engine::Result r) {
+    if (r == Engine::COOLDOWN) {
+      uint32_t minutes = (_engine.trainingRestMillis()+59999UL)/60000UL;
+      snprintf(_rest_feedback,sizeof(_rest_feedback),"Rest %lu minute%s",
+               (unsigned long)minutes,minutes == 1 ? "" : "s");
+      return _rest_feedback;
+    }
+    static const char* TEXT[] = {"Done", "Sleeping", "Low Power", "Already full",
+      "No food", "Needs food/rest", "Resting", "Not ready"};
+    return TEXT[r];
+  }
+public:
+  void update(uint32_t now, bool enabled, bool sleeping, bool paused,
+              bool synced = false, int64_t local = 0, bool visible = true,
+              int battery_percent = -1) {
+    sleeping = _sleep.sleeping(now,enabled,sleeping);
+    if (_view == 1 && _selection == 5 && !sleeping) _selection = 0;
+    _engine.update(now, enabled, sleeping, paused, _battery.update(battery_percent));
+    _enabled = enabled;
+    if (!enabled) _feedback = nullptr;
+    if (_training.active()) {
+      if (!enabled || sleeping || paused || (!visible && !trainingFailed())) cancelTraining();
+      else { _training.tick(now); completeTraining(now); }
+    }
+    _rewards.update(now,enabled,sleeping,paused,synced,local);
+    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),enabled,sleeping,paused);
+    const uint16_t old_xp = _engine.state().xp;
+    const uint8_t old_bond = _engine.state().bond;
+    if (_rewards.apply(_engine)) {
+      _pose = 2; _reaction_until = now + 1500;
+      _notifications.reward(_engine.state().xp-old_xp,_engine.state().bond-old_bond);
+    }
+    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),enabled,sleeping,paused);
+    _enabled = enabled;
+  }
+  PetMeshRewards& rewards() { return _rewards; }
+  bool takeAlert(uint32_t now, PetNotifications::Alert& alert, bool quiet = false) {
+    if (_training.active() && !trainingFailed()) return false;
+    // Explicit action feedback is visual-only, including Sleeping/Low Power
+    // refusals. It must not replace menu labels or inherit ambient pet gating.
+    if (_enabled && _feedback) {
+      alert.sound = PetNotifications::COUNT; alert.action = true;
+      snprintf(alert.text,sizeof(alert.text),"%s",_feedback); _feedback = nullptr;
+      return true;
+    }
+    return _notifications.take(now,alert,_training.active() || quiet);
+  }
+  bool trainingFailed() const { return _training.phase() == PetTrainingGames::FAILED; }
+  bool enabled() const { return _enabled; }
+  bool menuOpen() const { return _view != 0; }
+  bool trainingActive() const { return _training.active(); }
+  void cancelTraining() {
+    if (!_training.active()) return;
+    _training.cancel(); _view = 0;
+    _reaction_until = millis() + 1500;
+  }
+  void close() { _training.cancel(); _view = _selection = 0; _feedback = nullptr; }
+  bool input(char c, char enter, char back, char hold, char up, char down,
+             char left = 'l', char right = 'r', char prev = '[', char next = ']',
+             uint32_t seed = 0, bool slow = false) {
+    if (_training.active()) {
+      using Games = PetTrainingGames;
+      Games::Action action = c == back ? Games::BACK : c == enter ? Games::ENTER :
+          c == up ? Games::UP : c == down ? Games::DOWN :
+          c == left || c == prev ? Games::LEFT : c == right || c == next ? Games::RIGHT : Games::NONE;
+      // Capture timer expiry before input can accept the retry or dismiss it.
+      if (action != Games::BACK) {
+        _training.tick(millis());
+        if (completeTraining(millis())) return true;
+      }
+      _training.input(action,millis());
+      if (completeTraining(millis())) return true;
+      if (!_training.active()) {
+        _view = 1; _selection = 1;
+        if (c == back) _feedback = "Training cancelled";
+      }
+      return true;
+    }
+    if (c == back && _view) {
+      if (_view == 5) _view = 4;
+      else if (_view == 4) { _view = 1; _selection = 4; }
+      else close();
+      return true;
+    }
+    if (!_view) {
+      if (c == enter) { _view = 1; _selection = 0; return true; }
+      if (c == hold) { _view = 2; _selection = 0; return true; }
+      return false;
+    }
+    if (_view == 2 && (c == up || c == down)) {
+      _selection = c == down && _engine.hungerRate() > 5 ? 1 : 0;
+      return true;
+    }
+    if ((c == up || c == down) && (_view == 1 || _view == 3)) {
+      uint8_t count = _view == 3 ? _engine.choices() : _engine.sleeping() ? 6 : 5;
+      _selection = (_selection + count + (c == down ? 1 : -1)) % count;
+      return true;
+    }
+    if (c != enter) return false;
+    // A new action supersedes feedback not yet presented from the last one.
+    _feedback = nullptr;
+    if (_view == 4 || _view == 5) { _view = _view == 4 ? 5 : 4; return true; }
+    if (_view == 2) { close(); return true; }
+    if (_view == 1 && _selection == 5) {
+      if (_engine.sleeping() && !_engine.paused()) {
+        _sleep.wake(millis());
+        _engine.update(millis(),_enabled,false,false,_battery.rate());
+        _view = 1; _selection = 0; _feedback = "Awake 30 minutes";
+        _reaction_until = millis() + 1500;
+      } else { _feedback = "Low Power"; }
+      return true;
+    }
+    if (_view == 3) {
+      auto r = _engine.evolve(_selection);
+      if (r == Engine::OK) _notifications.evolved(_engine.state().form);
+      _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+                             _engine.sleeping(),_engine.paused());
+      if (r != Engine::OK) _feedback = result(r);
+      _view = 1; _selection = 2;
+      return true;
+    }
+    if (_selection == 3) { _view = 2; _selection = 0; return true; }
+    if (_selection == 4) { _view = 4; return true; }
+    if (_selection == 1) {
+      auto r = _engine.trainingAvailable();
+      if (r == Engine::OK) { _loss_reported = false; _training.begin(millis(),seed,slow); }
+      else _feedback = result(r);
+      return true;
+    }
+    if (_selection == 2 && _engine.ready() && _engine.available() == Engine::OK) {
+      _view = 3; _selection = 0; return true;
+    }
+    auto r = _selection == 0 ? _engine.feed() : Engine::NOT_READY;
+    _feedback = r == Engine::OK ? "Fed" : result(r);
+    if (r == Engine::OK) {
+      _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+                             _engine.sleeping(),_engine.paused());
+      _pose = _selection == 0 ? 2 : 3;
+      _reaction_until = millis() + 1500;
+    }
+    return true;
+  }
+  int render(ZenDisplayDriver& d, int y, int bottom) {
+    if (_training.active()) {
+      _training.tick(millis());
+      if (!completeTraining(millis()))
+        return PetTrainingView::render(d,y,bottom,_training,millis());
+    }
+    if (_view == 4 || _view == 5) {
+      PetRewardsView::render(d,y,bottom,_rewards,_view == 5); return 5000;
+    }
+    return Renderer::render(d, y, bottom, _engine, _view, _selection,
+                            _pose, _reaction_until);
+  }
+};
+
+} }

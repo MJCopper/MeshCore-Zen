@@ -28,6 +28,7 @@
 #include "../zen/GpsService.h"
 #include "../zen/TimeLocationCoordinator.h"
 #include "../zen/LocalTimeService.h"
+#include "../zen/TimeDeadline.h"
 #include "../zen/NodeLoginCoordinator.h"
 #include "../zen/RemoteNodeCoordinator.h"
 #include "../zen/DiagnosticLog.h"
@@ -216,6 +217,15 @@ public:
   uint32_t currentUtcTime() const;
   bool isChildModeLocked() const { return _zen_runtime.childLocked(_node_prefs); }
   bool isTimeSyncPending() const { return _time_location.syncPending(); }
+  int64_t petLocalSeconds() const { return _local_time.localSeconds(currentUtcTime()); }
+  void onPetMessageAttempt(const uint8_t* key, uint32_t timestamp,
+                           uint8_t attempt, uint32_t ack) override;
+  void onPetChannelAttempt(uint8_t index, uint32_t seq) override;
+  bool canNotifyPet() const {
+    return zen::TimeDeadline::due(millis(),_alert_expiry);
+  }
+  void notifyPet(const char* text, const char* melody, bool training = false);
+  void notifyPetAction(const char* text);
   bool isChildModeRestricted() const override { return isChildModeLocked(); }
   void setChildAdminUnlocked(bool unlocked);
   void applyChildMode();
@@ -231,6 +241,7 @@ public:
   // Global metric/imperial preference for distance/speed display.
   bool useImperial() const { return _node_prefs && _node_prefs->units_imperial; }
   uint16_t getBattMilliVolts() const { return _batt_mv > 0 ? _batt_mv : AbstractUITask::getBattMilliVolts(); }
+  uint16_t cachedBattMilliVolts() const { return _batt_mv; }
   zen::BatteryRuntimeEstimator::State batteryRuntimeState() const { return _battery_runtime.state(); }
   uint32_t batteryRuntimeSeconds() const { return _battery_runtime.seconds(); }
   void sleepDisplay() { turnDisplayOff(); }
@@ -398,6 +409,7 @@ public:
   bool isMessagesScreenVisible() const {
     return curr == messages_screen && _display != NULL && _display->isOn();
   }
+  bool isHomeScreenVisible() const { return curr == home && _display && _display->isOn(); }
   void forgetDMContact(const uint8_t* pub_key) {
     _message_unread.forget(zen::MessageUnreadCoordinator::DIRECT, pub_key);
   }

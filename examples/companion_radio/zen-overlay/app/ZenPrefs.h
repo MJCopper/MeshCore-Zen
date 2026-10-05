@@ -39,7 +39,9 @@ struct ZenPrefs : public NodePrefs {  // Zen-only extension persisted separately
   uint8_t  ringtone_len;       // active notes (0 = default, editor maximum 16)
   uint8_t  ringtone_notes[32]; // legacy-sized storage; bit7 extends pitch to sharps
   uint16_t home_pages_mask;    // bitmask of visible home pages (bit0=Clock..bit8=Shutdown); 0=all visible
-  uint8_t  bot_enabled;         // 0=disabled, 1=DM trigger-reply active — DM only; channel/room have their own bot_channel_enabled/bot_room_enabled and don't depend on this
+  // Reuse one retired Zen byte without changing the established record shape.
+  // Schema 7 clears its previous meaning; only the pet enable flag is saved.
+  union { uint8_t pet_enabled = 0; uint8_t bot_enabled; };
   uint8_t  bot_channel_enabled; // 0=disabled, 1=channel bot active for bot_channel_idx
   uint8_t  bot_channel_idx;     // channel index for channel bot [del→onChannelRemoved]
   char     bot_trigger[64];     // DM trigger phrase (case-insensitive contains; "*" = any DM)

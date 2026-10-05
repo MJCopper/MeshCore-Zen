@@ -22,6 +22,8 @@ struct NotificationProfiles {
         result.visual = true;
         break;
       case NotificationType::LOW_BATTERY:
+      case NotificationType::PET:
+      case NotificationType::PET_TRAINING:
         result.visual = true;
         break;
       case NotificationType::WARNING:

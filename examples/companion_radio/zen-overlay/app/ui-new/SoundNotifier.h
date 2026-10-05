@@ -88,6 +88,9 @@ public:
   }
 
   void play(const zen::NotificationEvent& event) {
+    // The coordinator has already authorized audio; retain its mute/volume
+    // policy for short feature-specific melodies as well as saved ringtones.
+    if (event.melody) { _buz.playForced(event.melody); return; }
     switch (event.type) {
       case zen::NotificationType::DIRECT_MESSAGE:
         playDM(event.prefix_valid, event.prefix); break;

@@ -85,6 +85,9 @@ class SettingsScreen : public ZenUIScreen {
     GPS_POLLING,
 #endif
     UNITS,
+#if ZEN_FEATURE_PET
+    PET_ENABLED,
+#endif
     REBOOT,
     // Bluetooth section
     SECTION_BLUETOOTH,
@@ -520,7 +523,15 @@ class SettingsScreen : public ZenUIScreen {
       display.setCursor(valCol(display), y);
       display.print(zen::GpsMode::pollingLabel(_gps_pending_polling));
 #endif
-    } else if (item == BLUETOOTH_ENABLED) {
+    }
+#if ZEN_FEATURE_PET
+    else if (item == PET_ENABLED) {
+      display.print("Zen Pet");
+      display.setCursor(valCol(display), y);
+      display.print(p && p->pet_enabled ? "On" : "Off");
+    }
+#endif
+    else if (item == BLUETOOTH_ENABLED) {
       display.print("Bluetooth");
       display.setCursor(valCol(display), y);
       display.print((p && p->bluetooth_enabled) ? "On" : "Off");
@@ -1105,6 +1116,14 @@ public:
     bool right = keyIsNext(c);
     bool left  = keyIsPrev(c);
     bool enter = (c == KEY_ENTER);
+
+#if ZEN_FEATURE_PET
+    if (_selected == PET_ENABLED && p && (left || right || enter)) {
+      p->pet_enabled ^= 1;
+      _dirty = true;
+      return true;
+    }
+#endif
 
 #if FEAT_BRIGHTNESS_SETTING
     if (_selected == BRIGHTNESS) {

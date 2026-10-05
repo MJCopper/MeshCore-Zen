@@ -11,6 +11,11 @@
 #include "../MyMesh.h"
 #include "../MsgExpand.h"
 #include "../Features.h"
+#if ZEN_FEATURE_PET
+#include "../zen/pet/PetPage.h"
+#include "../zen/pet/PetPopupInput.h"
+#include "../zen/pet/PetIcon.h"
+#endif
 #include "../GeoUtils.h"
 #include "target.h"
 #ifdef WIFI_SSID
@@ -357,6 +362,9 @@ class HomeScreen : public ZenUIScreen {
     TOOLS,
     QUICK_MSG,
     SENSORS,
+#if ZEN_FEATURE_PET
+    PET,
+#endif
     EMERGENCY,
     Count    // keep as last
   };
@@ -371,6 +379,11 @@ class HomeScreen : public ZenUIScreen {
   PopupMenu _emergency_menu;
   bool _emergency_menu_disables = false;
   SensorPage _sensor_page;
+#if ZEN_FEATURE_PET
+  zen::pet::Page _pet;
+  uint32_t _pet_update_at = 0;
+  int _pet_refresh_ms = 30000;
+#endif
   static const uint32_t HOME_IDLE_RETURN_MS = 5UL * 60UL * 1000UL;
   uint32_t _home_idle_deadline = 0;
 
@@ -521,6 +534,9 @@ class HomeScreen : public ZenUIScreen {
   }
 
   bool isPageVisible(int page) const {
+#if ZEN_FEATURE_PET
+    if (page == PET) return _node_prefs && _node_prefs->pet_enabled;
+#endif
     if (page == EMERGENCY) return _task->isLowPowerMode();
 #if ENV_INCLUDE_GPS == 1
     // Emergency Mode exposes the volatile GPS control even when the GPS home
@@ -545,7 +561,15 @@ class HomeScreen : public ZenUIScreen {
     for (int i = 0; i < bit_count && n < (int)Count; i++) {
       int pg = bitToPage(bits[i]);
       if (pg >= 0 && pg < (int)Count && isPageVisible(pg)) out[n++] = pg;
+#if ZEN_FEATURE_PET
+      if (pg == FAVOURITES && isPageVisible(PET) && n < (int)Count) out[n++] = PET;
+#endif
     }
+#if ZEN_FEATURE_PET
+    bool pet_added = false;
+    for (int i=0;i<n;++i) if (out[i]==PET) pet_added=true;
+    if (!pet_added && isPageVisible(PET) && n < (int)Count) out[n++]=PET;
+#endif
     // Emergency is session-only and deliberately has no persisted page bit.
     if (isPageVisible(EMERGENCY) && n < (int)Count) out[n++] = EMERGENCY;
     return n;
@@ -676,6 +700,43 @@ public:
     noteHomeInteraction();
     pruneStaleFavouriteSlots();
   }
+  void onHide() override {
+#if ZEN_FEATURE_PET
+    _pet.close();
+#endif
+  }
+
+#if ZEN_FEATURE_PET
+  void updatePet(bool force = false) {
+    bool enabled = _node_prefs && _node_prefs->pet_enabled;
+    if (!enabled && !_pet.enabled()) return;
+    uint32_t now = millis();
+    if (!force && enabled == _pet.enabled() && (int32_t)(now - _pet_update_at) < 0) return;
+    // Input/render validation must not postpone the notification pump.
+    if (!force) _pet_update_at = now + 1000;
+    _pet.update(millis(), _node_prefs && _node_prefs->pet_enabled,
+                zen::pet::PetSleep::scheduled(!_task->isTimeSyncPending(),
+                    _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
+                    _node_prefs->quiet_time_end_min), _task->isLowPowerMode(),
+                !_task->isTimeSyncPending(),_task->petLocalSeconds(),
+                _page == PET && _task->isHomeScreenVisible() && _task->canNotifyPet(),
+                _task->cachedBattMilliVolts() ?
+                    zen::BatteryPolicy::percent(_task->cachedBattMilliVolts()) : -1);
+    if (!force && _task->canNotifyPet()) {
+      zen::pet::PetNotifications::Alert alert;
+      if (_pet.takeAlert(now,alert,_task->isQuietTimeActive())) {
+        if (alert.action) _task->notifyPetAction(alert.text);
+        else _task->notifyPet(alert.text,zen::pet::PetNotifications::melody(alert.sound),
+            alert.sound == zen::pet::PetNotifications::TRAIN_WON ||
+            alert.sound == zen::pet::PetNotifications::TRAIN_LOST);
+      }
+    }
+  }
+  zen::pet::PetMeshRewards& petRewards() { updatePet(true); return _pet.rewards(); }
+  void cancelPetTraining() { _pet.cancelTraining(); }
+  bool petMenuOpen() const { return _page == PET && _pet.menuOpen(); }
+  bool petTrainingActive() const { return _pet.trainingActive(); }
+#endif
 
   void resetSession() {
     _page = CLOCK;
@@ -700,6 +761,9 @@ public:
 
   // Small 5x5 glyph shown in the page-indicator row for each HomePage.
   static const MiniIcon* pageIcon(int page) {
+#if ZEN_FEATURE_PET
+    if (page == PET) return &zen::pet::CAROUSEL_ICON;
+#endif
     switch (page) {
       case SENSORS:    return &ICON_PG_SENSORS;
       case EMERGENCY:  return &ICON_PG_POWER;
@@ -941,7 +1005,15 @@ public:
                        [&](int i) { return _task->getSettingsSectionLabel(i); });
         _settings_scroll = (uint8_t)scroll;
       }
-    } else if (_page == HomePage::SENSORS) {
+    }
+#if ZEN_FEATURE_PET
+    else if (_page == PET) {
+      // Validate visibility/Quiet Time again before a game frame can complete.
+      if (_pet.trainingActive()) updatePet(true);
+      _pet_refresh_ms = _pet.render(display, content_y, display.height() - 1);
+    }
+#endif
+    else if (_page == HomePage::SENSORS) {
       _sensor_page.render(display, content_y);
     } else if (_page == HomePage::EMERGENCY) {
       display.setColor(ZenDisplayDriver::LIGHT);
@@ -1075,7 +1147,13 @@ public:
     if (Features::IS_EINK) {
       // slow display: poll every 30 s; inbound msgs force immediate refresh via notify()
       refresh_ms = Features::HOME_REFRESH_MS;
-    } else if (_page == HomePage::CLOCK) {
+    }
+#if ZEN_FEATURE_PET
+    else if (_page == PET) {
+      refresh_ms = _pet_refresh_ms;
+    }
+#endif
+    else if (_page == HomePage::CLOCK) {
       bool show_sec = !_node_prefs || !_node_prefs->clock_hide_seconds;
       refresh_ms = need_blink ? 1000 : (show_sec ? 1000 : 60000);
     } else if (_page == HomePage::EMERGENCY && _task->isEmergencyMode()) {
@@ -1083,6 +1161,11 @@ public:
     } else {
       refresh_ms = need_blink ? 1000 : 5000;
     }
+#if ZEN_FEATURE_PET
+    // Only a visible game requests faster e-ink redraws; ordinary home cards
+    // retain their existing display/power policy.
+    if (_page == PET && _pet.trainingActive()) refresh_ms = _pet_refresh_ms;
+#endif
     // Reuse the next scheduled home render as the five-minute deadline. This
     // adds no polling or wake loop and avoids up to 30 s of overshoot on e-ink.
     if (_page != HomePage::CLOCK && _home_idle_deadline != 0) {
@@ -1102,6 +1185,15 @@ public:
 
   bool handleInput(char c) override {
     noteHomeInteraction();
+#if ZEN_FEATURE_PET
+    if (_page == PET) {
+      updatePet(true);
+      uint32_t seed = millis() ^ _rtc->getCurrentTime();
+      if (_pet.input(c, KEY_ENTER, KEY_CANCEL, KEY_CONTEXT_MENU, KEY_UP, KEY_DOWN,
+                     KEY_LEFT, KEY_RIGHT, KEY_PREV, KEY_NEXT,seed,Features::IS_EINK)) return true;
+      if (c == KEY_LEFT || c == KEY_RIGHT || c == KEY_PREV || c == KEY_NEXT || c == KEY_CANCEL) _pet.close();
+    }
+#endif
     if (_emergency_menu.active) {
       auto result = _emergency_menu.handleInput(c);
       if (result == PopupMenu::SELECTED && _emergency_menu.selectedIndex() == 1) {
@@ -1951,12 +2043,80 @@ int UITask::markMessageCategoryRead(uint8_t category) {
 void UITask::onMsgAck(uint32_t ack_crc) {
   if (((MessagesScreen*)messages_screen)->markDmDelivered(ack_crc))
     _next_refresh = 0;
+#if ZEN_FEATURE_PET
+  if (home) {
+    auto& rewards = ((HomeScreen*)home)->petRewards();
+    uint8_t key[PUB_KEY_SIZE];
+    if (rewards.lookup(ack_crc,zen::pet::PetMeshRewards::DM,key)) {
+      ContactInfo* contact = the_mesh.lookupContactByPubKey(key,PUB_KEY_SIZE);
+      rewards.completed(ack_crc,zen::pet::PetMeshRewards::DM,
+          contact && allowOnDeviceContactMessage(*contact),
+          contact && zen::Policy::favouriteContact(*contact));
+    }
+  }
+#endif
+}
+
+void UITask::onPetMessageAttempt(const uint8_t* key, uint32_t timestamp,
+                                  uint8_t attempt, uint32_t ack) {
+#if ZEN_FEATURE_PET
+  if (!home || !key) return;
+  ContactInfo* contact = the_mesh.lookupContactByPubKey(key,PUB_KEY_SIZE);
+  if (!contact || (contact->type != ADV_TYPE_CHAT && contact->type != ADV_TYPE_ROOM)) return;
+  auto& rewards = ((HomeScreen*)home)->petRewards();
+  rewards.started(contact->type == ADV_TYPE_ROOM ? zen::pet::PetMeshRewards::ROOM :
+      zen::pet::PetMeshRewards::DM,key,timestamp,attempt,ack,
+      allowOnDeviceContactMessage(*contact));
+#else
+  (void)key; (void)timestamp; (void)attempt; (void)ack;
+#endif
+}
+
+void UITask::notifyPetAction(const char* text) {
+#if ZEN_FEATURE_PET
+  if (!_node_prefs || !_node_prefs->pet_enabled) return;
+  zen::NotificationEvent event = zen::NotificationProfiles::event(zen::NotificationType::UI_FEEDBACK);
+  event.visual = true; event.audible = false;
+  event.popup = text; event.popup_ms = 3000;
+  dispatchNotification(event);
+#else
+  (void)text;
+#endif
+}
+
+void UITask::notifyPet(const char* text, const char* melody, bool training) {
+#if ZEN_FEATURE_PET
+  if (!_node_prefs || !_node_prefs->pet_enabled || isLowPowerMode() ||
+      (!training && isQuietTimeActive())) return;
+  zen::NotificationEvent event = zen::NotificationProfiles::event(training ?
+      zen::NotificationType::PET_TRAINING : zen::NotificationType::PET);
+  event.popup = text; event.popup_ms = 3000; event.melody = melody;
+  dispatchNotification(event);
+#else
+  (void)text; (void)melody;
+  (void)training;
+#endif
+}
+
+void UITask::onPetChannelAttempt(uint8_t index, uint32_t seq) {
+#if ZEN_FEATURE_PET
+  if (!home) return;
+  ChannelDetails channel;
+  if (!the_mesh.getChannel(index,channel)) return;
+  uint8_t key[PUB_KEY_SIZE] = {}; key[0] = index;
+  memcpy(key+1,channel.channel.secret,16);
+  ((HomeScreen*)home)->petRewards().started(zen::pet::PetMeshRewards::CHANNEL,
+      key,seq,0,seq,allowOnDeviceChannelMessage(index));
+#else
+  (void)index; (void)seq;
+#endif
 }
 
 void UITask::onCompanionDMTransmission(const uint8_t* pub_key, const char* text,
                                        uint32_t message_timestamp, uint8_t attempt,
                                        uint32_t expected_ack, uint32_t deadline_ms,
                                        uint8_t route) {
+  onPetMessageAttempt(pub_key,message_timestamp,attempt,expected_ack);
   ((MessagesScreen*)messages_screen)->observeCompanionDM(
       pub_key, text, message_timestamp, attempt, expected_ack,
       deadline_ms, route);
@@ -1966,6 +2126,17 @@ void UITask::onCompanionDMTransmission(const uint8_t* pub_key, const char* text,
 
 void UITask::onChannelRelayed(uint32_t seq) {
   ((MessagesScreen*)messages_screen)->markChannelRelayed(seq);
+#if ZEN_FEATURE_PET
+  if (home) {
+    auto& rewards = ((HomeScreen*)home)->petRewards();
+    uint8_t key[PUB_KEY_SIZE];
+    ChannelDetails channel;
+    if (rewards.lookup(seq,zen::pet::PetMeshRewards::CHANNEL,key) &&
+        the_mesh.getChannel(key[0],channel) && memcmp(key+1,channel.channel.secret,16) == 0)
+      rewards.completed(seq,zen::pet::PetMeshRewards::CHANNEL,
+                         allowOnDeviceChannelMessage(key[0]),false);
+  }
+#endif
 }
 
 void UITask::onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) {
@@ -2121,6 +2292,21 @@ bool UITask::addDMMsg(const uint8_t* pub_key, bool outgoing, const char* text, u
   bool added = ((MessagesScreen*)messages_screen)->addDMMsg(pub_key, outgoing, text,
                                                             sender_timestamp);
   if (added) reconcileDMUnread();
+#if ZEN_FEATURE_PET
+  if (added && !outgoing && home) {
+    ContactInfo* contact = the_mesh.lookupContactByPubKey(pub_key,PUB_KEY_SIZE);
+    if (contact && (contact->type == ADV_TYPE_CHAT || contact->type == ADV_TYPE_ROOM)) {
+      // Timestamp plus text fingerprint distinguishes signed room authors too.
+      uint32_t hash = 2166136261UL;
+      for (const unsigned char* p = (const unsigned char*)text; *p; ++p)
+        hash = (hash ^ *p) * 16777619UL;
+      uint64_t token = sender_timestamp ? ((uint64_t)sender_timestamp << 32) | hash : 0;
+      ((HomeScreen*)home)->petRewards().received(pub_key,token,
+          contact->type == ADV_TYPE_ROOM,allowOnDeviceContactMessage(*contact),
+          zen::Policy::favouriteContact(*contact));
+    }
+  }
+#endif
   return added;
 }
 
@@ -2194,6 +2380,9 @@ void UITask::showAlertPriority(const char* text, int duration_millis,
   if (!_notification_popup.accept(priority, millis(), _alert_expiry)) return;
   snprintf(_alert, sizeof(_alert), "%s", text);
   _alert_expiry = millis() + duration_millis;
+  // A visible toast must render before it expires, including on slow E-INK
+  // pages and when notification screen wake is Off. This does not wake it.
+  _next_refresh = 0;
 }
 
 void UITask::publishRemoteOperation(zen::Operation operation,
@@ -2587,6 +2776,9 @@ void UITask::reconcilePower(bool force) {
     if (transition.target.display_on) _display->turnOn();
     else {
       _display->turnOff();
+#if ZEN_FEATURE_PET
+      if (home) ((HomeScreen*)home)->cancelPetTraining();
+#endif
       _notification_wake.displayOff();
       relock_parent = _node_prefs && _node_prefs->child_mode_enabled &&
                       _zen_runtime.parentUnlocked();
@@ -2977,6 +3169,9 @@ void UITask::pollCardKB() {
 }
 
 void UITask::loop() {
+#if ZEN_FEATURE_PET
+  if (home) ((HomeScreen*)home)->updatePet();
+#endif
   observeBluetoothState();
   if (_emergency_window.active() && !_emergency_window.update(millis()))
     setEmergencyMode(false);
@@ -3108,7 +3303,24 @@ void UITask::loop() {
       // Apply the whole queued burst, then redraw once — N taps captured during
       // a blocking refresh become N navigation steps at the cost of one refresh.
       char k;
-      while (dequeueKey(k)) curr->handleInput(k);
+      while (dequeueKey(k)) {
+#if ZEN_FEATURE_PET
+        auto pet_home = (HomeScreen*)home;
+        auto action = zen::pet::PetPopupInput::action(
+            curr == home && pet_home && pet_home->petMenuOpen(),
+            pet_home && pet_home->petTrainingActive(),
+            zen::TimeDeadline::active(millis(),_alert_expiry),k,KEY_ENTER,KEY_CANCEL);
+        if (action == zen::pet::PetPopupInput::DISMISS) {
+          clearAlert();
+          // The rest of this captured burst belongs to the obscuring toast,
+          // not to the option underneath it. Require a fresh menu press.
+          while (dequeueKey(k)) { }
+          break;
+        }
+        if (action == zen::pet::PetPopupInput::BLOCK) continue;
+#endif
+        curr->handleInput(k);
+      }
       { uint32_t aoff = autoOffMillis(); if (aoff > 0) _auto_off = millis() + aoff; }  // extend auto-off timer
       // Note timing no longer depends on render cadence (TIMER1 IRQ advances
       // notes directly — see buzzer.cpp), so a redraw right after a keypress

@@ -140,6 +140,11 @@ class ConfigMaintenance {
           prefs.zen_config_schema = 6;
           changed = true;
           break;
+        case 6:
+          prefs.pet_enabled = 0;
+          prefs.zen_config_schema = 7;
+          changed = true;
+          break;
         default:
           // A future firmware may encounter an unrecognised older schema. Move
           // it to the current version; active-value validation still runs below.
@@ -152,7 +157,7 @@ class ConfigMaintenance {
   }
 
 public:
-  enum : uint16_t { CURRENT_SCHEMA = 6 };
+  enum : uint16_t { CURRENT_SCHEMA = 7 };
 
   static bool migrateMelodySchema(ZenPrefs& prefs, uint32_t file_schema) {
     if (file_schema >= 0xC0DE002A) return false;

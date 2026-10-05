@@ -141,6 +141,7 @@ message floods currently use the default or a temporary app override.
 | GPS | On / Off |
 | GPS Polling | Continuous / Adaptive / 2 min / 5 min / 15 min / 30 min / 1 h |
 | Units | Metric / Imperial |
+| Zen Pet | On / Off; show the RAM-only virtual pet |
 | Reboot | Save pending changes and restart |
 
 Timed GPS polling acquires a stable fix, caches it, powers down, then repeats

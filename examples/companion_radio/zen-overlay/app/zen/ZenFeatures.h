@@ -14,6 +14,9 @@
 // Each flag remains independently overrideable from a board/environment. This
 // lets an upstream integration take only the modules it wants without editing
 // shared headers or maintaining another family of near-identical manifests.
+#ifndef ZEN_FEATURE_PET
+  #define ZEN_FEATURE_PET ZEN_FEATURE_DEFAULT
+#endif
 #ifndef ZEN_FEATURE_CHILD_MODE
   #define ZEN_FEATURE_CHILD_MODE ZEN_FEATURE_DEFAULT
 #endif

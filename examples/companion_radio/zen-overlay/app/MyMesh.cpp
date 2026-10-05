@@ -555,6 +555,10 @@ int MyMesh::sendUIMessage(const ContactInfo& recipient, uint32_t timestamp,
         recipient.id.pub_key, PUB_KEY_SIZE);
     next_ack_idx = (next_ack_idx + 1) % EXPECTED_ACK_TABLE_SIZE;
   }
+#if ZEN_FEATURE_PET
+  if (result != MSG_SEND_FAILED && _ui)
+    _ui->onPetMessageAttempt(recipient.id.pub_key,timestamp,attempt,expected_ack);
+#endif
   return result;
 }
 
@@ -721,6 +725,11 @@ void MyMesh::sendFloodScoped(const ContactInfo& recipient, mesh::Packet* pkt, ui
 void MyMesh::sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis) {
   // TODO: have per-channel send_scope
   trackRelaySend(pkt);
+#if ZEN_FEATURE_PET
+  int pet_channel = findChannelIdx(channel);
+  if (_ui && pet_channel >= 0 && pkt->getPayloadType() == PAYLOAD_TYPE_GRP_TXT)
+    _ui->onPetChannelAttempt(pet_channel,lastChannelRelaySeq());
+#endif
   if (send_unscoped) {
     sendFlood(pkt, delay_millis, _prefs.path_hash_mode + 1);  // app has explicitly requested un-scoped
   } else {

@@ -88,6 +88,14 @@ public:
   // A repeater rebroadcast of one of our channel sends was heard (seq from
   // lastChannelRelaySeq()) — drives the channel "relayed into mesh" marker.
   virtual void onChannelRelayed(uint32_t seq) { (void)seq; }
+  // Passive optional pet observers; never own or alter a transport operation.
+  virtual void onPetMessageAttempt(const uint8_t* key, uint32_t timestamp,
+                                  uint8_t attempt, uint32_t ack) {
+    (void)key; (void)timestamp; (void)attempt; (void)ack;
+  }
+  virtual void onPetChannelAttempt(uint8_t index, uint32_t seq) {
+    (void)index; (void)seq;
+  }
   virtual void onChannelRelayExpired(uint32_t seq, uint8_t heard, bool transmitted) {
     (void)seq; (void)heard; (void)transmitted;
   }

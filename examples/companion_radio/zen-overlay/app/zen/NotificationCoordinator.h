@@ -9,7 +9,7 @@ namespace zen {
 enum class NotificationType : uint8_t {
   NONE, DIRECT_MESSAGE, CHANNEL_MESSAGE, ROOM_MESSAGE,
   ADVERT_FLOOD, ADVERT_LOCAL, NEW_CONTACT, UI_FEEDBACK,
-  LOW_BATTERY, WARNING, ERROR
+  LOW_BATTERY, WARNING, ERROR, PET, PET_TRAINING
 };
 
 // Complete, short-lived description of one local notification. Pointers are
@@ -24,6 +24,7 @@ struct NotificationEvent {
   bool urgent_wake = false;
   NotificationPolicy::Source source = NotificationPolicy::DEFAULT;
   const char* popup = nullptr;
+  const char* melody = nullptr; // Optional immutable event-specific RTTTL.
   uint16_t popup_ms = 0;
   uint8_t prefix[4] = {0, 0, 0, 0};
   bool prefix_valid = false;
@@ -43,6 +44,7 @@ struct NotificationContext {
 class NotificationCoordinator {
 public:
   static uint8_t popupPriority(NotificationType type) {
+    if (type == NotificationType::PET || type == NotificationType::PET_TRAINING) return 0;
     if (type == NotificationType::ERROR) return 3;
     if (type == NotificationType::WARNING || type == NotificationType::LOW_BATTERY)
       return 2;
@@ -51,11 +53,14 @@ public:
 
   static NotificationDecision decide(const NotificationEvent& event,
                                      const NotificationContext& context) {
+    bool pet = event.type == NotificationType::PET || event.type == NotificationType::PET_TRAINING;
+    bool eligible = event.eligible && !(pet && context.low_power) &&
+        !(event.type == NotificationType::PET && context.quiet_time);
     NotificationDecision result = NotificationPolicy::decide(
-        event.eligible, context.silent || context.quiet_time,
+        eligible, context.silent || context.quiet_time,
         event.quiet_affected, context.mode, context.client_connected,
         context.screen_wake, event.visual, event.source);
-    result.record_unread = event.eligible && event.record_unread;
+    result.record_unread = eligible && event.record_unread;
     if (!event.audible) {
       result.play_sound = false;
       result.vibrate = false;
