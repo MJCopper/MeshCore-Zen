@@ -13,11 +13,16 @@ public:
                         BOX_HIDE, BOX_HINT, BOX_MOVE, BOX_PAUSE, ANSWER };
   enum Action : uint8_t { NONE, UP, RIGHT, DOWN, LEFT, ENTER, BACK };
   static constexpr uint8_t FOOD_LANES = 5;
+  static constexpr uint8_t BOX_SWAPS = 5;
+  enum Cue : uint8_t { SILENT, ARROW_UP, ARROW_RIGHT, ARROW_DOWN, ARROW_LEFT,
+                       CORRECT, CATCH, MISS, HIT, REVEAL, SWAP, COVER };
 private:
   Game _game = ARROWS, _last = COUNT;
   Phase _phase = OFF;
   uint32_t _rng = 0x6d2b79f5UL, _at = 0, _started = 0;
-  uint8_t _sequence[6] = {}, _symbols[3] = {};
+  uint8_t _sequence[BOX_SWAPS*2] = {}, _symbols[3] = {};
+  Cue _cue = SILENT;
+  uint8_t _preview_cue = 0;
   uint8_t _initial = 0, _target = 0, _replacement = 0;
   uint8_t _selection = 1, _progress = 0, _stage = 0, _drop = 0, _marker = 0;
   bool _retry = false, _reserved = false, _slow = false;
@@ -35,11 +40,14 @@ private:
     ++_stage; _phase = BOX_PAUSE;
   }
   void startRound(uint32_t now) {
+    _cue = SILENT; _preview_cue = 0;
     _selection = _game == FOOD ? FOOD_LANES/2 : 1;
     _progress = _stage = _drop = _marker = 0;
     _target = _initial; _at = _started = now;
     _phase = _game == FOOD || _game == TIMING ? PLAY : SHOW;
     if (_game == TIMING) resetTimingMarker(now);
+    if (_game == ARROWS) { _cue = (Cue)(ARROW_UP+_sequence[0]); _preview_cue = 1; }
+    if (_game == BOXES || _game == CHANGED_SHAPE) _cue = REVEAL;
   }
 public:
   Game game() const { return _game; }
@@ -47,6 +55,7 @@ public:
   bool active() const { return _phase != OFF; }
   bool retryUsed() const { return _retry; }
   bool slow() const { return _slow; }
+  Cue takeCue() { Cue cue=_cue; _cue=SILENT; return cue; }
   bool previewing() const {
     return _phase == SHOW || _phase == COVERED || _phase == BOX_HIDE ||
         _phase == BOX_HINT || _phase == BOX_MOVE || _phase == BOX_PAUSE;
@@ -57,7 +66,7 @@ public:
   uint8_t boxFrame() const { return _marker; }
   uint8_t target() const { return _game == FOOD ? _sequence[_drop] : _target; }
   uint8_t arrow(uint8_t i) const { return i < 3 ? _sequence[i] : 0; }
-  uint8_t swap(uint8_t i) const { return i < 6 ? _sequence[i] : 0; }
+  uint8_t swap(uint8_t i) const { return i < BOX_SWAPS*2 ? _sequence[i] : 0; }
   uint8_t symbol(uint8_t i) const {
     if (i >= 3) return 0;
     return _phase == PLAY && i == _initial ? _replacement : _symbols[i];
@@ -97,10 +106,10 @@ public:
       _game = _last == COUNT ? (Game)(random()%COUNT) :
           (Game)((_last+1+random()%(COUNT-1))%COUNT);
       _last = _game; _reserved = true; _retry = false;
-      for (uint8_t i=0;i<6;++i)
+      for (uint8_t i=0;i<sizeof(_sequence);++i)
         _sequence[i] = random()%(_game == ARROWS ? 4 : _game == FOOD ? FOOD_LANES : 3);
       if (_game == BOXES) {
-        for (uint8_t i=0;i<6;i+=2)
+        for (uint8_t i=0;i<BOX_SWAPS*2;i+=2)
           if (_sequence[i] == _sequence[i+1]) _sequence[i+1] = (_sequence[i]+1)%3;
       }
       _initial = random()%3;
@@ -124,38 +133,43 @@ public:
     _phase = INSTRUCTIONS; _at = now;
   }
   void cancel() {
-    if (_phase == FAILED && _retry) _reserved = false;
-    _phase = OFF;
+    _reserved = false; _cue = SILENT; _phase = OFF;
   }
-  void finish() { _phase = OFF; _reserved = false; }
+  void finish() { _phase = OFF; _reserved = false; _cue = SILENT; }
   void tick(uint32_t now) {
     if (!previewing() && _phase != PLAY && _phase != ANSWER) return;
     if (_phase != ANSWER && now - _started >= (_slow ? 60000UL : 45000UL)) { _phase = FAILED; return; }
+    if (_phase == SHOW && _game == ARROWS && _preview_cue < 3 &&
+        now-_at >= _preview_cue*(interval()/3)) {
+      _cue = (Cue)(ARROW_UP+_sequence[_preview_cue++]);
+    }
     if (now - _at < interval()) return;
     // One visible step per update, rather than catching up unseen animation.
     _at = now;
     if (_phase == SHOW) {
-      if (_game == CHANGED_SHAPE) { _phase = COVERED; return; }
+      if (_game == CHANGED_SHAPE) { _phase = COVERED; _cue = COVER; return; }
       if (_game != BOXES) { _phase = PLAY; return; }
       _phase = BOX_HIDE;
     } else if (_phase == COVERED) {
-      _phase = PLAY;
+      _phase = PLAY; _cue = REVEAL;
     } else if (_phase == BOX_HIDE) {
-      _phase = BOX_HINT;
+      _phase = BOX_HINT; _cue = SWAP;
     } else if (_phase == BOX_HINT) {
       if (_slow) applyBoxSwap();
       else { _marker = 0; _phase = BOX_MOVE; }
     } else if (_phase == BOX_MOVE) {
       if (++_marker == 4) applyBoxSwap();
     } else if (_phase == BOX_PAUSE) {
-      _phase = _stage == 3 ? PLAY : BOX_HINT;
+      _phase = _stage == BOX_SWAPS ? PLAY : BOX_HINT;
+      if (_phase == BOX_HINT) _cue = SWAP;
     } else if (_phase == ANSWER) {
       _phase = _selection == _target ? WON : FAILED;
     } else if (_game == TIMING) {
       _marker = (_marker+1)%16;
     } else if (_game == FOOD) {
       if (++_stage < 3) return;
-      if (_selection == _sequence[_drop]) ++_progress;
+      if (_selection == _sequence[_drop]) { ++_progress; _cue = CATCH; }
+      else _cue = MISS;
       if (_progress == 3) { _phase = WON; return; }
       if (++_drop == 5) { _phase = FAILED; return; }
       _stage = 0;
@@ -175,12 +189,15 @@ public:
     if (_game == ARROWS) {
       if (action >= UP && action <= LEFT) {
         if (action- UP != _sequence[_progress]) _phase = FAILED;
-        else if (++_progress == 3) _phase = WON;
+        else { _cue = CORRECT; if (++_progress == 3) _phase = WON; }
       }
     } else if (_game == TIMING && action == ENTER) {
       if (!inZone()) _phase = FAILED;
-      else if (++_progress == 3) _phase = WON;
-      else resetTimingMarker(now);
+      else {
+        _cue = HIT;
+        if (++_progress == 3) _phase = WON;
+        else resetTimingMarker(now);
+      }
     } else if (_game == FOOD || _game == BOXES || _game == CHANGED_SHAPE) {
       if (_game == FOOD || _game == BOXES) {
         // Direct spatial selection stops at edges; changed shapes retain wrap.

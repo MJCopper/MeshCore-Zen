@@ -71,7 +71,7 @@ TEST(PetTraining, TimingTargetsShrinkMoveAndRetainTheirSequenceOnRetry) {
     EXPECT_EQ(0,game.progress()); EXPECT_EQ(5,game.zoneWidth());
     for(uint8_t turn=0;turn<3;++turn) EXPECT_EQ(starts[turn],game.timingStart(turn));
     game.cancel(); game.begin(now,seed+1,true);
-    for(uint8_t turn=0;turn<3;++turn) EXPECT_EQ(starts[turn],game.timingStart(turn));
+    EXPECT_NE(Games::TIMING,game.game());
     solve(game,now); EXPECT_EQ(Games::WON,game.phase());
   }
   EXPECT_GT(checked,100u);
@@ -92,9 +92,10 @@ TEST(PetTraining, TimingUsesFiveThreeTwoPositionsAndResetsOutsideEveryTurn) {
     EXPECT_EQ(Games::WON,game.phase());
   }
 }
-TEST(PetTraining, NewGamesDoNotImmediatelyRepeatAndCancellationDoesNotReroll) {
+TEST(PetTraining, NewGamesAndCancellationDoNotImmediatelyRepeat) {
   Games game; game.begin(0,123,false); auto previous=game.game();
-  game.cancel(); game.begin(100,456,false); EXPECT_EQ(previous,game.game());
+  game.cancel(); game.begin(100,456,false); EXPECT_NE(previous,game.game());
+  previous=game.game();
   for(uint32_t i=0;i<100;++i) {
     game.finish(); game.begin(i*100,i+789,false);
     EXPECT_NE(previous,game.game()); previous=game.game();
@@ -141,7 +142,7 @@ TEST(PetTraining, BoxesRevealHidePreviewEachSwapAndPauseBeforeChoosing) {
     now+=3000; game.tick(now); EXPECT_EQ(Games::BOX_HIDE,game.phase());
     now+=1000; game.tick(now); ASSERT_EQ(Games::BOX_HINT,game.phase());
     uint8_t expected=initial;
-    for(uint8_t swap=0;swap<3;++swap) {
+    for(uint8_t swap=0;swap<Games::BOX_SWAPS;++swap) {
       EXPECT_EQ(swap,game.stage()); EXPECT_EQ(expected,game.target());
       uint8_t a=game.swap(swap*2), b=game.swap(swap*2+1);
       game.input(Games::LEFT,now); game.input(Games::ENTER,now);
@@ -157,7 +158,7 @@ TEST(PetTraining, BoxesRevealHidePreviewEachSwapAndPauseBeforeChoosing) {
       if(expected==a) expected=b; else if(expected==b) expected=a;
       ASSERT_EQ(Games::BOX_PAUSE,game.phase()); EXPECT_EQ(expected,game.target());
       now+=game.interval(); game.tick(now);
-      EXPECT_EQ(swap==2?Games::PLAY:Games::BOX_HINT,game.phase());
+      EXPECT_EQ(swap+1==Games::BOX_SWAPS?Games::PLAY:Games::BOX_HINT,game.phase());
     }
     for(int i=0;i<5;++i) game.input(Games::LEFT,now);
     EXPECT_EQ(0,game.selection());
@@ -172,7 +173,7 @@ TEST(PetTraining, BoxesRevealHidePreviewEachSwapAndPauseBeforeChoosing) {
 }
 TEST(PetTraining, BoxRetryPreservesHidingPlaceAndSwapsAndRevealCanCancel) {
   Games game; uint32_t now=0; game.begin(0,seedFor(Games::BOXES),false);
-  uint8_t swaps[6]; for(uint8_t i=0;i<6;++i) swaps[i]=game.swap(i);
+  uint8_t swaps[Games::BOX_SWAPS*2]; for(uint8_t i=0;i<sizeof(swaps);++i) swaps[i]=game.swap(i);
   game.input(Games::ENTER,now); uint8_t initial=game.target();
   while(game.previewing()) { now+=game.interval(); game.tick(now); }
   while(game.selection()==game.target())
@@ -180,7 +181,7 @@ TEST(PetTraining, BoxRetryPreservesHidingPlaceAndSwapsAndRevealCanCancel) {
   game.input(Games::ENTER,now); now+=game.interval(); game.tick(now);
   ASSERT_EQ(Games::FAILED,game.phase()); game.input(Games::ENTER,now); game.input(Games::ENTER,now);
   EXPECT_EQ(initial,game.target());
-  for(uint8_t i=0;i<6;++i) EXPECT_EQ(swaps[i],game.swap(i));
+  for(uint8_t i=0;i<sizeof(swaps);++i) EXPECT_EQ(swaps[i],game.swap(i));
   while(game.previewing()) { now+=game.interval(); game.tick(now); }
   game.input(Games::ENTER,now); ASSERT_EQ(Games::ANSWER,game.phase());
   game.input(Games::BACK,now); EXPECT_FALSE(game.active());
@@ -242,7 +243,7 @@ TEST(PetTraining, ChangedSymbolIsDifferentAndBoxesOnlySwapDistinctSlots) {
     Games game; uint32_t now=0; game.begin(now,seedFor(id),false);
     game.input(Games::ENTER,now);
     uint8_t original[3]={game.symbol(0),game.symbol(1),game.symbol(2)};
-    if(id==Games::BOXES) for(int i=0;i<6;i+=2) EXPECT_NE(game.swap(i),game.swap(i+1));
+    if(id==Games::BOXES) for(int i=0;i<Games::BOX_SWAPS*2;i+=2) EXPECT_NE(game.swap(i),game.swap(i+1));
     while(game.previewing()) { now+=game.interval(); game.tick(now); }
     if(id==Games::CHANGED_SHAPE) for(int i=0;i<3;++i) {
       if(i==game.target()) EXPECT_NE(original[i],game.symbol(i));
@@ -298,5 +299,65 @@ TEST(PetTraining, InstructionAndFailureScreensDoNotAnimate) {
   EXPECT_EQ(5000,game.refreshMs(0));
   game.input(Games::ENTER,0); EXPECT_LE(game.refreshMs(0),160);
   game.input(Games::ENTER,0); EXPECT_EQ(5000,game.refreshMs(0));
+}
+TEST(PetTraining, CancelledSelectionsReachEveryOtherGameWithoutRepeats) {
+  Games game; bool transitions[Games::COUNT][Games::COUNT]={};
+  game.begin(0,123,false);
+  for(uint32_t i=1;i<=3000;++i) {
+    auto previous=game.game(); game.cancel();
+    EXPECT_EQ(Games::SILENT,game.takeCue());
+    game.begin(i,i*7919,false);
+    ASSERT_NE(previous,game.game()); transitions[previous][game.game()]=true;
+  }
+  for(int a=0;a<Games::COUNT;++a) for(int b=0;b<Games::COUNT;++b)
+    EXPECT_EQ(a!=b,transitions[a][b]);
+}
+TEST(PetTraining, ArrowPreviewAndCorrectInputCuesAreConsumedOnce) {
+  Games game; game.begin(0,seedFor(Games::ARROWS),false);
+  game.input(Games::ENTER,0);
+  EXPECT_EQ(Games::ARROW_UP+game.arrow(0),game.takeCue());
+  EXPECT_EQ(Games::SILENT,game.takeCue());
+  for(int i=1;i<3;++i) {
+    game.tick(i*1000); EXPECT_EQ(Games::ARROW_UP+game.arrow(i),game.takeCue());
+    game.tick(i*1000); EXPECT_EQ(Games::SILENT,game.takeCue());
+  }
+  game.tick(3000); game.input((Games::Action)(Games::UP+game.arrow(0)),3000);
+  EXPECT_EQ(Games::CORRECT,game.takeCue());
+  game.cancel(); EXPECT_EQ(Games::SILENT,game.takeCue());
+}
+TEST(PetTraining, FiveBoxSwapCuesAreOneShotAndDoNotExtendTimeout) {
+  for(bool slow:{false,true}) {
+    Games game; uint32_t now=0; unsigned swaps=0;
+    game.begin(0,seedFor(Games::BOXES),slow); game.input(Games::ENTER,now);
+    EXPECT_EQ(Games::REVEAL,game.takeCue());
+    while(game.previewing()) {
+      now+=game.interval(); game.tick(now);
+      auto cue=game.takeCue(); if(cue==Games::SWAP) ++swaps;
+      EXPECT_EQ(Games::SILENT,game.takeCue());
+    }
+    EXPECT_EQ(5u,swaps); EXPECT_EQ(Games::PLAY,game.phase());
+    EXPECT_LT(now,slow?60000u:45000u);
+  }
+}
+TEST(PetTraining, ShapeCoverRevealAndTimingHitEmitDistinctCues) {
+  Games game; uint32_t now=0; game.begin(0,seedFor(Games::CHANGED_SHAPE),false);
+  game.input(Games::ENTER,0); EXPECT_EQ(Games::REVEAL,game.takeCue());
+  now+=game.interval(); game.tick(now); EXPECT_EQ(Games::COVER,game.takeCue());
+  now+=game.interval(); game.tick(now); EXPECT_EQ(Games::REVEAL,game.takeCue());
+  game=Games(); now=0; game.begin(0,seedFor(Games::TIMING),false); game.input(Games::ENTER,0);
+  while(!game.inZone()) { now+=game.interval(); game.tick(now); }
+  game.input(Games::ENTER,now); EXPECT_EQ(Games::HIT,game.takeCue());
+}
+TEST(PetTraining, FoodCatchAndMissEmitOncePerDrop) {
+  Games game; uint32_t now=0; game.begin(0,seedFor(Games::FOOD),false);
+  game.input(Games::ENTER,0);
+  while(game.selection()!=game.target())
+    game.input(game.selection()<game.target()?Games::RIGHT:Games::LEFT,now);
+  for(int i=0;i<3;++i) { now+=game.interval(); game.tick(now); }
+  EXPECT_EQ(Games::CATCH,game.takeCue()); EXPECT_EQ(Games::SILENT,game.takeCue());
+  while(game.selection()==game.target())
+    game.input(game.selection()==0?Games::RIGHT:Games::LEFT,now);
+  for(int i=0;i<3;++i) { now+=game.interval(); game.tick(now); }
+  EXPECT_EQ(Games::MISS,game.takeCue());
 }
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }

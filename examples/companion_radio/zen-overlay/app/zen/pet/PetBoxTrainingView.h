@@ -24,18 +24,6 @@ struct PetBoxTrainingView {
     uint8_t a=swap?game.swap(game.stage()*2):0;
     uint8_t b=swap?game.swap(game.stage()*2+1):0;
     int centres[3]={d.width()/6,d.width()/2,5*d.width()/6};
-    if(swap) {
-      int left=centres[a]<centres[b]?centres[a]:centres[b];
-      int right=centres[a]>centres[b]?centres[a]:centres[b];
-      int arrow_y=middle-4*scale;
-      d.fillRect(left,arrow_y,right-left+1,scale);
-      for(int n=1;n<=2;++n) {
-        d.fillRect(left+n*scale,arrow_y-n*scale,scale,scale);
-        d.fillRect(left+n*scale,arrow_y+n*scale,scale,scale);
-        d.fillRect(right-n*scale,arrow_y-n*scale,scale,scale);
-        d.fillRect(right-n*scale,arrow_y+n*scale,scale,scale);
-      }
-    }
     for(uint8_t i=0;i<3;++i) {
       int cx=centres[i], box_y=middle-2*scale;
       if(game.phase()==Games::BOX_MOVE && (i==a || i==b)) {
@@ -60,7 +48,7 @@ struct PetBoxTrainingView {
     char text[32]; const char* hint="Boxes closed";
     if(game.phase()==Games::SHOW) hint="Remember";
     else if(swap) {
-      snprintf(text,sizeof(text),"Watch swap %u/3",game.stage()+1); hint=text;
+      snprintf(text,sizeof(text),"Watch swap %u/%u",game.stage()+1,Games::BOX_SWAPS); hint=text;
     } else if(game.phase()==Games::BOX_PAUSE) hint="Pause";
     else if(game.phase()==Games::PLAY) hint="Where is your pet?";
     else if(game.phase()==Games::ANSWER)

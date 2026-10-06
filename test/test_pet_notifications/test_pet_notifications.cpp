@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetNotifications.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/NotificationProfiles.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetGameAudio.h"
 using namespace zen::pet;
 
 static void observe(PetNotifications& n, uint8_t fullness=70, bool ready=false,
@@ -164,5 +165,25 @@ TEST(PetNotifications, UsesSharedMutePopupAndWakeRulesWithoutUnread) {
   context.quiet_time=false; context.low_power=true;
   EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).show_visual);
   EXPECT_EQ(0,zen::NotificationCoordinator::popupPriority(zen::NotificationType::PET));
+}
+TEST(PetNotifications, GameEffectsFollowMuteRulesWithoutPopupOrWake) {
+  auto event=PetGameAudio::event(PetGameAudio::melody(PetTrainingGames::HIT));
+  zen::NotificationContext context;
+  auto result=zen::NotificationCoordinator::decide(event,context);
+  EXPECT_TRUE(result.play_sound); EXPECT_FALSE(result.show_visual);
+  EXPECT_FALSE(result.wake_screen); EXPECT_FALSE(result.record_unread);
+  EXPECT_EQ(nullptr,event.popup);
+  context.silent=true; EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).play_sound);
+  context.silent=false; context.quiet_time=true;
+  EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).play_sound);
+  context.quiet_time=false; context.mode=zen::NotificationPolicy::OFF;
+  EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).play_sound);
+  context.mode=zen::NotificationPolicy::AUTO; context.client_connected=true;
+  EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).play_sound);
+  context.mode=zen::NotificationPolicy::ON; context.low_power=true;
+  EXPECT_FALSE(zen::NotificationCoordinator::decide(event,context).play_sound);
+  for(int cue=1;cue<=PetTrainingGames::COVER;++cue)
+    EXPECT_NE(nullptr,PetGameAudio::melody((PetTrainingGames::Cue)cue));
+  EXPECT_EQ(nullptr,PetGameAudio::melody(PetTrainingGames::SILENT));
 }
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }

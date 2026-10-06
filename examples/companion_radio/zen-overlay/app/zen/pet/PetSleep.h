@@ -21,6 +21,13 @@ public:
     return enabled && schedule && !_wake;
   }
   void wake(uint32_t now) { _wake = true; _wake_at = now; }
+  bool wakeActive() const { return _wake; }
+  static bool nearBedtime(bool synced,int64_t local,uint16_t start,uint16_t end) {
+    if (!synced || start==end || scheduled(synced,local,start,end)) return false;
+    int64_t seconds=local%86400; if(seconds<0) seconds+=86400;
+    int remaining=(int(start)*60-int(seconds)+86400)%86400;
+    return remaining>0 && remaining<=900;
+  }
 };
 
 } }

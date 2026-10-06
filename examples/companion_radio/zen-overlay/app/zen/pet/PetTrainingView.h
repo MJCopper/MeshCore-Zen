@@ -37,7 +37,7 @@ struct PetTrainingView {
     if(game.phase()==Games::INSTRUCTIONS || game.phase()==Games::FAILED) {
       static const char* const RULES[] = {
         "Remember 3 arrows","Catch 3 of 5 drops","Hit the zone 3 times",
-        "Track the hidden pet","Find changed shape"
+        "Track 5 swaps","Find changed shape"
       };
       static const char* const CONTROLS[] = {
         "Use joystick arrows","Left/Right to move","Enter in the zone",

@@ -99,6 +99,9 @@ class UITask : public AbstractUITask {
   zen::MessageUnreadCoordinator _message_unread;
   unsigned long ui_started_at, next_batt_chck;
   uint16_t _batt_mv;  // EMA-filtered battery voltage
+  bool _batt_external_power = false;
+  bool _batt_sample_valid = false;
+  uint32_t _batt_sample_at = 0;
   zen::BatteryRuntimeEstimator _battery_runtime;
   unsigned long next_backlight_btn_check = 0;
 #ifdef PIN_STATUS_LED
@@ -226,6 +229,7 @@ public:
   }
   void notifyPet(const char* text, const char* melody, bool training = false);
   void notifyPetAction(const char* text);
+  void playPetGameSound(const char* melody);
   bool isChildModeRestricted() const override { return isChildModeLocked(); }
   void setChildAdminUnlocked(bool unlocked);
   void applyChildMode();
@@ -242,6 +246,10 @@ public:
   bool useImperial() const { return _node_prefs && _node_prefs->units_imperial; }
   uint16_t getBattMilliVolts() const { return _batt_mv > 0 ? _batt_mv : AbstractUITask::getBattMilliVolts(); }
   uint16_t cachedBattMilliVolts() const { return _batt_mv; }
+  bool cachedExternalPower() const { return _batt_external_power; }
+  bool cachedBatteryValid() const { return _batt_sample_valid && _batt_mv>0; }
+  uint32_t cachedBatterySample() const { return _batt_sample_at; }
+  void refreshPetPresentation() { if (isHomeScreenVisible()) _next_refresh=0; }
   zen::BatteryRuntimeEstimator::State batteryRuntimeState() const { return _battery_runtime.state(); }
   uint32_t batteryRuntimeSeconds() const { return _battery_runtime.seconds(); }
   void sleepDisplay() { turnDisplayOff(); }

@@ -10,20 +10,23 @@ public:
   struct Text { int y; std::string value; };
   std::vector<Text> text;
   int cursor_y = 0;
+  int cursor_x = 0;
   int scale = 1;
+  bool eink = false;
   bool valid = true;
   PetDisplay(int w=128,int h=64,int s=1) : ZenDisplayDriver(w,h), scale(s) {}
   bool isOn() override { return true; }
+  bool isEink() override { return eink; }
   void turnOn() override {}
   void turnOff() override {}
   void clear() override {}
   void startFrame(ColorVal = 0) override { text.clear(); valid = true; }
   void setTextSize(int) override {}
   void setColor(ColorVal) override {}
-  void setCursor(int, int y) override { cursor_y = y; }
+  void setCursor(int x, int y) override { cursor_x = x; cursor_y = y; }
   void print(const char* value) override {
     text.push_back({cursor_y,value});
-    if(cursor_y<0 || cursor_y+8*scale>height() || strlen(value)*6*scale>width()) {
+    if(cursor_x<0 || cursor_y<0 || cursor_y+8*scale>height() || cursor_x+strlen(value)*6*scale>width()) {
       ADD_FAILURE() << value << " y=" << cursor_y << " scale=" << scale;
       valid=false;
     }
@@ -479,19 +482,21 @@ TEST(PetUI, AllFormsDetailsPosesAndEvolutionPreviewsFitBothDisplays) {
     }
     ASSERT_EQ(id,engine.state().form);
     PetDisplay d(scale==1?128:250,64*scale,scale);
-    for(uint8_t pose=0;pose<4;++pose) {
-      d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,0,0,pose,1500);
+    zen::pet::PetPersonality::Presentation look;
+    for(uint8_t pose=0;pose<=zen::pet::PetPersonality::REST;++pose) {
+      look.pose=(zen::pet::PetPersonality::Pose)pose;
+      d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,0,0,look);
       EXPECT_TRUE(d.valid) << unsigned(id) << " pose " << unsigned(pose);
     }
-    d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,2,0,0,0);
+    d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,2,0,look);
     EXPECT_TRUE(d.valid) << unsigned(id);
     if(level==12) EXPECT_TRUE(d.contains("Final form XP 41050"));
     else for(uint8_t choice=0;choice<engine.choices();++choice) {
-      d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,3,choice,0,0);
+      d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,3,choice,look);
       EXPECT_TRUE(d.valid) << unsigned(id) << " choice " << unsigned(choice);
     }
     engine.update(1,true,true,false);
-    d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,0,0,0,0);
+    d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,0,0,look);
     EXPECT_TRUE(d.valid) << unsigned(id) << " sleep";
   }
 }
@@ -502,12 +507,15 @@ TEST(PetUI, LowBatteryDetailsScrollWithoutLosingCareValues) {
     key(page,'h'); PetDisplay d(scale==1?128:250,64*scale,scale);
     page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_TRUE(d.valid);
-    key(page,'d'); d.startFrame(); page.render(d,24*scale,64*scale-1);
+    key(page,'d'); key(page,'d'); key(page,'d');
+    d.startFrame(); page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Charge to reduce")); EXPECT_TRUE(d.contains("hunger"));
-    EXPECT_TRUE(d.contains("Energy 100 Food 3")); EXPECT_TRUE(d.valid);
-    key(page,'u'); d.startFrame(); page.render(d,24*scale,64*scale-1);
+    EXPECT_TRUE(d.contains("Full 70 Bond 0/20")); EXPECT_TRUE(d.valid);
+    key(page,'u'); key(page,'u'); key(page,'u');
+    d.startFrame(); page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_TRUE(d.valid);
     key(page,'d'); page.update(1,true,false,false,true,0,true,100);
+    key(page,'u');
     d.startFrame(); page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_FALSE(d.contains("Charge to reduce"));
     EXPECT_TRUE(d.valid);
@@ -542,5 +550,58 @@ TEST(PetUI, ToastBlocksNavigationAndPreservesSelectedCareAction) {
   EXPECT_EQ(Gate::PASS,Gate::action(true,true,true,'b','e','b'));
   EXPECT_EQ(Gate::PASS,Gate::action(false,false,true,'e','e','b'));
   key(page,'b'); EXPECT_FALSE(page.trainingActive());
+}
+TEST(PetUI, EveryPersonalityPoseQuirkAndBubbleFitsAllFormsOnBothDisplays) {
+  using P=zen::pet::PetPersonality;
+  class PortraitDisplay : public PetDisplay {
+  public:
+    using PetDisplay::PetDisplay;
+    void fillRect(int x,int y,int w,int h) override {
+      EXPECT_GE(x,width()/2+2); PetDisplay::fillRect(x,y,w,h);
+    }
+    void drawRect(int x,int y,int w,int h) override {
+      EXPECT_GE(x,width()/2+2); PetDisplay::drawRect(x,y,w,h);
+    }
+  };
+  const char* phrases[]={"You're back!","That was close!","Snack?","Much better!","Ready!","Welcome back"};
+  for(int scale:{1,2}) {
+    PortraitDisplay d(scale==1?128:250,64*scale,scale); d.eink=scale==2;
+    for(unsigned id=0;id<zen::pet::Evolution::FORMS;++id)
+      for(unsigned pose=0;pose<=P::REST;++pose)
+        for(unsigned quirk=0;quirk<=P::STRETCH;++quirk) for(unsigned frame=0;frame<4;++frame) {
+          P::Presentation look; look.pose=(P::Pose)pose; look.quirk=(P::Quirk)quirk;
+          look.frame=frame; look.phrase=phrases[(id+pose+quirk)%6]; look.active=true;
+          d.startFrame(); zen::pet::PetPersonalityView::render(d,24*scale,64*scale-1,zen::pet::form(id),look);
+          EXPECT_TRUE(d.valid) << id << ':' << pose << ':' << quirk << ':' << frame << ':' << scale;
+        }
+    P::Presentation look; look.phrase="You're back!";
+    d.startFrame(); zen::pet::PetPersonalityView::render(d,24*scale,64*scale-1,zen::pet::form(0),look);
+    EXPECT_FALSE(d.text.empty()); EXPECT_TRUE(d.valid);
+  }
+}
+TEST(PetUI, PersonalityObservesSuccessfulFeedButNotRefusalsAndDetailsShowsNature) {
+  g_mock_millis=0; zen::pet::Page page; page.update(0,true,false,false);
+  auto nature=page.personality().temperament();
+  key(page,'e'); key(page,'e');
+  EXPECT_EQ(zen::pet::PetPersonality::HAPPY,page.personality().presentation(0).pose);
+  g_mock_millis=4000; page.update(4000,true,false,false);
+  key(page,'e'); // Already full; no new happy reaction.
+  EXPECT_EQ(zen::pet::PetPersonality::NEUTRAL,page.personality().presentation(4000).pose);
+  key(page,'b'); key(page,'h'); PetDisplay d; page.render(d,24,63);
+  key(page,'d'); d.startFrame(); page.render(d,24,63);
+  EXPECT_TRUE(d.contains((std::string("Nature ")+page.personality().name()).c_str()));
+  page.update(5000,false,false,false); page.update(6000,true,false,false);
+  EXPECT_EQ(nature,page.personality().temperament());
+}
+TEST(PetUI, PersonalityDoesNotLeakIntoMenuGamesSleepOrWakeOverride) {
+  g_mock_millis=0; zen::pet::Page page;
+  page.update(0,true,false,false,true,0,true,100,false,0,true);
+  EXPECT_EQ(zen::pet::PetPersonality::SLEEPY,page.personality().presentation(0).pose);
+  page.update(1,true,true,false,true,0,true,100,false,1,true);
+  key(page,'e'); key(page,'u'); key(page,'e'); // Wake Up.
+  page.update(2,true,true,false,true,0,true,100,false,2,true);
+  EXPECT_NE(zen::pet::PetPersonality::SLEEPY,page.personality().presentation(2).pose);
+  EXPECT_EQ(nullptr,page.personality().presentation(2).phrase);
+  page.hidePresentation(3); EXPECT_FALSE(page.personality().presentation(3).active);
 }
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }

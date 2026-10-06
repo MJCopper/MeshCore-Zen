@@ -85,20 +85,21 @@ Care timers use runtime elapsed time, independent of GPS, timezone and clock syn
 ## Training games
 
 Select **Train** for one randomly chosen game. Enter starts after the instructions.
-New sessions avoid the previous game; cancelling and restarting retains the
-chosen challenge. Each session allows one retry with the same puzzle.
+Each Train selection randomly chooses from all games except the previous one.
+Cancelling and reopening selects a different game. Each session allows one
+explicit retry with the same game and puzzle; selection history is RAM-only.
 
 | Game | Goal | Controls |
 |---|---|---|
 | Follow the Arrows | Remember and repeat three arrows | Joystick / arrow keys |
 | Catch the Food | Catch three of five drops | Left/Right |
 | Perfect Timing | Hit the highlighted zone three times | Enter |
-| Find Your Pet | Track the pet through three box swaps | Left/Right, Enter |
+| Find Your Pet | Track the pet through five box swaps | Left/Right, Enter |
 | Which One Changed? | Select the changed geometric symbol | Left/Right, Enter |
 
 Back cancels without cost or reward. Failed games also cost nothing.
 Find Your Pet reveals the pet for three seconds, closes the boxes for one second,
-then highlights each of three swaps with a double-headed arrow. OLED uses short
+then highlights each of five swap pairs without arrows. OLED uses short
 sliding swaps; E-INK uses discrete frames, with pauses between swaps. Left/Right
 stops at the edges and highlights the chosen box. Enter opens it and reveals the
 pet's actual location before Won/Lost. Retry repeats the original hiding place
@@ -129,6 +130,58 @@ memory previews. Memory/puzzle state advances only for input or phase changes;
 animated games update only while visible. Normal carousel status refreshes remain
 in place. Games use local pseudorandom state,
 not MeshCore's radio RNG, and add no packets, flash writes or background timers.
+
+Short game effects follow Notification mode, Silent/DND, Quiet Time and volume.
+Arrows have direction tones during preview and correct-input ticks; Food has
+catch/miss tones; Timing has hit pings; Find Your Pet has reveal/swap cues; Changed
+Shape has reveal/cover cues. Won! and Lost! retain their result melodies without
+duplicate final-step sounds. Gameplay remains usable muted. `PetGameAudio` maps
+model cues to sound-only events: no popups, screen wakes, or background timers.
+Busy audio or a notification drops an effect instead of queuing stale playback.
+
+## Personality
+
+Each new pet is randomly Playful, Calm, Curious or Stubborn. Its nature appears
+in Details (Up/Down scrolls) and persists through evolution and same-boot Off/On.
+Personality is cosmetic: care costs, cooldown, XP, Bond, game selection and
+evolution requirements do not change. Reboot creates a new pet and personality.
+
+Feeding produces a happy expression, winning a proud one and losing a brief sulk.
+The pet looks sleepy in the 15 minutes before its configured bedtime and excited
+when ready to evolve. Bedtime follows the pet's existing local-time schedule,
+including DST, even if notification Quiet Time is Off. Unsynchronized time,
+identical sleep endpoints and a Wake Up override disable bedtime anticipation.
+Actual sleep and Low Power take precedence over cosmetic reactions.
+
+Short, temperament-specific phrases appear in a speech bubble only on the
+ordinary pet page, never in care menus, games or notifications. Bubbles last four
+seconds, are spaced at least 30 seconds apart and avoid immediate repeats.
+Idle remarks require two minutes of visible page time. A greeting requires five
+minutes away; navigating care menus does not count. Action reactions expire on
+their original deadline even if a menu or notification obscures them—there is
+no delayed queue. Existing Won!/Lost! popups and sounds remain unchanged.
+
+Battery recovery gives a relaxed or delighted expression. It requires cached
+external power and a rise of at least three percentage points sustained across
+distinct battery samples for two minutes. Further reactions require another
+ten-point rise and at least ten minutes. Unknown readings or disconnection reset
+the observer; voltage rebound without external power does not qualify. A powered
+connection is not proof of active charging. Recovery gives no fullness, energy,
+XP or Bond and does not change the battery hunger policy.
+
+While visible, the pet occasionally blinks, looks around, tilts, hops or stretches.
+Temperament weights these quirks. OLED uses a few bounded frames, no faster than
+the existing 500 ms animation cadence; E-INK uses static poses, with personality
+redraws at least five seconds apart. Idle OLED redraws slow to five seconds.
+Speech and movement stay inside the portrait area; the portrait shrinks for a
+bubble, and text that cannot fit is omitted rather than covering statistics.
+
+Menus, training and notifications suppress quirks and bubbles. Display sleep,
+Pet Off, leaving the page, scheduled sleep and Low Power clear transient activity.
+There is no catch-up animation, screen wake, extra battery sampling, flash write,
+mesh traffic or background timer. `PetPersonality`, `PetPersonalityAssets` and
+`PetPersonalityView` separate state, constant phrases/expressions and rendering.
+Their local PRNG is independent of both training and MeshCore randomness.
 
 ## Daily mesh rewards
 

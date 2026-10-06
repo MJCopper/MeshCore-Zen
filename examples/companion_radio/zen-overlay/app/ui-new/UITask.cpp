@@ -703,6 +703,7 @@ public:
   void onHide() override {
 #if ZEN_FEATURE_PET
     _pet.close();
+    _pet.hidePresentation(millis());
 #endif
   }
 
@@ -720,8 +721,19 @@ public:
                     _node_prefs->quiet_time_end_min), _task->isLowPowerMode(),
                 !_task->isTimeSyncPending(),_task->petLocalSeconds(),
                 _page == PET && _task->isHomeScreenVisible() && _task->canNotifyPet(),
-                _task->cachedBattMilliVolts() ?
-                    zen::BatteryPolicy::percent(_task->cachedBattMilliVolts()) : -1);
+                _task->cachedBatteryValid() ?
+                    zen::BatteryPolicy::percent(_task->cachedBattMilliVolts()) : -1,
+                _task->cachedExternalPower(),_task->cachedBatterySample(),
+                zen::pet::PetSleep::nearBedtime(!_task->isTimeSyncPending(),
+                    _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
+                    _node_prefs->quiet_time_end_min),
+                _page == PET && _task->isHomeScreenVisible(),_task->canNotifyPet(),
+                Features::IS_EINK,now ^ uint32_t(_task->petLocalSeconds()));
+    if (_page == PET && _task->isHomeScreenVisible() &&
+        _pet.takePersonalityRedraw(now,Features::IS_EINK)) _task->refreshPetPresentation();
+    const char* effect=_pet.takeGameSound();
+    if (effect && _page == PET && _task->isHomeScreenVisible())
+      _task->playPetGameSound(effect);
     if (!force && _task->canNotifyPet()) {
       zen::pet::PetNotifications::Alert alert;
       if (_pet.takeAlert(now,alert,_task->isQuietTimeActive())) {
@@ -733,7 +745,7 @@ public:
     }
   }
   zen::pet::PetMeshRewards& petRewards() { updatePet(true); return _pet.rewards(); }
-  void cancelPetTraining() { _pet.cancelTraining(); }
+  void cancelPetTraining() { _pet.cancelTraining(); _pet.hidePresentation(millis()); }
   bool petMenuOpen() const { return _page == PET && _pet.menuOpen(); }
   bool petTrainingActive() const { return _pet.trainingActive(); }
 #endif
@@ -1009,7 +1021,7 @@ public:
 #if ZEN_FEATURE_PET
     else if (_page == PET) {
       // Validate visibility/Quiet Time again before a game frame can complete.
-      if (_pet.trainingActive()) updatePet(true);
+      updatePet(true);
       _pet_refresh_ms = _pet.render(display, content_y, display.height() - 1);
     }
 #endif
@@ -2081,6 +2093,16 @@ void UITask::notifyPetAction(const char* text) {
   dispatchNotification(event);
 #else
   (void)text;
+#endif
+}
+
+void UITask::playPetGameSound(const char* melody) {
+#if ZEN_FEATURE_PET && defined(PIN_BUZZER)
+  // Drop effects rather than queueing them behind a message/warning or tone.
+  if (!melody || !isHomeScreenVisible() || !canNotifyPet() || buzzer.isPlaying()) return;
+  dispatchNotification(zen::pet::PetGameAudio::event(melody));
+#else
+  (void)melody;
 #endif
 }
 
@@ -3418,6 +3440,8 @@ void UITask::loop() {
       _batt_mv = (_batt_mv == 0) ? raw : (uint16_t)((_batt_mv * 4u + raw) / 5u);
     }
     bool external_power = board.isExternalPowered();
+    _batt_sample_valid=raw>0;
+    _batt_external_power=external_power; _batt_sample_at=millis();
     _battery_runtime.update(millis(), _batt_mv, external_power, isEmergencyMode());
     // Don't shut down while on external power (charging) — avoids a shutdown loop.
     if (zen::BatteryPolicy::shouldShutdown(_batt_mv, external_power)) {

@@ -8,6 +8,7 @@
 #include "PetTrainingView.h"
 #include "PetSleep.h"
 #include "PetBatteryPolicy.h"
+#include "PetGameAudio.h"
 #include <helpers/ui/ZenDisplayDriver.h>
 #include <stdio.h>
 
@@ -22,15 +23,18 @@ class Page {
   PetTrainingGames _training;
   PetSleep _sleep;
   PetBatteryPolicy _battery;
-  uint8_t _view = 0, _selection = 0, _pose = 0;
-  uint32_t _reaction_until = 0;
+  PetPersonality _personality;
+  uint8_t _view = 0, _selection = 0, _details_last = 3;
   const char* _feedback = nullptr;
   char _rest_feedback[24] = {};
   bool _enabled = false;
   bool _loss_reported = false;
   bool completeTraining(uint32_t now) {
     if (_training.phase() == PetTrainingGames::FAILED) {
-      if (!_loss_reported) { _notifications.training(false); _loss_reported = true; }
+      if (!_loss_reported) {
+        _notifications.training(false); _personality.event(PetPersonality::LOST,now);
+        _loss_reported = true;
+      }
     } else _loss_reported = false;
     if (_training.phase() != PetTrainingGames::WON) return false;
     // Revalidate at completion: gameplay never owns costs or rewards.
@@ -39,7 +43,7 @@ class Page {
     _training.finish();
     if (r != Engine::OK) _feedback = result(r);
     _view = r == Engine::OK ? 0 : 1; _selection = 1;
-    if (r == Engine::OK) { _pose = 3; _reaction_until = now + 1500; }
+    if (r == Engine::OK) _personality.event(PetPersonality::WON,now);
     _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
                            _engine.sleeping(),_engine.paused());
     return true;
@@ -58,11 +62,22 @@ class Page {
 public:
   void update(uint32_t now, bool enabled, bool sleeping, bool paused,
               bool synced = false, int64_t local = 0, bool visible = true,
-              int battery_percent = -1) {
+              int battery_percent = -1, bool external_power = false,
+              uint32_t battery_sample = 0, bool bedtime = false,
+              bool page_visible = true, bool unobscured = true, bool slow = false,
+              uint32_t personality_seed = 0) {
     sleeping = _sleep.sleeping(now,enabled,sleeping);
     if (_view == 1 && _selection == 5 && !sleeping) _selection = 0;
     _engine.update(now, enabled, sleeping, paused, _battery.update(battery_percent));
     _enabled = enabled;
+    PetPersonality::Context context;
+    context.enabled=enabled; context.sleeping=sleeping; context.paused=paused;
+    context.page_visible=page_visible; context.ordinary=_view==0 && !_training.active();
+    context.unobscured=unobscured; context.slow=slow;
+    context.ready=_engine.ready(); context.bedtime=bedtime && !_sleep.wakeActive();
+    context.fullness=_engine.state().fullness; context.battery_percent=battery_percent;
+    context.external_power=external_power; context.battery_sample=battery_sample;
+    _personality.update(now,context,personality_seed);
     if (!enabled) _feedback = nullptr;
     if (_training.active()) {
       if (!enabled || sleeping || paused || (!visible && !trainingFailed())) cancelTraining();
@@ -73,11 +88,13 @@ public:
     const uint16_t old_xp = _engine.state().xp;
     const uint8_t old_bond = _engine.state().bond;
     if (_rewards.apply(_engine)) {
-      _pose = 2; _reaction_until = now + 1500;
       _notifications.reward(_engine.state().xp-old_xp,_engine.state().bond-old_bond);
     }
     _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),enabled,sleeping,paused);
     _enabled = enabled;
+    context.ready=_engine.ready(); context.fullness=_engine.state().fullness;
+    context.ordinary=_view==0 && !_training.active();
+    _personality.update(now,context);
   }
   PetMeshRewards& rewards() { return _rewards; }
   bool takeAlert(uint32_t now, PetNotifications::Alert& alert, bool quiet = false) {
@@ -94,11 +111,20 @@ public:
   bool trainingFailed() const { return _training.phase() == PetTrainingGames::FAILED; }
   bool enabled() const { return _enabled; }
   bool menuOpen() const { return _view != 0; }
+  const PetPersonality& personality() const { return _personality; }
+  bool takePersonalityRedraw(uint32_t now,bool slow) { return _personality.takeRedraw(now,slow); }
+  void hidePresentation(uint32_t now) { _personality.hide(now); }
   bool trainingActive() const { return _training.active(); }
+  const char* takeGameSound() {
+    auto cue=_training.takeCue();
+    if (!_enabled || _engine.sleeping() || _engine.paused() ||
+        !_training.active() || _training.phase()==PetTrainingGames::FAILED ||
+        _training.phase()==PetTrainingGames::WON) return nullptr;
+    return PetGameAudio::melody(cue);
+  }
   void cancelTraining() {
     if (!_training.active()) return;
     _training.cancel(); _view = 0;
-    _reaction_until = millis() + 1500;
   }
   void close() { _training.cancel(); _view = _selection = 0; _feedback = nullptr; }
   bool input(char c, char enter, char back, char hold, char up, char down,
@@ -134,7 +160,8 @@ public:
       return false;
     }
     if (_view == 2 && (c == up || c == down)) {
-      _selection = c == down && _engine.hungerRate() > 5 ? 1 : 0;
+      if (c==down && _selection<_details_last) ++_selection;
+      if (c==up && _selection>0) --_selection;
       return true;
     }
     if ((c == up || c == down) && (_view == 1 || _view == 3)) {
@@ -152,7 +179,6 @@ public:
         _sleep.wake(millis());
         _engine.update(millis(),_enabled,false,false,_battery.rate());
         _view = 1; _selection = 0; _feedback = "Awake 30 minutes";
-        _reaction_until = millis() + 1500;
       } else { _feedback = "Low Power"; }
       return true;
     }
@@ -181,8 +207,7 @@ public:
     if (r == Engine::OK) {
       _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
                              _engine.sleeping(),_engine.paused());
-      _pose = _selection == 0 ? 2 : 3;
-      _reaction_until = millis() + 1500;
+      _personality.event(PetPersonality::FED,millis());
     }
     return true;
   }
@@ -195,8 +220,13 @@ public:
     if (_view == 4 || _view == 5) {
       PetRewardsView::render(d,y,bottom,_rewards,_view == 5); return 5000;
     }
-    return Renderer::render(d, y, bottom, _engine, _view, _selection,
-                            _pose, _reaction_until);
+    int rows=(bottom-y-d.getLineHeight())/d.lineStep()+1;
+    if(rows<1) rows=1;
+    int count=_engine.hungerRate()>5?7:5;
+    _details_last=count>rows?count-rows:0;
+    if(_view==2 && _selection>_details_last) _selection=_details_last;
+    return Renderer::render(d,y,bottom,_engine,_view,_selection,
+        _personality.presentation(millis()),_personality.name());
   }
 };
 
