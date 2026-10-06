@@ -2,6 +2,7 @@
 
 #include "PetAssets.h"
 #include "PetPersonality.h"
+#include "PetPortraitLayout.h"
 #include <helpers/ui/ZenDisplayDriver.h>
 #include <string.h>
 
@@ -17,41 +18,50 @@ struct PetPersonalityView {
     if(end_x>right) end_x=right; if(end_y>bottom) end_y=bottom;
     if(end_x>x && end_y>y) d.fillRect(x,y,end_x-x,end_y-y);
   }
-  static void render(ZenDisplayDriver& d,int y,int bottom,const Form& asset,
-                     const PetPersonality::Presentation& p) {
-    using P=PetPersonality;
-    int left=d.width()/2+2,right=d.width()-2;
-    int top=y+d.getLineHeight()+1,available=bottom-top;
-    int scale=d.getLineHeight()/8; if(scale<1) scale=1;
-    if(p.phrase && available>=2*d.getLineHeight()+10) {
-      char lines[2][24]={{0},{0}}; unsigned length=strlen(p.phrase);
+  static void bubble(ZenDisplayDriver& d,const PetPortraitLayout& layout,const char* phrase) {
+    int left=layout.left,right=layout.right,top=layout.top,bottom=layout.bottom;
+    if(phrase) {
+      char lines[2][24]={{0},{0}}; unsigned length=strlen(phrase);
       int columns=(right-left-4)/d.getCharWidth();
       if(columns>23) columns=23;
       if(columns>0 && length<=(unsigned)(columns*2)) {
         unsigned split=length;
         if(length>(unsigned)columns) {
           split=columns;
-          while(split>0 && p.phrase[split]!=' ') --split;
+          while(split>0 && phrase[split]!=' ') --split;
         }
         unsigned second=split<length?split+1:length;
         if(split>0 && length-second<=(unsigned)columns) {
-          memcpy(lines[0],p.phrase,split);
-          memcpy(lines[1],p.phrase+second,length-second);
+          memcpy(lines[0],phrase,split);
+          memcpy(lines[1],phrase+second,length-second);
           int rows=second<length?2:1;
-          int h=rows*d.getLineHeight()+4;
-          if(bottom-(top+h+1)>=8) {
+          int h=layout.bubbleHeight(d.getLineHeight(),rows);
+          if(h) {
+            d.setColor(ZenDisplayDriver::DARK);
+            d.fillRect(left,top,right-left,h+1);
+            d.setColor(ZenDisplayDriver::LIGHT);
             d.drawRect(left,top,right-left,h);
             for(int row=0;row<rows;++row) d.drawTextLeftAlign(left+2,top+2+row*d.getLineHeight(),lines[row]);
-            d.fillRect(right-8,top+h,2,1); top+=h+1;
+            d.fillRect(right-8,top+h,2,1);
           }
         }
       }
     }
-    int size=asset.size;
-    if(size>bottom-top-1) size=bottom-top-1;
-    if(size>right-left-4) size=right-left-4;
+  }
+  static void render(ZenDisplayDriver& d,int y,int bottom,const Form& asset,
+                     const PetPersonality::Presentation& p) {
+    using P=PetPersonality;
+    auto layout=PetPortraitLayout::calculate(d.width(),d.getLineHeight(),y,bottom,asset.size);
+    int left=layout.left,right=layout.right,top=layout.top;
+    int scale=d.getLineHeight()/8; if(scale<1)scale=1;
+    bool moving=p.active && !d.isEink();
+    int size=layout.size;
     if(size<4) return;
-    int x=left+(right-left-size)/2,sy=bottom-size-1;
+    int x=layout.x,sy=layout.y;
+    int dx=moving?p.offset_x:0,dy=moving?p.offset_y:0;
+    if(dx<-layout.range_x)dx=-layout.range_x; if(dx>layout.range_x)dx=layout.range_x;
+    if(dy<-layout.range_y)dy=-layout.range_y; if(dy>layout.range_y)dy=layout.range_y;
+    x+=dx; sy+=dy;
     int frame=d.isEink()?1:p.frame;
     if(p.quirk==P::HOP && frame%2) sy-=2;
     if(p.quirk==P::STRETCH && frame%2) { ++size; --sy; }
@@ -83,7 +93,8 @@ struct PetPersonalityView {
       rect(d,x+size+1+scale,sy+3-scale,scale,3*scale,left,top,right,bottom);
     }
     if((p.pose==P::SLEEP || p.pose==P::SLEEPY) && sy>=top && sy+d.getLineHeight()<=bottom)
-      d.drawTextLeftAlign(right-d.getCharWidth(),sy,"z");
+      d.drawTextLeftAlign(x+size+1,sy,"z");
+    bubble(d,layout,p.phrase);
   }
 };
 

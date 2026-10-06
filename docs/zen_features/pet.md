@@ -141,6 +141,15 @@ Busy audio or a notification drops an effect instead of queuing stale playback.
 
 ## Personality
 
+On OLED, an awake pet wanders in one-pixel steps every randomly chosen
+0.5–1.5 seconds, within four pixels horizontally and two vertically of its
+resting position. Available space reduces these limits for larger forms;
+portrait size takes priority. Its face and attached expressions move with it;
+speech bubbles and statistics stay still. Movement never drifts outside its bounds.
+Menus, games, notifications, screen sleep and Low Power stop the shuffle and
+return it to centre. E-ink stays static. Movement is RAM-only and never wakes
+the screen or extends its timeout.
+
 Each new pet is randomly Playful, Calm, Curious or Stubborn. Its nature appears
 in Details (Up/Down scrolls) and persists through evolution and same-boot Off/On.
 Personality is cosmetic: care costs, cooldown, XP, Bond, game selection and
@@ -172,15 +181,19 @@ XP or Bond and does not change the battery hunger policy.
 While visible, the pet occasionally blinks, looks around, tilts, hops or stretches.
 Temperament weights these quirks. OLED uses a few bounded frames, no faster than
 the existing 500 ms animation cadence; E-INK uses static poses, with personality
-redraws at least five seconds apart. Idle OLED redraws slow to five seconds.
-Speech and movement stay inside the portrait area; the portrait shrinks for a
-bubble, and text that cannot fit is omitted rather than covering statistics.
+redraws at least five seconds apart. OLED shuffle redraws follow their random
+deadlines; when movement is suppressed, ordinary redraws slow to five seconds.
+Speech and movement stay inside the portrait area. Opaque one- or two-line
+bubbles overlay its top for four seconds without shrinking the pet or changing
+movement bounds. They may cover part of the pet; the full portrait returns when
+they expire. Text that cannot fit is omitted rather than covering statistics.
 
 Menus, training and notifications suppress quirks and bubbles. Display sleep,
 Pet Off, leaving the page, scheduled sleep and Low Power clear transient activity.
 There is no catch-up animation, screen wake, extra battery sampling, flash write,
-mesh traffic or background timer. `PetPersonality`, `PetPersonalityAssets` and
-`PetPersonalityView` separate state, constant phrases/expressions and rendering.
+mesh traffic or background timer. `PetPersonality`, `PetPersonalityAssets`,
+`PetPortraitLayout` and `PetPersonalityView` separate state, constant
+phrases/expressions, safe geometry and rendering.
 Their local PRNG is independent of both training and MeshCore randomness.
 
 ## Daily mesh rewards

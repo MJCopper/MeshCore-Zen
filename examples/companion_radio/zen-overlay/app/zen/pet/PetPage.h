@@ -24,6 +24,7 @@ class Page {
   PetSleep _sleep;
   PetBatteryPolicy _battery;
   PetPersonality _personality;
+  int8_t _portrait_range_x=0,_portrait_range_y=0;
   uint8_t _view = 0, _selection = 0, _details_last = 3;
   const char* _feedback = nullptr;
   char _rest_feedback[24] = {};
@@ -77,6 +78,7 @@ public:
     context.ready=_engine.ready(); context.bedtime=bedtime && !_sleep.wakeActive();
     context.fullness=_engine.state().fullness; context.battery_percent=battery_percent;
     context.external_power=external_power; context.battery_sample=battery_sample;
+    context.range_x=_portrait_range_x; context.range_y=_portrait_range_y;
     _personality.update(now,context,personality_seed);
     if (!enabled) _feedback = nullptr;
     if (_training.active()) {
@@ -212,6 +214,10 @@ public:
     return true;
   }
   int render(ZenDisplayDriver& d, int y, int bottom) {
+    auto layout=PetPortraitLayout::calculate(d.width(),d.getLineHeight(),y,bottom,
+        form(_engine.state().form).size);
+    _portrait_range_x=layout.range_x; _portrait_range_y=layout.range_y;
+    _personality.setMovementBounds(_portrait_range_x,_portrait_range_y);
     if (_training.active()) {
       _training.tick(millis());
       if (!completeTraining(millis()))

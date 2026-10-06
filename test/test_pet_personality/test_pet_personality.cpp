@@ -4,6 +4,66 @@
 
 using P=zen::pet::PetPersonality;
 
+TEST(PetPersonality, ShuffleIntervalsPositionsAndNoCatchup) {
+  P pet; P::Context c; pet.update(0,c,101);
+  EXPECT_GE(pet.updateDelay(0),500u); EXPECT_LE(pet.updateDelay(0),1000u);
+  int x=0,y=0; uint32_t last=0; bool seen[45]={};
+  for(uint32_t now=1;now<=300000;++now) {
+    pet.update(now,c); auto p=pet.presentation(now);
+    EXPECT_GE(p.offset_x,-4); EXPECT_LE(p.offset_x,4);
+    EXPECT_GE(p.offset_y,-2); EXPECT_LE(p.offset_y,2);
+    if(p.offset_x!=x || p.offset_y!=y) {
+      EXPECT_GE(now-last,500u); EXPECT_LE(now-last,1500u);
+      EXPECT_LE(abs(p.offset_x-x),1); EXPECT_LE(abs(p.offset_y-y),1);
+      seen[(p.offset_y+2)*9+p.offset_x+4]=true;
+      x=p.offset_x; y=p.offset_y; last=now;
+      pet.update(now,c); auto again=pet.presentation(now);
+      EXPECT_EQ(x,again.offset_x); EXPECT_EQ(y,again.offset_y);
+      EXPECT_GE(pet.updateDelay(now),500u); EXPECT_LE(pet.updateDelay(now),1000u);
+    }
+  }
+  EXPECT_TRUE(seen[22]);
+  pet.update(1000000,c); auto delayed=pet.presentation(1000000);
+  pet.update(1000001,c); auto next=pet.presentation(1000001);
+  EXPECT_EQ(delayed.offset_x,next.offset_x); EXPECT_EQ(delayed.offset_y,next.offset_y);
+}
+
+TEST(PetPersonality, RestrictedBoundsClampAndStopWithoutRedrawPolling) {
+  P pet; P::Context c; pet.update(0,c,18);
+  for(uint32_t now=1500;now<60000;now+=1500)pet.update(now,c);
+  pet.setMovementBounds(0,0); auto p=pet.presentation(60000);
+  EXPECT_EQ(0,p.offset_x); EXPECT_EQ(0,p.offset_y);
+  c.range_x=c.range_y=0; pet.update(60000,c); pet.takeRedraw(60000,false);
+  pet.update(62000,c); EXPECT_FALSE(pet.takeRedraw(62000,false));
+  c.range_x=1; pet.update(62001,c);
+  for(uint32_t now=63501;now<80000;now+=1500) {
+    pet.update(now,c); p=pet.presentation(now);
+    EXPECT_GE(p.offset_x,-1); EXPECT_LE(p.offset_x,1); EXPECT_EQ(0,p.offset_y);
+  }
+}
+
+TEST(PetPersonality, ShuffleResetsForEverySuppressionAndWraps) {
+  for(unsigned mode=0;mode<7;++mode) {
+    P pet; P::Context c; uint32_t start=0xffffff00u;
+    pet.update(start,c,17); pet.update(start+1500,c);
+    auto moved=pet.presentation(start+1500);
+    EXPECT_TRUE(moved.offset_x || moved.offset_y);
+    if(mode==0)c.enabled=false; if(mode==1)c.sleeping=true;
+    if(mode==2)c.paused=true; if(mode==3)c.page_visible=false;
+    if(mode==4)c.ordinary=false; if(mode==5)c.unobscured=false;
+    if(mode==6)c.slow=true;
+    pet.update(start+1501,c); auto stopped=pet.presentation(start+1501);
+    EXPECT_EQ(0,stopped.offset_x); EXPECT_EQ(0,stopped.offset_y);
+    pet.update(start+90000,c);
+    c=P::Context(); pet.update(start+90001,c);
+    pet.update(start+90500,c); auto resumed=pet.presentation(start+90500);
+    EXPECT_EQ(0,resumed.offset_x); EXPECT_EQ(0,resumed.offset_y);
+  }
+  P pet; P::Context c; c.slow=true; pet.update(0,c,17);
+  pet.takeRedraw(0,true); pet.update(2000,c);
+  EXPECT_FALSE(pet.takeRedraw(2000,true));
+}
+
 TEST(PetPersonality, TemperamentsAreSeededIndependentlyAndSurviveOffOn) {
   unsigned counts[4]={};
   for(unsigned seed=1;seed<=4096;++seed) {

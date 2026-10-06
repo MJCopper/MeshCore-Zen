@@ -714,7 +714,6 @@ public:
     uint32_t now = millis();
     if (!force && enabled == _pet.enabled() && (int32_t)(now - _pet_update_at) < 0) return;
     // Input/render validation must not postpone the notification pump.
-    if (!force) _pet_update_at = now + 1000;
     _pet.update(millis(), _node_prefs && _node_prefs->pet_enabled,
                 zen::pet::PetSleep::scheduled(!_task->isTimeSyncPending(),
                     _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
@@ -729,6 +728,8 @@ public:
                     _node_prefs->quiet_time_end_min),
                 _page == PET && _task->isHomeScreenVisible(),_task->canNotifyPet(),
                 Features::IS_EINK,now ^ uint32_t(_task->petLocalSeconds()));
+    uint32_t next_update=now + _pet.personality().updateDelay(now);
+    if (!force || int32_t(next_update-_pet_update_at)<0) _pet_update_at=next_update;
     if (_page == PET && _task->isHomeScreenVisible() &&
         _pet.takePersonalityRedraw(now,Features::IS_EINK)) _task->refreshPetPresentation();
     const char* effect=_pet.takeGameSound();

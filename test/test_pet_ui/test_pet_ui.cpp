@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <string>
+#include <array>
 #include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetPage.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetPopupInput.h"
 
@@ -571,12 +572,79 @@ TEST(PetUI, EveryPersonalityPoseQuirkAndBubbleFitsAllFormsOnBothDisplays) {
         for(unsigned quirk=0;quirk<=P::STRETCH;++quirk) for(unsigned frame=0;frame<4;++frame) {
           P::Presentation look; look.pose=(P::Pose)pose; look.quirk=(P::Quirk)quirk;
           look.frame=frame; look.phrase=phrases[(id+pose+quirk)%6]; look.active=true;
-          d.startFrame(); zen::pet::PetPersonalityView::render(d,24*scale,64*scale-1,zen::pet::form(id),look);
-          EXPECT_TRUE(d.valid) << id << ':' << pose << ':' << quirk << ':' << frame << ':' << scale;
+          for(int offset=0;offset<45;++offset) for(bool bubble:{false,true}) {
+            look.offset_x=offset%9-4; look.offset_y=offset/9-2;
+            auto layout=zen::pet::PetPortraitLayout::calculate(d.width(),d.getLineHeight(),
+                18*scale,64*scale-1,zen::pet::form(id).size);
+            if(abs(look.offset_x)>layout.range_x || abs(look.offset_y)>layout.range_y ||
+                (d.eink && (look.offset_x || look.offset_y)))continue;
+            look.phrase=bubble?phrases[(id+pose+quirk)%6]:nullptr;
+            d.startFrame(); zen::pet::PetPersonalityView::render(d,18*scale,64*scale-1,zen::pet::form(id),look);
+            EXPECT_TRUE(d.valid) << id << ':' << pose << ':' << quirk << ':' << frame << ':' << scale << ':' << offset;
+          }
         }
     P::Presentation look; look.phrase="You're back!";
     d.startFrame(); zen::pet::PetPersonalityView::render(d,24*scale,64*scale-1,zen::pet::form(0),look);
     EXPECT_FALSE(d.text.empty()); EXPECT_TRUE(d.valid);
+  }
+}
+TEST(PetUI, PortraitLayoutPreservesSizeAndReservesEveryAnimation) {
+  for(unsigned id=0;id<zen::pet::Evolution::FORMS;++id) {
+    auto p=zen::pet::PetPortraitLayout::calculate(128,8,18,63,zen::pet::form(id).size);
+    EXPECT_EQ(zen::pet::form(id).size,p.size);
+    EXPECT_LE(p.range_x,4); EXPECT_LE(p.range_y,2);
+    EXPECT_GE(p.x-p.range_x-1,p.left);
+    EXPECT_GE(p.y-p.range_y-2,p.top);
+    EXPECT_LE(p.x+p.range_x+p.size+7,p.right);
+    EXPECT_LE(p.y+p.range_y+p.size,p.bottom);
+    EXPECT_EQ(12,p.bubbleHeight(8,1)); EXPECT_EQ(20,p.bubbleHeight(8,2));
+  }
+  auto tight=zen::pet::PetPortraitLayout::calculate(128,8,24,63,32);
+  EXPECT_EQ(26,tight.size); EXPECT_EQ(0,tight.range_y);
+}
+
+TEST(PetUI, ShuffleMovesWholePortraitButNotBubbleAndEinkIgnoresOffsets) {
+  using P=zen::pet::PetPersonality;
+  class TraceDisplay : public PetDisplay {
+  public:
+    std::vector<std::array<int,4>> fills,boxes;
+    ColorVal color=0;
+    std::vector<ColorVal> colors;
+    void setColor(ColorVal c) override { color=c; }
+    void fillRect(int x,int y,int w,int h) override {
+      fills.push_back({x,y,w,h}); colors.push_back(color); PetDisplay::fillRect(x,y,w,h);
+    }
+    void drawRect(int x,int y,int w,int h) override {
+      boxes.push_back({x,y,w,h}); PetDisplay::drawRect(x,y,w,h);
+    }
+  };
+  for(bool eink:{false,true}) for(bool bubble:{false,true}) {
+    TraceDisplay d; d.eink=eink; P::Presentation p;
+    p.active=true; p.pose=P::PROUD; p.phrase=bubble?"Snack?":nullptr;
+    zen::pet::PetPersonalityView::render(d,24,63,zen::pet::form(0),p);
+    auto fills=d.fills,boxes=d.boxes; auto text=d.text;
+    if(bubble) {
+      EXPECT_EQ(ZenDisplayDriver::DARK,d.colors[d.colors.size()-2]);
+      EXPECT_EQ(ZenDisplayDriver::LIGHT,d.colors.back());
+      d.fills.clear(); d.boxes.clear(); d.startFrame(); p.phrase=nullptr;
+      zen::pet::PetPersonalityView::render(d,24,63,zen::pet::form(0),p);
+      ASSERT_EQ(fills.size()-2,d.fills.size());
+      for(unsigned i=0;i<d.fills.size();++i) EXPECT_EQ(fills[i],d.fills[i]);
+      p.phrase="Snack?";
+    }
+    d.fills.clear(); d.boxes.clear(); d.startFrame(); p.offset_x=1; p.offset_y=-1;
+    zen::pet::PetPersonalityView::render(d,24,63,zen::pet::form(0),p);
+    ASSERT_EQ(fills.size(),d.fills.size()); EXPECT_EQ(boxes,d.boxes);
+    ASSERT_EQ(text.size(),d.text.size());
+    for(unsigned i=0;i<text.size();++i) {
+      EXPECT_EQ(text[i].y,d.text[i].y); EXPECT_EQ(text[i].value,d.text[i].value);
+    }
+    for(unsigned i=0;i<fills.size();++i) {
+      bool shifted=!eink && !(bubble && i>=fills.size()-2); // Opaque bubble and tail are stationary.
+      EXPECT_EQ(fills[i][0]+(shifted?1:0),d.fills[i][0]);
+      EXPECT_EQ(fills[i][1]-(shifted?1:0),d.fills[i][1]);
+      EXPECT_EQ(fills[i][2],d.fills[i][2]); EXPECT_EQ(fills[i][3],d.fills[i][3]);
+    }
   }
 }
 TEST(PetUI, PersonalityObservesSuccessfulFeedButNotRefusalsAndDetailsShowsNature) {
