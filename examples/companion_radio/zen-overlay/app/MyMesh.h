@@ -32,7 +32,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.30"
+#define FIRMWARE_VERSION "v2.2.32"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -109,6 +109,7 @@ struct DiscoverResult {
 
 class MyMesh : public BaseChatMesh, public DataStoreHost {
 public:
+  zen::ZenStore& petExtensionStore() { return _zen_store; }
   using FloodScopeState = zen::FloodScopeView::State;
 
   struct StorageStatus {

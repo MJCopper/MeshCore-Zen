@@ -32,6 +32,7 @@ private:
   Seen _seen[8];
   uint8_t _peer_next = 0, _attempt_next = 0, _seen_next = 0;
   bool _enabled = false, _paused = false, _sleep = false;
+  bool _restore_block=false;
   void clearEvidence() {
     for (auto& peer : _peers) peer = Peer();
     for (auto& attempt : _attempts) attempt = Attempt();
@@ -62,12 +63,19 @@ private:
     _progress.pending_xp = total > limit ? limit : total;
   }
 public:
+  struct Checkpoint { Progress progress; PetRewardDay::Checkpoint day; };
+  Checkpoint checkpoint() const { return {_progress,_day.checkpoint()}; }
+  void restore(const Checkpoint& c,uint32_t now) {
+    *this=PetMeshRewards(); _progress=c.progress; _day.restore(c.day,now);
+    _restore_block=true;
+  }
   const Progress& progress() const { return _progress; }
   bool synchronized() const { return _day.synchronized(); }
   void update(uint32_t now, bool enabled, bool sleeping, bool paused,
               bool synced, int64_t local) {
     if (enabled || _enabled) {
       if (_day.update(now,synced,local)) {
+        _restore_block=false;
         uint16_t pending_xp = _progress.pending_xp;
         uint8_t pending_bond = _progress.pending_bond;
         _progress = Progress();
@@ -81,7 +89,7 @@ public:
   }
   void started(Kind kind, const uint8_t* key, uint32_t message,
                uint8_t retry, uint32_t token, bool allowed) {
-    if (!_enabled || _paused || !allowed || !token || (kind != CHANNEL && !key)) return;
+    if (_restore_block || !_enabled || _paused || !allowed || !token || (kind != CHANNEL && !key)) return;
     bool found = false, completed = false;
     for (const auto& attempt : _attempts) {
       if (attempt.used && attempt.kind == kind && attempt.message == message &&
@@ -105,7 +113,7 @@ public:
     return false;
   }
   void completed(uint32_t token, Kind kind, bool allowed, bool favourite) {
-    if (!_enabled || _paused || !allowed) return;
+    if (_restore_block || !_enabled || _paused || !allowed) return;
     for (auto& attempt : _attempts) {
       if (!attempt.used || attempt.completed || attempt.token != token ||
           ((kind == CHANNEL) != (attempt.kind == CHANNEL))) continue;
@@ -124,7 +132,7 @@ public:
     }
   }
   void received(const uint8_t* key, uint64_t token, bool room, bool allowed, bool favourite) {
-    if (!_enabled || _paused || !allowed || !key) return;
+    if (_restore_block || !_enabled || _paused || !allowed || !key) return;
     if (token) {
       for (const auto& seen : _seen)
         if (seen.used && seen.token == token && memcmp(seen.key,key,32) == 0) return;

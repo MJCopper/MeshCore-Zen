@@ -9,6 +9,8 @@
 #include "PetSleep.h"
 #include "PetBatteryPolicy.h"
 #include "PetGameAudio.h"
+#include "PetGameDisplay.h"
+#include "PetSnapshot.h"
 #include <helpers/ui/ZenDisplayDriver.h>
 #include <stdio.h>
 
@@ -24,15 +26,18 @@ class Page {
   PetSleep _sleep;
   PetBatteryPolicy _battery;
   PetPersonality _personality;
+  PetGameDisplay _game_display;
   int8_t _portrait_range_x=0,_portrait_range_y=0;
   uint8_t _view = 0, _selection = 0, _details_last = 3;
   const char* _feedback = nullptr;
   char _rest_feedback[24] = {};
   bool _enabled = false;
   bool _loss_reported = false;
+  bool _save_requested=false;
   bool completeTraining(uint32_t now) {
     if (_training.phase() == PetTrainingGames::FAILED) {
       if (!_loss_reported) {
+        _game_display.result(now);
         _notifications.training(false); _personality.event(PetPersonality::LOST,now);
         _loss_reported = true;
       }
@@ -40,7 +45,7 @@ class Page {
     if (_training.phase() != PetTrainingGames::WON) return false;
     // Revalidate at completion: gameplay never owns costs or rewards.
     auto r = _engine.train();
-    if (r == Engine::OK) _notifications.training(true);
+    if (r == Engine::OK) { _notifications.training(true); _game_display.result(now); }
     _training.finish();
     if (r != Engine::OK) _feedback = result(r);
     _view = r == Engine::OK ? 0 : 1; _selection = 1;
@@ -61,6 +66,18 @@ class Page {
     return TEXT[r];
   }
 public:
+  PetSnapshot checkpoint() const {
+    PetSnapshot s; s.engine=_engine.checkpoint(); s.rewards=_rewards.checkpoint();
+    s.temperament=_personality.temperament(); return s;
+  }
+  void restore(const PetSnapshot& s,uint32_t now) {
+    _engine.restore(s.engine,now); _rewards.restore(s.rewards,now);
+    _personality.restoreTemperament(s.temperament,now);
+    _training.cancel(); _game_display.cancel(); _sleep=PetSleep();
+    _view=_selection=0; _feedback=nullptr; _save_requested=false;
+  }
+  bool takeSaveRequest() { bool requested=_save_requested; _save_requested=false; return requested; }
+  void saveFeedback(const char* text) { _feedback=text; }
   void update(uint32_t now, bool enabled, bool sleeping, bool paused,
               bool synced = false, int64_t local = 0, bool visible = true,
               int battery_percent = -1, bool external_power = false,
@@ -68,7 +85,7 @@ public:
               bool page_visible = true, bool unobscured = true, bool slow = false,
               uint32_t personality_seed = 0) {
     sleeping = _sleep.sleeping(now,enabled,sleeping);
-    if (_view == 1 && _selection == 5 && !sleeping) _selection = 0;
+    if (_view == 1 && _selection == 6 && !sleeping) _selection = 0;
     _engine.update(now, enabled, sleeping, paused, _battery.update(battery_percent));
     _enabled = enabled;
     PetPersonality::Context context;
@@ -117,6 +134,11 @@ public:
   bool takePersonalityRedraw(uint32_t now,bool slow) { return _personality.takeRedraw(now,slow); }
   void hidePresentation(uint32_t now) { _personality.hide(now); }
   bool trainingActive() const { return _training.active(); }
+  PetGameDisplay::Decision gameDisplay(uint32_t now,bool visible) {
+    return _game_display.update(now,_training.active() && !trainingFailed(),
+        _training.previewing() || _training.phase()==PetTrainingGames::ANSWER,
+        visible && _enabled && !_engine.sleeping() && !_engine.paused());
+  }
   const char* takeGameSound() {
     auto cue=_training.takeCue();
     if (!_enabled || _engine.sleeping() || _engine.paused() ||
@@ -125,10 +147,11 @@ public:
     return PetGameAudio::melody(cue);
   }
   void cancelTraining() {
+    _game_display.cancel();
     if (!_training.active()) return;
     _training.cancel(); _view = 0;
   }
-  void close() { _training.cancel(); _view = _selection = 0; _feedback = nullptr; }
+  void close() { _game_display.cancel(); _training.cancel(); _view = _selection = 0; _feedback = nullptr; }
   bool input(char c, char enter, char back, char hold, char up, char down,
              char left = 'l', char right = 'r', char prev = '[', char next = ']',
              uint32_t seed = 0, bool slow = false) {
@@ -137,6 +160,8 @@ public:
       Games::Action action = c == back ? Games::BACK : c == enter ? Games::ENTER :
           c == up ? Games::UP : c == down ? Games::DOWN :
           c == left || c == prev ? Games::LEFT : c == right || c == next ? Games::RIGHT : Games::NONE;
+      if(action!=Games::NONE) _game_display.input(millis());
+      if(action==Games::BACK) _game_display.cancel();
       // Capture timer expiry before input can accept the retry or dismiss it.
       if (action != Games::BACK) {
         _training.tick(millis());
@@ -167,7 +192,7 @@ public:
       return true;
     }
     if ((c == up || c == down) && (_view == 1 || _view == 3)) {
-      uint8_t count = _view == 3 ? _engine.choices() : _engine.sleeping() ? 6 : 5;
+      uint8_t count = _view == 3 ? _engine.choices() : _engine.sleeping() ? 7 : 6;
       _selection = (_selection + count + (c == down ? 1 : -1)) % count;
       return true;
     }
@@ -176,7 +201,8 @@ public:
     _feedback = nullptr;
     if (_view == 4 || _view == 5) { _view = _view == 4 ? 5 : 4; return true; }
     if (_view == 2) { close(); return true; }
-    if (_view == 1 && _selection == 5) {
+    if (_view == 1 && _selection == 5) { _save_requested=true; return true; }
+    if (_view == 1 && _selection == 6) {
       if (_engine.sleeping() && !_engine.paused()) {
         _sleep.wake(millis());
         _engine.update(millis(),_enabled,false,false,_battery.rate());

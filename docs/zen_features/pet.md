@@ -1,13 +1,47 @@
 # Virtual Pet
 
 Enable **Settings → System → Zen Pet** to show the pet page after Favourites.
-The default is Off. Only this switch is saved: reboot, reset or power loss
-ends the pet's life and creates a new starter next time it is enabled.
+The default is Off. The enable switch is saved in Zen settings; pet progress uses
+a separate checkpoint. Reboot restores the last valid save, without offline ageing.
+Unsaved progress is lost. If no checkpoint exists, enabling creates a new starter.
 Turning Off and On during the same boot preserves the pet.
 
-Press Enter for Feed, Train, Evolve and Details. Hold Enter opens Details.
+Press Enter for Feed, Train, Evolve, Details, Daily Rewards and Save Pet.
+Hold Enter opens Details.
 Up/Down selects an action; Back closes the menu, then returns to Clock.
 Left/Right changes carousel pages. CardKB Enter and Escape work normally.
+
+## Saving
+
+Save Pet makes a one-off verified checkpoint. It reports Pet saved or Already
+saved, or a specific storage/battery failure. Repeated requests are coalesced.
+Saving a sleeping pet does not wake it. Training must finish or be cancelled first.
+
+A new starter receives an initial save. Automatic saves occur at the first safe
+local midnight at least 24 hours after the previous checkpoint (manual saves
+included). A recent manual save can therefore skip the next midnight. Before time
+synchronization, saves use a 24-hour uptime interval. A restored pet starts a new
+24-hour guard. Clock/timezone changes cannot bypass that guard; backward dates
+do not reopen an already processed day. Deferred saves do not create catch-up writes.
+
+No automatic writes occur while disabled, on shutdown, or for individual care
+actions. Automatic failures are logged silently with hourly retry backoff.
+Unknown/critical battery readings block writes; external power permits saving.
+Internal-flash fallback writes wait until Bluetooth is switched off. External flash
+uses the existing Zen storage path. Actual flash operations include filesystem
+metadata and replacement, not just the small 96-byte snapshot payload.
+
+Checkpoints preserve care values, progression, temperament, remaining cooldown,
+fractional care credits, reward allowances and deferred rewards. Games, animations,
+notification queues and the temporary Wake Up override are not restored. New mesh
+rewards are conservatively blocked after restore until a safe reward-day rollover;
+saved pending rewards can still apply once.
+
+The versioned, checksummed `/zen_pet` record uses verified staging and recovery
+through `/zen_pet.tmp` and `/zen_pet.bak`, independently of MeshCore baseline files.
+Corrupt candidates are not automatically overwritten that boot; Save Pet can replace
+them. A newer unsupported schema is preserved and write-locked. Filesystem operations
+run from the main loop, never from rendering, input or mesh callbacks.
 
 Sprout has twelve levels and 189 named forms, ending in 64 possible final forms.
 Entering an even level offers two evolution choices; entering an odd level
@@ -121,9 +155,14 @@ turn and repeat on retry. Marker speed stays unchanged; each turn starts outside
 its target to prevent repeated Enter presses from winning.
 Training requirements are checked before starting and again before rewards.
 Scheduled pet sleep (unless temporarily woken), Low Power, Pet Off, screen sleep,
-leaving the page or an interrupting
-popup cancels the game. The normal display timeout still applies; games do not
-keep the display awake. CardKB uses the existing mapped arrow/Enter/Escape keys.
+leaving the page or an interrupting popup cancels the game. Active training
+temporarily holds the screen on, with a 60-second player inactivity limit.
+Watching memory previews and swaps does not consume that allowance; it restarts
+when player control returns. A game's own timeout still applies. Won!/Lost!
+results receive five seconds of display time, followed by a fresh normal display
+timeout. Manual screen-off and safety restrictions always take precedence.
+The pet page and care menu alone do not hold the screen on. CardKB uses the
+existing mapped arrow/Enter/Escape keys.
 
 OLED movement is discrete and modest-rate. E-INK uses slower steps and longer
 memory previews. Memory/puzzle state advances only for input or phase changes;
@@ -153,7 +192,7 @@ the screen or extends its timeout.
 Each new pet is randomly Playful, Calm, Curious or Stubborn. Its nature appears
 in Details (Up/Down scrolls) and persists through evolution and same-boot Off/On.
 Personality is cosmetic: care costs, cooldown, XP, Bond, game selection and
-evolution requirements do not change. Reboot creates a new pet and personality.
+evolution requirements do not change. Temperament is included in checkpoints.
 
 Feeding produces a happy expression, winning a proud one and losing a brief sulk.
 The pet looks sleepy in the 15 minutes before its configured bedtime and excited
@@ -220,7 +259,7 @@ Child Mode applies its existing contact, room and channel permissions.
 Quiet Time reserves rewards until the pet wakes, including across midnight.
 Low Power ignores new interactions but retains rewards already earned.
 Turning the pet Off discards pending rewards and partial conversations without
-renewing the daily allowance. Gameplay and reward tracking remain RAM-only.
+renewing the daily allowance. Reward allowances are included in pet checkpoints.
 
 Once time is synchronized, allowances follow the configured local date.
 Before synchronization they use a rolling 24-hour uptime window.
@@ -231,7 +270,7 @@ one renewal. Details shows whether local time or uptime is in use.
 Tracking uses fixed-size tables: eight conversation contacts, sixteen outgoing
 attempts and eight recent incoming fingerprints. Heavy traffic can evict old
 evidence and miss a reward, but never changes message delivery or retries.
-Reward tracking adds no radio transmissions, flash writes or timers.
+Reward tracking adds no radio transmissions or timers; it is saved only with pet checkpoints.
 
 ## Pet alerts
 

@@ -9,6 +9,11 @@ namespace zen { namespace pet {
 // Cosmetic state only: no engine, platform, mesh, notification or save ownership.
 class PetPersonality {
 public:
+  void restoreTemperament(uint8_t nature,uint32_t now) {
+    *this=PetPersonality(); _born=true; _temperament=(Temperament)nature;
+    _last=now; _rng=now^0x6d2b79f5UL; if(!_rng)_rng=1;
+    _dirty=true;
+  }
   void setMovementBounds(int8_t x,int8_t y) {
     x=x<0?0:x>4?4:x; y=y<0?0:y>2?2:y;
     _context.range_x=x; _context.range_y=y;

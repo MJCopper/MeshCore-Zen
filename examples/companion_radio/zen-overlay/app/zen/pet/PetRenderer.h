@@ -34,8 +34,8 @@ public:
         for (int i=first; i<count && y+d.getLineHeight()<=bottom; ++i,y+=step)
           d.drawTextLeftAlign(0,y,i<5 ? rows[i] : i==5 ? "Charge to reduce" : "hunger");
       } else {
-        static const char* ITEMS[] = {"Feed","Train","Evolve","Details","Daily Rewards","Wake Up"};
-        int count = _view==3?_engine.choices():_engine.sleeping()?6:5;
+        static const char* ITEMS[] = {"Feed","Train","Evolve","Details","Daily Rewards","Save Pet","Wake Up"};
+        int count = _view==3?_engine.choices():_engine.sleeping()?7:6;
         int visible = (bottom-y)/step;
         if (visible < 1) visible = 1;
         int first = _selection >= visible ? _selection-visible+1 : 0;

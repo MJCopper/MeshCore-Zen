@@ -323,6 +323,7 @@ TEST(PetUI, EachGameAwardsTrainingOnceAndOnlyAfterSuccess) {
     page.input('e','e','b','h','u','d','l','r','[',']',seed);
     model.begin(0,seed,false);
     ASSERT_TRUE(page.trainingActive()); EXPECT_EQ(Games::INSTRUCTIONS,model.phase());
+    EXPECT_TRUE(page.gameDisplay(0,true).hold);
     uint32_t now=0;
     auto action=[&](Games::Action a) {
       static const char KEYS[]={'?','u','r','d','l','e','b'};
@@ -354,6 +355,9 @@ TEST(PetUI, EachGameAwardsTrainingOnceAndOnlyAfterSuccess) {
       if(model.phase()==Games::ANSWER) tick();
     }
     EXPECT_EQ(Games::WON,model.phase()); EXPECT_FALSE(page.trainingActive());
+    EXPECT_TRUE(page.gameDisplay(now,true).hold);
+    EXPECT_TRUE(page.gameDisplay(now+4999,true).hold);
+    EXPECT_TRUE(page.gameDisplay(now+5000,true).released);
     zen::pet::PetNotifications::Alert alert;
     ASSERT_TRUE(page.takeAlert(now,alert,true)); EXPECT_STREQ("Won!",alert.text);
     page.update(now+1,true,false,false);
@@ -428,6 +432,21 @@ TEST(PetUI, CancellingOrLosingVisibilityNeverChargesTraining) {
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_TRUE(d.contains("XP 0/160")); EXPECT_TRUE(d.contains("Energy 100 Food 3"));
   }
 }
+TEST(PetUI, GameDisplayInstructionsIdleAndSafetyOverrides) {
+  for(int safety=0;safety<5;++safety) {
+    g_mock_millis=0; zen::pet::Page page;
+    page.update(0,true,false,false); key(page,'e'); key(page,'d'); key(page,'e');
+    ASSERT_TRUE(page.trainingActive()); EXPECT_TRUE(page.gameDisplay(0,true).hold);
+    EXPECT_TRUE(page.gameDisplay(59999,true).hold);
+    EXPECT_TRUE(page.gameDisplay(60000,true).expired);
+    if(safety==0)page.cancelTraining();
+    if(safety==1)page.update(60001,false,false,false);
+    if(safety==2)page.update(60001,true,true,false);
+    if(safety==3)page.update(60001,true,false,true);
+    EXPECT_FALSE(page.gameDisplay(60001,safety!=4).hold);
+    EXPECT_FALSE(page.gameDisplay(60002,safety!=4).expired);
+  }
+}
 TEST(PetUI, LossNotifiesOnceAndPopupPreservesRetry) {
   using Games=zen::pet::PetTrainingGames;
   g_mock_millis=0; zen::pet::Page page;
@@ -435,6 +454,9 @@ TEST(PetUI, LossNotifiesOnceAndPopupPreservesRetry) {
   page.input('e','e','b','h','u','d','l','r','[',']',gameSeed(Games::TIMING));
   key(page,'e'); key(page,'e'); // Marker starts outside the hit zone.
   ASSERT_TRUE(page.trainingFailed());
+  EXPECT_TRUE(page.gameDisplay(0,true).hold);
+  EXPECT_TRUE(page.gameDisplay(4999,true).hold);
+  EXPECT_TRUE(page.gameDisplay(5000,true).released);
   zen::pet::PetNotifications::Alert alert;
   ASSERT_TRUE(page.takeAlert(0,alert)); EXPECT_STREQ("Lost!",alert.text);
   page.update(1000,true,false,false,false,0,false); // Popup covers the game.

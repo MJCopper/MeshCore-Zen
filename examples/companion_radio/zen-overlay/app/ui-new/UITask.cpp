@@ -15,6 +15,8 @@
 #include "../zen/pet/PetPage.h"
 #include "../zen/pet/PetPopupInput.h"
 #include "../zen/pet/PetIcon.h"
+#include "../zen/pet/PetPersistence.h"
+#include "../zen/pet/PetSnapshotFilesystem.h"
 #endif
 #include "../GeoUtils.h"
 #include "target.h"
@@ -381,6 +383,7 @@ class HomeScreen : public ZenUIScreen {
   SensorPage _sensor_page;
 #if ZEN_FEATURE_PET
   zen::pet::Page _pet;
+  zen::pet::PetPersistence _pet_persistence;
   uint32_t _pet_update_at = 0;
   int _pet_refresh_ms = 30000;
 #endif
@@ -714,6 +717,17 @@ public:
     uint32_t now = millis();
     if (!force && enabled == _pet.enabled() && (int32_t)(now - _pet_update_at) < 0) return;
     // Input/render validation must not postpone the notification pump.
+    zen::pet::PetSnapshotFilesystem pet_files(the_mesh.petExtensionStore());
+    if(enabled && !_pet_persistence.started()) {
+      if(force)return; // No filesystem work from mesh observers or rendering.
+      auto loaded=_pet_persistence.start(now,pet_files,_pet);
+      using Store=zen::pet::PetSnapshotStore;
+      if(loaded==Store::CORRUPT || loaded==Store::INCOMPATIBLE || loaded==Store::UNAVAILABLE)
+        _task->onOperationResult(zen::OperationResult::make(zen::Operation::PET_SAVE,
+            zen::OperationOutcome::WARNING,loaded==Store::CORRUPT?zen::OperationReason::PET_CORRUPT:
+            loaded==Store::INCOMPATIBLE?zen::OperationReason::PET_NEWER:
+            zen::OperationReason::PET_STORAGE_UNAVAILABLE,zen::RESULT_BACKGROUND));
+    }
     _pet.update(millis(), _node_prefs && _node_prefs->pet_enabled,
                 zen::pet::PetSleep::scheduled(!_task->isTimeSyncPending(),
                     _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
@@ -730,6 +744,26 @@ public:
                 Features::IS_EINK,now ^ uint32_t(_task->petLocalSeconds()));
     uint32_t next_update=now + _pet.personality().updateDelay(now);
     if (!force || int32_t(next_update-_pet_update_at)<0) _pet_update_at=next_update;
+    if(!force && _pet_persistence.started()) {
+      auto saved=_pet_persistence.process(now,pet_files,_pet,enabled,
+          !_task->isTimeSyncPending(),_task->petLocalSeconds(),
+          _task->cachedExternalPower() || (_task->cachedBatteryValid() &&
+          _task->cachedBattMilliVolts()>zen::BatteryPolicy::SHUTDOWN_MV),
+          the_mesh.petExtensionStore().external() || !_task->isBluetoothEnabled());
+      using Persistence=zen::pet::PetPersistence;
+      if(saved==Persistence::SAVED || saved==Persistence::UNCHANGED)
+        _pet.saveFeedback(saved==Persistence::SAVED?"Pet saved":"Already saved");
+      else if(saved==Persistence::DEFERRED)_pet.saveFeedback("Save pending");
+      else if(saved!=Persistence::NONE)
+        _task->onOperationResult(zen::OperationResult::make(zen::Operation::PET_SAVE,
+            saved==Persistence::LOW_BATTERY?zen::OperationOutcome::WARNING:zen::OperationOutcome::FAULT,
+            saved==Persistence::LOW_BATTERY?zen::OperationReason::LOW_BATTERY:
+            saved==Persistence::LOCKED?zen::OperationReason::PET_NEWER:
+            saved==Persistence::STORAGE_UNAVAILABLE?zen::OperationReason::PET_STORAGE_UNAVAILABLE:
+            saved==Persistence::VERIFY_FAILED?zen::OperationReason::PET_VERIFY_FAILED:
+            pet_files.failureReason(),_pet_persistence.manualResult()?0:
+            (zen::RESULT_BACKGROUND | zen::RESULT_LOG_ONLY)));
+    }
     if (_page == PET && _task->isHomeScreenVisible() &&
         _pet.takePersonalityRedraw(now,Features::IS_EINK)) _task->refreshPetPresentation();
     const char* effect=_pet.takeGameSound();
@@ -749,6 +783,9 @@ public:
   void cancelPetTraining() { _pet.cancelTraining(); _pet.hidePresentation(millis()); }
   bool petMenuOpen() const { return _page == PET && _pet.menuOpen(); }
   bool petTrainingActive() const { return _pet.trainingActive(); }
+  zen::pet::PetGameDisplay::Decision petGameDisplay(uint32_t now) {
+    return _pet.gameDisplay(now,_page==PET && _task->isHomeScreenVisible());
+  }
 #endif
 
   void resetSession() {
@@ -3420,8 +3457,20 @@ void UITask::loop() {
       _auto_off = millis() + AUTO_OFF_MILLIS;
     }
 #endif
-    if ((_notification_wake.active() || autoOffMillis() > 0) &&
-        (int32_t)(millis() - _auto_off) >= 0) {
+    bool game_hold=false,game_expired=false;
+#if ZEN_FEATURE_PET
+    if(home) {
+      auto game=((HomeScreen*)home)->petGameDisplay(millis());
+      game_hold=game.hold; game_expired=game.expired;
+      if(game.released) {
+        uint32_t normal=autoOffMillis();
+        if(normal>0)_auto_off=millis()+normal;
+      }
+    }
+#endif
+    if (game_expired || (!game_hold &&
+        (_notification_wake.active() || autoOffMillis() > 0) &&
+        (int32_t)(millis() - _auto_off) >= 0)) {
       turnDisplayOff();
 #ifdef PIN_LED
       digitalWrite(PIN_LED, LOW);  // turn off status LED with display to save power

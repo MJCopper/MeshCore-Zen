@@ -9,7 +9,7 @@ enum class Operation : uint8_t {
   UNKNOWN, FAVOURITES, CONTACTS, PING, MESSAGE, CHANNEL, ROOM, ROOM_LOGIN,
   SENSOR_LOGIN, TELEMETRY, ADMIN_LOGIN, ADMIN, ADVERT, RINGTONE,
   SETTINGS_IMPORT, CHILD_PIN, CHILD_MODE, FLOOD_SCOPE, STORAGE, GPS,
-  BLUETOOTH, RADIO, SCREEN, CARDKB, POWER, BATTERY, LOCATION, TIME_SYNC
+  BLUETOOTH, RADIO, SCREEN, CARDKB, POWER, BATTERY, LOCATION, TIME_SYNC, PET_SAVE
 };
 
 enum class OperationOutcome : uint8_t {
@@ -35,14 +35,16 @@ enum class OperationReason : uint8_t {
   STATUS_UNAVAILABLE, DISCONNECTED, QUEUE_FULL, CHANNEL_BUSY_TIMEOUT,
   RECEIVE_START_FAILED, NO_GPS_FIX, SETTING_UNAVAILABLE, INCORRECT_PIN,
   INVALID_ENTRY_REMOVED, ROOMS_UNRESTRICTED, LOW_BATTERY, LOW_POWER_MODE,
-  WATCHDOG_RESET, CPU_LOCKUP
+  WATCHDOG_RESET, CPU_LOCKUP, PET_CORRUPT, PET_NEWER, PET_STORAGE_UNAVAILABLE,
+  PET_WRITE_FAILED, PET_VERIFY_FAILED, PET_PROMOTION_FAILED, PET_BACKUP_FAILED
 };
 
 enum OperationResultFlag : uint8_t {
   RESULT_BACKGROUND = 1 << 0,
   RESULT_SCREEN_WAKE = 1 << 1,
   RESULT_POPUP_SUCCESS = 1 << 2,
-  RESULT_LOG_SUCCESS = 1 << 3
+  RESULT_LOG_SUCCESS = 1 << 3,
+  RESULT_LOG_ONLY = 1 << 4
 };
 
 struct OperationContext {
@@ -74,6 +76,7 @@ struct OperationResult {
 struct OperationResultCatalog {
   static const char* operationName(Operation operation) {
     switch (operation) {
+      case Operation::PET_SAVE: return "Pet save";
       case Operation::FAVOURITES: return "Favourites";
       case Operation::CONTACTS: return "Contacts";
       case Operation::PING: return "Ping";
@@ -107,6 +110,13 @@ struct OperationResultCatalog {
 
   static const char* reasonName(OperationReason reason) {
     switch (reason) {
+      case OperationReason::PET_CORRUPT: return "Snapshot corrupt";
+      case OperationReason::PET_NEWER: return "Newer pet schema";
+      case OperationReason::PET_STORAGE_UNAVAILABLE: return "Storage unavailable";
+      case OperationReason::PET_WRITE_FAILED: return "Snapshot write failed";
+      case OperationReason::PET_VERIFY_FAILED: return "Snapshot verify failed";
+      case OperationReason::PET_PROMOTION_FAILED: return "Snapshot replace failed";
+      case OperationReason::PET_BACKUP_FAILED: return "Snapshot backup failed";
       case OperationReason::LIST_FULL: return "List full";
       case OperationReason::SEND_FAILED: return "Send failed";
       case OperationReason::NOT_QUEUED: return "Not queued";
@@ -220,6 +230,7 @@ struct OperationResultCatalog {
             (result.flags & RESULT_LOG_SUCCESS));
   }
   static bool shouldPopup(const OperationResult& result) {
+    if(result.flags & RESULT_LOG_ONLY)return false;
     return isError(result.outcome) || isWarning(result.outcome) ||
            (result.outcome == OperationOutcome::SUCCESS &&
             (result.flags & RESULT_POPUP_SUCCESS));

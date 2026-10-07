@@ -5,8 +5,8 @@
 
 namespace zen { namespace pet {
 
-// Entire lifetime state is RAM-only. This engine has no platform, transport or
-// storage dependency; reset/power loss creates a new pet on the next enable.
+// Gameplay has no platform, transport or storage dependency. Persistence
+// captures explicit durations/credits, never raw uptime timestamps.
 struct State {
   uint8_t form = 0, energy = 100, fullness = 70, bond = 0, food = 3;
   uint16_t xp = 0;
@@ -22,6 +22,20 @@ class Engine {
     return amount >= (uint32_t)(limit - value) ? limit : value + amount;
   }
 public:
+  struct Checkpoint {
+    State state;
+    uint32_t cooldown=0,energy_credit=0,food_credit=0,hunger_credit=0;
+  };
+  Checkpoint checkpoint() const {
+    Checkpoint c; c.state=_state; c.cooldown=_cooldown;
+    c.energy_credit=_energy_credit; c.food_credit=_food_credit;
+    c.hunger_credit=_hunger_credit; return c;
+  }
+  void restore(const Checkpoint& c,uint32_t now) {
+    *this=Engine(); _state=c.state; _born=true; _last=now;
+    _cooldown=c.cooldown; _energy_credit=c.energy_credit;
+    _food_credit=c.food_credit; _hunger_credit=c.hunger_credit;
+  }
   enum Result : uint8_t { OK, SLEEPING, SUSPENDED, FULL, NO_FOOD, TIRED, COOLDOWN, NOT_READY };
   const State& state() const { return _state; }
   uint8_t level() const { return Evolution::level(_state.form); }

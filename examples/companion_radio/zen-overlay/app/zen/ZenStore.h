@@ -18,6 +18,7 @@ public:
 
 private:
   FILESYSTEM* _fs = nullptr;
+  bool _external=false;
   uint32_t _generation = 0;
   uint64_t _fingerprint = 0;
   bool _fingerprint_valid = false;
@@ -112,6 +113,7 @@ public:
 
   void begin(FILESYSTEM* external, FILESYSTEM* fallback) {
     _fs = external ? external : fallback;
+    _external=external!=nullptr;
   }
 
   bool load(ZenPrefs& prefs) {
@@ -152,7 +154,17 @@ public:
     return true;
   }
 
+  bool available() const { return _fs!=nullptr; }
+  bool external() const { return _external; }
   File openRead(const char* path) { return openRead(_fs, path); }
+  bool replaceExtension(const char* temporary,const char* final_path,
+                        const char* backup,const uint8_t* data,size_t size) {
+    _failure=Failure::NONE;
+    if(!_fs) { _failure=Failure::FILESYSTEM_UNAVAILABLE; return false; }
+    bool recovery=_recovery_needed;
+    bool ok=replaceVerified(temporary,final_path,backup,data,size);
+    _recovery_needed=recovery; return ok;
+  }
   File openWrite(const char* path) { return openWrite(_fs, path); }
   bool remove(const char* path) { return _fs && _fs->remove(path); }
   bool writeLocked() const { return _write_locked; }
@@ -172,7 +184,10 @@ public:
             File file = openWrite(_fs, temporary);
             bool ok = file && file.write(data, size) == size;
             if (file) file.close();
-            return ok && rawMatches(temporary, data, size);
+            if(!ok) { _failure=Failure::TEMP_WRITE_FAILED; return false; }
+            bool verified=rawMatches(temporary, data, size);
+            if(!verified)_failure=Failure::TEMP_VERIFY_FAILED;
+            return verified;
           })();
     if (!staged) { _fs->remove(temporary); return false; }
 
