@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <array>
+#include <fstream>
 #include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetPage.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/pet/PetPopupInput.h"
 
@@ -49,6 +50,124 @@ public:
 };
 static bool key(zen::pet::Page& page,char c) {
   return page.input(c,'e','b','h','u','d');
+}
+
+// Pixel-level checks exercise the production drawing primitive, not a second
+// implementation of its silhouette/face composition.
+class PetRaster : public PetDisplay {
+public:
+  std::vector<uint8_t> pixels;
+  ColorVal ink=LIGHT;
+  PetRaster(int w=128,int h=64,int s=1) : PetDisplay(w,h,s),pixels(w*h) {}
+  void setColor(ColorVal color) override { ink=color; }
+  void fillRect(int x,int y,int w,int h) override {
+    PetDisplay::fillRect(x,y,w,h);
+    for(int row=y;row<y+h;++row)for(int col=x;col<x+w;++col)
+      if(row>=0 && row<height() && col>=0 && col<width())pixels[row*width()+col]=ink==LIGHT;
+  }
+  bool pixel(int x,int y) const { return pixels[y*width()+x]; }
+  void save(const char* path) const {
+    std::ofstream out(path,std::ios::binary);
+    auto word=[&](uint32_t value,int bytes) {
+      for(int i=0;i<bytes;++i)out.put((value>>(8*i))&255);
+    };
+    int stride=(width()*3+3)&~3;
+    out.put('B'); out.put('M'); word(54+stride*height(),4);
+    word(0,4); word(54,4); word(40,4); word(width(),4); word(height(),4);
+    word(1,2); word(24,2); word(0,4); word(stride*height(),4);
+    word(0,4); word(0,4); word(0,4); word(0,4);
+    for(int y=height()-1;y>=0;--y) {
+      for(int x=0;x<width();++x)for(int c=0;c<3;++c)out.put(pixel(x,y)?255:0);
+      for(int i=width()*3;i<stride;++i)out.put(0);
+    }
+    EXPECT_TRUE(out.good());
+  }
+};
+
+TEST(PetUI, AllPortraitsHaveBalancedNeutralAnatomyAndFaithfulPreviews) {
+  using namespace zen::pet;
+  PetRaster sheet(9*112,21*56);
+  for(unsigned id=0;id<Evolution::FORMS;++id) {
+    const auto& asset=form(id);
+    EXPECT_EQ(16,asset.source_size);
+    EXPECT_EQ(id<9?16:32,asset.size);
+    PetRaster native,large;
+    PetPortraitDrawing::draw(native,asset,0,0,16,0,0,128,64);
+    PetPortraitDrawing::draw(large,asset,0,0,32,0,0,128,64);
+    for(int row=0;row<16;++row)for(int col=0;col<16;++col) {
+      EXPECT_EQ(native.pixel(col,row),native.pixel(15-col,row)) << id;
+      EXPECT_EQ(asset.pixel(col,row),asset.pixel(15-col,row)) << id;
+      for(int dy=0;dy<2;++dy)for(int dx=0;dx<2;++dx)
+        EXPECT_EQ(native.pixel(col,row),large.pixel(col*2+dx,row*2+dy)) << id;
+    }
+    // Each cell: actual-size portrait, then the exact evolution preview.
+    int x=(id%9)*112,y=(id/9)*56;
+    PetPortraitDrawing::draw(sheet,asset,x+2,y+4,asset.size,x,y,x+112,y+56);
+    PetPortraitDrawing::draw(sheet,asset,x+44,y+12,16,x,y,x+112,y+56);
+    EXPECT_TRUE(sheet.valid);
+  }
+  sheet.save("/tmp/zen-pet-art.bmp");
+}
+
+TEST(PetUI, TentaclesAndFeetAreInheritedAcrossEveryBranch) {
+  using namespace zen::pet;
+  EXPECT_TRUE(form(0).pixel(1,15)); // Starter's outer tentacles.
+  for(unsigned id=1;id<Evolution::FORMS;++id) {
+    unsigned level=Evolution::level(id),index=id-Evolution::offset(level);
+    bool feet=index & (1u<<(level/2-1));
+    EXPECT_EQ(!feet,form(id).pixel(1,15)) << id;
+    EXPECT_EQ(feet,form(id).pixel(4,15)) << id;
+    if(level<12)for(unsigned choice=0;choice<Evolution::choices(level);++choice)
+      EXPECT_EQ(form(id).pixel(1,15),form(Evolution::child(id,choice)).pixel(1,15));
+  }
+}
+
+TEST(PetUI, StretchPreservesSquareCellsAndPairedEyes) {
+  using namespace zen::pet;
+  for(unsigned id=0;id<Evolution::FORMS;++id)for(int size:{16,32}) {
+    PetRaster d;
+    PetPortraitDrawing::draw(d,form(id),2,3,size,0,0,128,64,0,0,0,false,false,true);
+    for(int row=0;row<38;++row)for(int col=0;col<size;++col)
+      EXPECT_EQ(d.pixel(2+col,row),d.pixel(2+size-1-col,row)) << id;
+    EXPECT_TRUE(d.valid);
+  }
+}
+
+TEST(PetUI, EvolutionRowsReserveSquarePreviewsAndScrollOnSmallSurfaces) {
+  using namespace zen::pet;
+  auto p=PetEvolutionView::layout(128,8,18,63,2);
+  EXPECT_EQ(20,p.row_height); EXPECT_EQ(2,p.visible); EXPECT_EQ(16,p.preview_size);
+  EXPECT_LT(2+p.label_width,p.preview_x);
+  auto tight=PetEvolutionView::layout(128,8,24,63,2);
+  EXPECT_EQ(1,tight.visible); EXPECT_EQ(16,tight.preview_size);
+  auto small=PetEvolutionView::layout(32,8,0,18,2);
+  EXPECT_EQ(0,small.preview_size);
+  for(int scale:{1,2})for(unsigned id=0;id<125;++id) {
+    Engine engine; auto snapshot=engine.checkpoint(); snapshot.state.form=id;
+    engine.restore(snapshot,0);
+    for(unsigned selected=0;selected<engine.choices();++selected) {
+      PetRaster d(scale==1?128:250,64*scale,scale); d.eink=scale==2;
+      PetEvolutionView::render(d,18*scale,64*scale-1,engine,selected);
+      EXPECT_TRUE(d.valid) << id;
+      EXPECT_TRUE(d.contains(form(engine.child(selected)).name));
+    }
+  }
+}
+
+TEST(PetUI, SelectedEvolutionPreviewUsesTheExactInvertedNeutralPortrait) {
+  using namespace zen::pet;
+  Engine engine;
+  PetRaster menu;
+  PetEvolutionView::render(menu,18,63,engine,0);
+  auto p=PetEvolutionView::layout(128,8,18,63,2);
+  for(unsigned choice=0;choice<2;++choice) {
+    PetRaster neutral;
+    PetPortraitDrawing::draw(neutral,form(engine.child(choice)),0,0,16,0,0,128,64);
+    int y=18+choice*p.row_height+(p.row_height-16)/2;
+    for(int row=0;row<16;++row)for(int col=0;col<16;++col)
+      EXPECT_EQ(choice?neutral.pixel(col,row):!neutral.pixel(col,row),
+                menu.pixel(p.preview_x+col,y+row));
+  }
 }
 TEST(PetUI, ScheduledSleepAndWakeOverride) {
   using zen::pet::PetSleep;
@@ -365,7 +484,7 @@ TEST(PetUI, EachGameAwardsTrainingOnceAndOnlyAfterSuccess) {
     key(page,'h'); page.render(d,24,63);
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_TRUE(d.contains("XP 20/160"));
     EXPECT_TRUE(d.contains("Energy 80 Food 3"));
-    EXPECT_TRUE(d.contains("Full 60 Bond 2/20"));
+    EXPECT_TRUE(d.contains("Full 60 Bond 1/10"));
     key(page,'e'); key(page,'e'); key(page,'d'); key(page,'e');
     EXPECT_FALSE(page.trainingActive()); // Cooldown starts on successful completion.
     const uint32_t offsets[]={1,59999,60000,60001,240000,299999};
@@ -501,6 +620,9 @@ TEST(PetUI, AllFormsDetailsPosesAndEvolutionPreviewsFitBothDisplays) {
     while(engine.level()<level) {
       uint8_t current=engine.level();
       uint8_t choice=(current&1)?(index>>(level/2-1-current/2))&1:0;
+      // This is an artwork fixture, not a caretaker: replenish stage-local
+      // Bond before selecting each form now that evolution consumes it.
+      engine.bonus(0,100);
       ASSERT_EQ(zen::pet::Engine::OK,engine.evolve(choice));
     }
     ASSERT_EQ(id,engine.state().form);
@@ -513,7 +635,7 @@ TEST(PetUI, AllFormsDetailsPosesAndEvolutionPreviewsFitBothDisplays) {
     }
     d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,2,0,look);
     EXPECT_TRUE(d.valid) << unsigned(id);
-    if(level==12) EXPECT_TRUE(d.contains("Final form XP 41050"));
+    if(level==12) EXPECT_TRUE(d.contains("Retire XP 0/100"));
     else for(uint8_t choice=0;choice<engine.choices();++choice) {
       d.startFrame(); zen::pet::Renderer::render(d,24*scale,64*scale-1,engine,3,choice,look);
       EXPECT_TRUE(d.valid) << unsigned(id) << " choice " << unsigned(choice);
@@ -533,7 +655,7 @@ TEST(PetUI, LowBatteryDetailsScrollWithoutLosingCareValues) {
     key(page,'d'); key(page,'d'); key(page,'d');
     d.startFrame(); page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Charge to reduce")); EXPECT_TRUE(d.contains("hunger"));
-    EXPECT_TRUE(d.contains("Full 70 Bond 0/20")); EXPECT_TRUE(d.valid);
+    EXPECT_TRUE(d.contains("Full 70 Bond 0/10")); EXPECT_TRUE(d.valid);
     key(page,'u'); key(page,'u'); key(page,'u');
     d.startFrame(); page.render(d,24*scale,64*scale-1);
     EXPECT_TRUE(d.contains("Sprout L1")); EXPECT_TRUE(d.valid);
@@ -622,7 +744,7 @@ TEST(PetUI, PortraitLayoutPreservesSizeAndReservesEveryAnimation) {
     EXPECT_EQ(12,p.bubbleHeight(8,1)); EXPECT_EQ(20,p.bubbleHeight(8,2));
   }
   auto tight=zen::pet::PetPortraitLayout::calculate(128,8,24,63,32);
-  EXPECT_EQ(26,tight.size); EXPECT_EQ(0,tight.range_y);
+  EXPECT_EQ(16,tight.size); EXPECT_EQ(2,tight.range_y);
 }
 
 TEST(PetUI, ShuffleMovesWholePortraitButNotBubbleAndEinkIgnoresOffsets) {
@@ -693,5 +815,31 @@ TEST(PetUI, PersonalityDoesNotLeakIntoMenuGamesSleepOrWakeOverride) {
   EXPECT_NE(zen::pet::PetPersonality::SLEEPY,page.personality().presentation(2).pose);
   EXPECT_EQ(nullptr,page.personality().presentation(2).phrase);
   page.hidePresentation(3); EXPECT_FALSE(page.personality().presentation(3).active);
+}
+TEST(PetUI, RetirementMenuRequirementsConfirmationAndSafetyGates) {
+  using namespace zen::pet;
+  g_mock_millis=0; Page page; auto s=page.checkpoint();
+  s.engine.state.form=Evolution::offset(12); s.engine.state.xp=Evolution::xp(12);
+  page.restore(s,0); page.update(0,true,false,false);
+  key(page,'e'); key(page,'d'); key(page,'d');
+  PetDisplay d; page.render(d,18,63); EXPECT_TRUE(d.contains("Retire")); EXPECT_FALSE(d.contains("Evolve"));
+  key(page,'e'); PetNotifications::Alert alert;
+  ASSERT_TRUE(page.takeAlert(0,alert)); EXPECT_STREQ("Need 100 XP, 10 Bond",alert.text);
+  s.engine.state.retirement_xp=100; s.engine.state.bond=10;
+  page.restore(s,0); page.update(0,true,false,false);
+  for(char c:{'e','d','d','e'})key(page,c);
+  for(int scale:{1,2}) {
+    PetDisplay display(scale==1?128:250,64*scale,scale); display.eink=scale==2;
+    page.render(display,18*scale,64*scale-1);
+    EXPECT_TRUE(display.contains("Retire pet?")); EXPECT_TRUE(display.contains("Start a new pet"));
+    EXPECT_TRUE(display.contains("No")); EXPECT_TRUE(display.contains("Yes")); EXPECT_TRUE(display.valid);
+  }
+  key(page,'e'); EXPECT_FALSE(page.retirementPending()); // Default No.
+  key(page,'e'); key(page,'b'); EXPECT_FALSE(page.retirementPending());
+  key(page,'e'); key(page,'d'); page.update(1,true,false,true); key(page,'e');
+  EXPECT_FALSE(page.retirementPending()); ASSERT_TRUE(page.takeAlert(1,alert)); EXPECT_STREQ("Low Power",alert.text);
+  page.update(2,true,false,false); key(page,'e'); key(page,'d'); key(page,'e');
+  EXPECT_TRUE(page.retirementPending()); key(page,'b'); EXPECT_FALSE(page.retirementPending());
+  EXPECT_EQ(Evolution::offset(12),page.checkpoint().engine.state.form);
 }
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }

@@ -34,6 +34,9 @@ class Page {
   bool _enabled = false;
   bool _loss_reported = false;
   bool _save_requested=false;
+  bool _retire_requested=false;
+  uint32_t _retire_seed=1;
+  char _retire_feedback[32]={};
   bool completeTraining(uint32_t now) {
     if (_training.phase() == PetTrainingGames::FAILED) {
       if (!_loss_reported) {
@@ -50,7 +53,7 @@ class Page {
     if (r != Engine::OK) _feedback = result(r);
     _view = r == Engine::OK ? 0 : 1; _selection = 1;
     if (r == Engine::OK) _personality.event(PetPersonality::WON,now);
-    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+    _notifications.observe(_engine.state(),_engine.level(),_engine.actionReady(),_enabled,
                            _engine.sleeping(),_engine.paused());
     return true;
   }
@@ -74,9 +77,28 @@ public:
     _engine.restore(s.engine,now); _rewards.restore(s.rewards,now);
     _personality.restoreTemperament(s.temperament,now);
     _training.cancel(); _game_display.cancel(); _sleep=PetSleep();
-    _view=_selection=0; _feedback=nullptr; _save_requested=false;
+    _view=_selection=0; _feedback=nullptr; _save_requested=_retire_requested=false;
   }
   bool takeSaveRequest() { bool requested=_save_requested; _save_requested=false; return requested; }
+  bool retirementPending() const { return _retire_requested; }
+  bool canRetire() const { return _engine.retirementReady() && _engine.available()==Engine::OK; }
+  void cancelRetirement() { _retire_requested=false; }
+  PetSnapshot retirementCheckpoint(uint32_t now) const {
+    PetSnapshot s; s.rewards=_rewards.checkpoint();
+    s.rewards.progress.pending_xp=0; s.rewards.progress.pending_bond=0;
+    PetPersonality born; PetPersonality::Context c;
+    c.page_visible=false; c.ordinary=false; born.update(now,c,_retire_seed);
+    s.temperament=born.temperament(); return s;
+  }
+  void finishRetirement(const PetSnapshot& s,uint32_t now) {
+    _engine.restore(s.engine,now);
+    _engine.update(now,_enabled,false,false,_battery.rate());
+    _rewards.retire(); _notifications=PetNotifications();
+    _personality.restoreTemperament(s.temperament,now);
+    _training=PetTrainingGames(); _game_display.cancel(); _sleep=PetSleep();
+    _view=_selection=0; _loss_reported=false;
+    _save_requested=_retire_requested=false; _feedback="New pet";
+  }
   void saveFeedback(const char* text) { _feedback=text; }
   void update(uint32_t now, bool enabled, bool sleeping, bool paused,
               bool synced = false, int64_t local = 0, bool visible = true,
@@ -88,11 +110,15 @@ public:
     if (_view == 1 && _selection == 6 && !sleeping) _selection = 0;
     _engine.update(now, enabled, sleeping, paused, _battery.update(battery_percent));
     _enabled = enabled;
+    if(_retire_requested && (!enabled || sleeping || paused)) {
+      _retire_requested=false;
+      if(enabled)_feedback=paused?"Low Power":"Sleeping";
+    }
     PetPersonality::Context context;
     context.enabled=enabled; context.sleeping=sleeping; context.paused=paused;
     context.page_visible=page_visible; context.ordinary=_view==0 && !_training.active();
     context.unobscured=unobscured; context.slow=slow;
-    context.ready=_engine.ready(); context.bedtime=bedtime && !_sleep.wakeActive();
+    context.ready=_engine.actionReady(); context.bedtime=bedtime && !_sleep.wakeActive();
     context.fullness=_engine.state().fullness; context.battery_percent=battery_percent;
     context.external_power=external_power; context.battery_sample=battery_sample;
     context.range_x=_portrait_range_x; context.range_y=_portrait_range_y;
@@ -103,15 +129,18 @@ public:
       else { _training.tick(now); completeTraining(now); }
     }
     _rewards.update(now,enabled,sleeping,paused,synced,local);
-    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),enabled,sleeping,paused);
+    _notifications.observe(_engine.state(),_engine.level(),_engine.actionReady(),enabled,sleeping,paused);
     const uint16_t old_xp = _engine.state().xp;
+    const uint8_t old_retirement_xp = _engine.state().retirement_xp;
     const uint8_t old_bond = _engine.state().bond;
     if (_rewards.apply(_engine)) {
-      _notifications.reward(_engine.state().xp-old_xp,_engine.state().bond-old_bond);
+      _notifications.reward(_engine.level()==Evolution::LEVELS?
+          _engine.state().retirement_xp-old_retirement_xp:_engine.state().xp-old_xp,
+          _engine.state().bond-old_bond);
     }
-    _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),enabled,sleeping,paused);
+    _notifications.observe(_engine.state(),_engine.level(),_engine.actionReady(),enabled,sleeping,paused);
     _enabled = enabled;
-    context.ready=_engine.ready(); context.fullness=_engine.state().fullness;
+    context.ready=_engine.actionReady(); context.fullness=_engine.state().fullness;
     context.ordinary=_view==0 && !_training.active();
     _personality.update(now,context);
   }
@@ -151,10 +180,14 @@ public:
     if (!_training.active()) return;
     _training.cancel(); _view = 0;
   }
-  void close() { _game_display.cancel(); _training.cancel(); _view = _selection = 0; _feedback = nullptr; }
+  void close() { _game_display.cancel(); _training.cancel(); _view = _selection = 0; _feedback = nullptr; cancelRetirement(); }
   bool input(char c, char enter, char back, char hold, char up, char down,
              char left = 'l', char right = 'r', char prev = '[', char next = ']',
              uint32_t seed = 0, bool slow = false) {
+    if(_retire_requested) {
+      if(c==back) { cancelRetirement(); _feedback="Retire cancelled"; }
+      return true;
+    }
     if (_training.active()) {
       using Games = PetTrainingGames;
       Games::Action action = c == back ? Games::BACK : c == enter ? Games::ENTER :
@@ -178,6 +211,7 @@ public:
     if (c == back && _view) {
       if (_view == 5) _view = 4;
       else if (_view == 4) { _view = 1; _selection = 4; }
+      else if(_view==6) { _view=1; _selection=2; }
       else close();
       return true;
     }
@@ -191,6 +225,9 @@ public:
       if (c==up && _selection>0) --_selection;
       return true;
     }
+    if(_view==6 && (c==up || c==down || c==left || c==right || c==prev || c==next)) {
+      _selection^=1; return true;
+    }
     if ((c == up || c == down) && (_view == 1 || _view == 3)) {
       uint8_t count = _view == 3 ? _engine.choices() : _engine.sleeping() ? 7 : 6;
       _selection = (_selection + count + (c == down ? 1 : -1)) % count;
@@ -199,6 +236,18 @@ public:
     if (c != enter) return false;
     // A new action supersedes feedback not yet presented from the last one.
     _feedback = nullptr;
+    if(_view==6) {
+      bool yes=_selection!=0; _view=1; _selection=2;
+      if(yes) {
+        if(!canRetire())_feedback=result(_engine.available()==Engine::OK?Engine::NOT_READY:_engine.available());
+        else {
+          _retire_seed=seed?seed:millis()^0x91e10da5UL^_personality.temperament();
+          if(!_retire_seed)_retire_seed=1;
+          _retire_requested=true;
+        }
+      }
+      return true;
+    }
     if (_view == 4 || _view == 5) { _view = _view == 4 ? 5 : 4; return true; }
     if (_view == 2) { close(); return true; }
     if (_view == 1 && _selection == 5) { _save_requested=true; return true; }
@@ -213,7 +262,7 @@ public:
     if (_view == 3) {
       auto r = _engine.evolve(_selection);
       if (r == Engine::OK) _notifications.evolved(_engine.state().form);
-      _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+      _notifications.observe(_engine.state(),_engine.level(),_engine.actionReady(),_enabled,
                              _engine.sleeping(),_engine.paused());
       if (r != Engine::OK) _feedback = result(r);
       _view = 1; _selection = 2;
@@ -227,13 +276,24 @@ public:
       else _feedback = result(r);
       return true;
     }
+    if(_selection==2 && _engine.level()==Evolution::LEVELS) {
+      if(_engine.available()!=Engine::OK)_feedback=result(_engine.available());
+      else if(_engine.retirementReady()) { _view=6; _selection=0; }
+      else {
+        unsigned xp=PetRetirement::XP-_engine.state().retirement_xp;
+        unsigned bond=_engine.state().bond>=PetRetirement::BOND?0:PetRetirement::BOND-_engine.state().bond;
+        snprintf(_retire_feedback,sizeof(_retire_feedback),"Need %u XP, %u Bond",xp,bond);
+        _feedback=_retire_feedback;
+      }
+      return true;
+    }
     if (_selection == 2 && _engine.ready() && _engine.available() == Engine::OK) {
       _view = 3; _selection = 0; return true;
     }
     auto r = _selection == 0 ? _engine.feed() : Engine::NOT_READY;
     _feedback = r == Engine::OK ? "Fed" : result(r);
     if (r == Engine::OK) {
-      _notifications.observe(_engine.state(),_engine.level(),_engine.ready(),_enabled,
+      _notifications.observe(_engine.state(),_engine.level(),_engine.actionReady(),_enabled,
                              _engine.sleeping(),_engine.paused());
       _personality.event(PetPersonality::FED,millis());
     }

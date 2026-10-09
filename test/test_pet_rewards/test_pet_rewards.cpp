@@ -125,6 +125,19 @@ TEST(PetRewards, LowPowerRetainsPreviouslyEarnedPending) {
   r.update(1,true,false,true,false,0); EXPECT_FALSE(r.apply(e));
   awake(r,2); EXPECT_TRUE(r.apply(e)); EXPECT_EQ(20,e.state().xp);
 }
+TEST(PetRewards, RetirementPreservesAllowancesButClearsOldConversationEvidence) {
+  PetMeshRewards r; awake(r); Engine e; e.update(0,true,false,false);
+  send(r,PetMeshRewards::DM,ALICE,1);
+  ASSERT_TRUE(r.progress().dm); r.retire();
+  EXPECT_EQ(0,r.progress().pending_xp); EXPECT_EQ(0,r.progress().pending_bond);
+  r.received(ALICE,17,false,true,false); EXPECT_FALSE(r.progress().conversation);
+  send(r,PetMeshRewards::DM,ALICE,2);
+  EXPECT_EQ(0,r.progress().pending_xp); EXPECT_TRUE(r.progress().conversation);
+  EXPECT_EQ(5,r.progress().pending_bond);
+  r.retire(); EXPECT_EQ(5,r.progress().bond);
+  r.completed(2,PetMeshRewards::DM,true,true); EXPECT_EQ(0,r.progress().pending_bond);
+  send(r,PetMeshRewards::CHANNEL,nullptr,3); EXPECT_EQ(15,r.progress().pending_xp);
+}
 TEST(PetRewards, XPAndBondSaturateWithoutAutomaticEvolution) {
   Engine e; e.update(0,true,false,false); e.bonus(65535,255);
   EXPECT_EQ(zen::pet::Evolution::xp(zen::pet::Evolution::LEVELS),e.state().xp); EXPECT_EQ(100,e.state().bond);

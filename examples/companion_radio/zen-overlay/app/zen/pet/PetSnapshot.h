@@ -15,7 +15,7 @@ struct PetSnapshot {
 // Fixed little-endian record. No structure padding, pointers or uptime anchors.
 struct PetSnapshotCodec {
   static constexpr size_t SIZE=96;
-  static constexpr uint16_t VERSION=1;
+  static constexpr uint16_t VERSION=2;
   enum Status { VALID, INVALID, NEWER };
   static uint32_t checksum(const uint8_t* p,size_t n) {
     uint32_t crc=0xffffffff;
@@ -29,6 +29,8 @@ struct PetSnapshotCodec {
     const auto& e=s.engine; const auto& v=e.state; const auto& r=s.rewards.progress;
     return v.form<Evolution::FORMS && v.energy<=100 && v.fullness<=100 &&
         v.bond<=100 && v.food<=5 && v.xp<=Evolution::xp(Evolution::LEVELS) &&
+        v.retirement_xp<=PetRetirement::XP &&
+        (Evolution::level(v.form)==Evolution::LEVELS || !v.retirement_xp) &&
         s.temperament<4 && e.cooldown<=300000 && e.energy_credit<3600000 &&
         e.hunger_credit<3600000 && e.food_credit<14400000 && r.bond<=5 &&
         r.pending_bond<=100 && r.pending_xp<=Evolution::xp(Evolution::LEVELS) &&
@@ -50,6 +52,7 @@ struct PetSnapshotCodec {
     put(r.bond,1); put(r.pending_xp,2); put(r.pending_bond,1);
     put(s.rewards.day.date,8); put(s.rewards.day.elapsed,8); put(s.rewards.day.synced,1);
     put(s.saved_date,8);
+    put(v.retirement_xp,1);
     at=SIZE-4; put(checksum(out,SIZE-4),4); return true;
   }
   static Status decode(const uint8_t* in,size_t size,PetSnapshot& s,uint32_t& generation) {
@@ -63,7 +66,7 @@ struct PetSnapshotCodec {
     if(get(4)!=0x5445505aUL)return INVALID;
     unsigned version=get(2);
     if(version>VERSION)return NEWER;
-    if(size!=SIZE || version!=VERSION || get(2)!=SIZE)return INVALID;
+    if(size!=SIZE || (version!=1 && version!=VERSION) || get(2)!=SIZE)return INVALID;
     size_t crc_at=SIZE-4;
     uint32_t crc=0; for(unsigned i=0;i<4;++i)crc|=uint32_t(in[crc_at+i])<<(8*i);
     if(crc!=checksum(in,SIZE-4))return INVALID;
@@ -78,6 +81,7 @@ struct PetSnapshotCodec {
     decoded.rewards.day.date=(int64_t)get(8); decoded.rewards.day.elapsed=get(8);
     unsigned synced=get(1); if(synced>1)return INVALID;
     decoded.rewards.day.synced=synced; decoded.saved_date=(int64_t)get(8);
+    if(version>=2)v.retirement_xp=get(1);
     if(!valid(decoded))return INVALID;
     s=decoded; return VALID;
   }

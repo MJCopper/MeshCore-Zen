@@ -751,9 +751,10 @@ public:
           _task->cachedBattMilliVolts()>zen::BatteryPolicy::SHUTDOWN_MV),
           the_mesh.petExtensionStore().external() || !_task->isBluetoothEnabled());
       using Persistence=zen::pet::PetPersistence;
-      if(saved==Persistence::SAVED || saved==Persistence::UNCHANGED)
-        _pet.saveFeedback(saved==Persistence::SAVED?"Pet saved":"Already saved");
-      else if(saved==Persistence::DEFERRED)_pet.saveFeedback("Save pending");
+      if(saved==Persistence::SAVED || saved==Persistence::UNCHANGED || saved==Persistence::RETIRED)
+        _pet.saveFeedback(saved==Persistence::RETIRED?"New pet":saved==Persistence::SAVED?"Pet saved":"Already saved");
+      else if(saved==Persistence::DEFERRED)
+        _pet.saveFeedback(_pet.retirementPending()?"Retire pending":"Save pending");
       else if(saved!=Persistence::NONE)
         _task->onOperationResult(zen::OperationResult::make(zen::Operation::PET_SAVE,
             saved==Persistence::LOW_BATTERY?zen::OperationOutcome::WARNING:zen::OperationOutcome::FAULT,

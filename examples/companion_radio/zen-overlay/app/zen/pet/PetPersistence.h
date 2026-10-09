@@ -15,7 +15,7 @@ class PetPersistence {
   uint64_t _fingerprint=0;
 public:
   enum Result { NONE, SAVED, UNCHANGED, LOW_BATTERY, STORAGE_UNAVAILABLE, LOCKED,
-                SAVE_FAILED, VERIFY_FAILED, DEFERRED };
+                SAVE_FAILED, VERIFY_FAILED, DEFERRED, RETIRED };
   bool started() const { return _started; }
   bool manualResult() const { return _manual_result; }
   template<class Backend,class Page> PetSnapshotStore::Load start(uint32_t now,Backend& backend,Page& page) {
@@ -34,10 +34,17 @@ public:
       bool enabled,bool synced,int64_t local,bool battery_safe,bool storage_safe) {
     _policy.update(now,enabled,synced,local);
     if(page.takeSaveRequest() && enabled)_policy.request(now);
-    if(!enabled || !_policy.due(now) || page.trainingActive())return NONE;
-    bool manual=_policy.manual();
+    if(!enabled)page.cancelRetirement();
+    bool retiring=page.retirementPending();
+    if(!retiring && !_policy.manual())_pending_notice=false;
+    if(retiring && !page.canRetire()) { page.cancelRetirement(); return NONE; }
+    if(!enabled || (!retiring && !_policy.due(now)) || page.trainingActive())return NONE;
+    bool manual=retiring || _policy.manual();
     _manual_result=manual;
-    auto fail=[&](Result reason) { _pending_notice=false; _policy.complete(false,now); return reason; };
+    auto fail=[&](Result reason) {
+      _pending_notice=false; _policy.complete(false,now);
+      if(retiring)page.cancelRetirement(); return reason;
+    };
     if(_store.locked())return fail(LOCKED);
     if(!backend.available())return fail(STORAGE_UNAVAILABLE);
     if(!battery_safe)return manual?fail(LOW_BATTERY):NONE;
@@ -47,13 +54,15 @@ public:
       return NONE;
     }
     _pending_notice=false;
-    PetSnapshot snapshot=page.checkpoint(); snapshot.saved_date=_policy.checkpointDate();
+    PetSnapshot snapshot=retiring?page.retirementCheckpoint(now):page.checkpoint();
+    snapshot.saved_date=_policy.checkpointDate();
     uint64_t fingerprint=PetSnapshotCodec::fingerprint(snapshot);
-    if(_known && fingerprint==_fingerprint) {
+    if(!retiring && _known && fingerprint==_fingerprint) {
       _policy.complete(true,now); return manual?UNCHANGED:NONE;
     }
     if(!_store.save(backend,snapshot))return fail(_store.verificationFailed()?VERIFY_FAILED:SAVE_FAILED);
     _fingerprint=fingerprint; _known=true; _policy.complete(true,now);
+    if(retiring) { page.finishRetirement(snapshot,now); return RETIRED; }
     return manual?SAVED:NONE;
   }
 };

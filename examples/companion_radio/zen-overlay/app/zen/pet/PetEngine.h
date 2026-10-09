@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "PetEvolution.h"
+#include "PetRetirement.h"
 
 namespace zen { namespace pet {
 
@@ -10,6 +11,7 @@ namespace zen { namespace pet {
 struct State {
   uint8_t form = 0, energy = 100, fullness = 70, bond = 0, food = 3;
   uint16_t xp = 0;
+  uint8_t retirement_xp = 0;
 };
 
 class Engine {
@@ -48,6 +50,11 @@ public:
         _state.bond >= Evolution::bond(level());
   }
   uint8_t choices() const { return Evolution::choices(level()); }
+  bool retirementReady() const {
+    return level()==Evolution::LEVELS && _state.retirement_xp>=PetRetirement::XP &&
+        _state.bond>=PetRetirement::BOND;
+  }
+  bool actionReady() const { return ready() || retirementReady(); }
   uint8_t child(uint8_t choice) const { return Evolution::child(_state.form, choice); }
   void update(uint32_t now, bool enabled, bool sleep, bool paused, uint8_t hunger_rate = 5) {
     if (!_born) {
@@ -82,6 +89,8 @@ public:
   }
   void bonus(uint16_t xp, uint8_t bond) {
     if (available() != OK) return;
+    if(level()==Evolution::LEVELS)
+      _state.retirement_xp=PetRetirement::add(_state.retirement_xp,xp);
     const uint16_t limit = Evolution::xp(Evolution::LEVELS);
     _state.xp = xp >= limit - _state.xp ? limit : _state.xp + xp;
     _state.bond = add(_state.bond,bond,100);
@@ -92,7 +101,7 @@ public:
     if (!_state.food) return NO_FOOD;
     --_state.food;
     _state.fullness = add(_state.fullness, 25, 100);
-    _state.bond = add(_state.bond, 5, 100);
+    _state.bond = add(_state.bond, 1, 100);
     return OK;
   }
   Result trainingAvailable() const {
@@ -104,18 +113,21 @@ public:
   Result train() {
     if (trainingAvailable() != OK) return trainingAvailable();
     _state.energy -= 20; _state.fullness -= 10;
+    if(level()==Evolution::LEVELS)
+      _state.retirement_xp=PetRetirement::add(_state.retirement_xp,PetRetirement::TRAINING_XP);
     const uint16_t limit = Evolution::xp(Evolution::LEVELS);
     // Training improves with maturity, but increasing thresholds still make
     // later levels take more successful sessions than the early levels.
     const uint16_t reward = 20 + 10 * (level() - 1);
     _state.xp = _state.xp >= limit - reward ? limit : _state.xp + reward;
-    _state.bond = add(_state.bond, 2, 100);
+    _state.bond = add(_state.bond, 1, 100);
     _cooldown = 300000UL;
     return OK;
   }
   Result evolve(uint8_t choice) {
     if (available() != OK) return available();
     if (!ready() || choice >= choices()) return NOT_READY;
+    _state.bond -= Evolution::bond(level());
     _state.form = child(choice);
     return OK;
   }

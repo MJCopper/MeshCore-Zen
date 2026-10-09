@@ -46,39 +46,64 @@ run from the main loop, never from rendering, input or mesh callbacks.
 Sprout has twelve levels and 189 named forms, ending in 64 possible final forms.
 Entering an even level offers two evolution choices; entering an odd level
 offers one. Every evolution is explicitly confirmed, with a name and preview.
-Leafy and winged lineages gain ears, shoulders, feet and markings as they grow
-from 16 to 32 pixels. Details shows the requirements for the next evolution.
+Sprout starts with balanced short tentacles. Bramble's descendants retain them;
+Flutter's descendants develop feet. Later branches inherit horns, wings, ears,
+crowns or side fins without requiring growth at each evolution. Portraits use
+symmetric 16×16 artwork, displayed at 16 pixels through level 4 and 32 pixels
+from level 5 where space permits. Smaller spaces use the native size rather
+than uneven scaling. Details shows the requirements for the next evolution.
 
 | Current level | XP needed for next level | Bond needed |
 |---|---:|---:|
-| 1 | 160 | 20 |
-| 2 | 280 | 30 |
-| 3 | 640 | 40 |
-| 4 | 1,190 | 50 |
-| 5 | 2,210 | 60 |
-| 6 | 4,170 | 70 |
-| 7 | 7,530 | 80 |
-| 8 | 12,570 | 90 |
-| 9 | 19,570 | 95 |
-| 10 | 28,810 | 98 |
+| 1 | 160 | 10 |
+| 2 | 280 | 12 |
+| 3 | 640 | 16 |
+| 4 | 1,190 | 20 |
+| 5 | 2,210 | 25 |
+| 6 | 4,170 | 30 |
+| 7 | 7,530 | 40 |
+| 8 | 12,570 | 50 |
+| 9 | 19,570 | 65 |
+| 10 | 28,810 | 80 |
 | 11 | 41,050 | 100 |
 
-XP is cumulative, not spent on evolution. Level 12 is the final form.
+XP is cumulative, not spent on evolution. Evolution spends the required Bond,
+keeping any surplus. Bond caps at 100 and does not decay or penalise lost games.
+Existing saved pets retain their current Bond. Level 12 is the final form.
+At level 12, **Retire** replaces Evolve. Earn 100 retirement XP and 10 Bond:
+training wins add 20 retirement XP, and eligible mesh XP counts normally.
+Lifetime XP stays capped; only activity after reaching level 12 counts.
+Details shows progress, and selecting Retire reports any remaining requirements.
+Good care without mesh bonuses reaches retirement readiness after about 16
+hours in the host simulation—roughly one care day, not a mandatory timed wait.
+
+When ready, confirm **Retire pet? Start a new pet**; No is selected initially.
+Sleeping, Low Power and Pet Off prevent retirement. A verified checkpoint must
+be saved before the old pet is replaced. Unsafe storage defers the request;
+Back cancels it. Save failures keep the active pet and report the error.
+The new Sprout has normal starting resources and a newly selected temperament.
+Old games, reactions and pending pet alerts/rewards are cleared, but the day's
+mesh allowances remain consumed. Retirement adds one explicit checkpoint write.
+Snapshot schema 2 preserves retirement progress and reads schema 1 with zero
+retirement XP; neither baseline storage nor settings schema changes.
+
 The target is about 60 days without mesh bonuses: the host simulation sleeps
 22:00–06:00, feeds regularly, wins training while retaining at least 25 fullness,
-and evolves promptly. It reaches level 12 after 431 wins. Approximate cumulative
-days for levels 2–12 are 0.25, 0.9, 1.9, 3, 5.9, 9.9, 15.9, 23.9, 33.9, 45.9
-and 60. This is a care-based estimate, not a minimum-age requirement; bonuses,
-training habits, missed care and Low Power change it. Reboot still starts over.
+and evolves promptly. It reaches level 12 after 433 wins. Approximate cumulative
+days for levels 2–12 are 0.25, 0.9, 1.9, 3.5, 5.9, 9.9, 15.9, 23.9, 33.9, 45.9
+and 60.3. This is a care-based estimate, not a minimum-age requirement; bonuses,
+training habits, missed care and Low Power change it.
 
 Level 10 Heart forms mature into Wardens; Spirit forms become Sages at level 11.
 Level 12 offers Titan/Crown or Oracle/Astral respectively, keeping the inherited
 Oak, Ash, Pine, Elm, Leaf, Bloom, Rush, Lily, Flame, Coal, Light, Star, Rain, Snow,
 Wind or Sky prefix. For example: Oakheart → Oakwarden → Oaktitan or Oakcrown.
-The 96 new forms have individual 16×16 portraits and compact 8×8 choice previews,
-scaled within the existing page. Earlier forms retain their graphics.
-Feeding consumes one food, restores 25 fullness and adds 5 bond.
-Training consumes 20 energy/10 fullness and adds 2 bond, at most once every
+Evolution choices use roomy rows with a name on the left and a square 16×16
+neutral portrait on the right. Previews share the actual pet's artwork and face.
+Small displays show one choice at a time; surfaces too small for a native
+portrait retain the names. Form identities, progression and saves are unchanged.
+Feeding consumes one food, restores 25 fullness and adds 1 Bond.
+Training consumes 20 energy/10 fullness and adds 1 Bond, at most once every
 five minutes. Attempting training during rest shows the remaining time rounded
 up to whole minutes, such as **Rest 2 minutes** or **Rest 1 minute**. It is
 calculated when attempted, not continuously refreshed. Pet Off and Low Power
@@ -318,7 +343,8 @@ Alert tracking remains RAM-only and uses the existing pet update, not a new time
 The optional implementation lives in `zen-overlay/app/zen/pet/` and is excluded
 with `ZEN_FEATURE_PET=0`. OLED uses idle/reaction poses; E-ink uses static poses.
 Evolution data, graphics, care logic and presentation are separate modules.
-`PetMatureAssets` contains only constant portraits and previews; the care
+`PetArtAssets` contains constant silhouettes; `PetPortraitDrawing` shares face
+and body rendering between the pet page and `PetEvolutionView`. The care
 simulation is host-test-only and adds no firmware timers or saved state.
 `PetTrainingGames` owns only game state; `PetTrainingView` draws it. `PetEngine`
 remains responsible for training eligibility, costs, rewards and cooldown.

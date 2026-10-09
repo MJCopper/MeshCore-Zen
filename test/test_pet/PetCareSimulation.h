@@ -9,11 +9,13 @@
 struct PetCareSimulation {
   struct Policy {
     bool sleep = true, bonuses = false, low_power = false;
+    bool retirement = false;
     unsigned daily_training_limit = 0;
     uint8_t hunger_rate = 5;
   };
   struct Result {
     uint64_t reached[zen::pet::Evolution::LEVELS] = {};
+    uint64_t retirement_ready=0;
     unsigned wins = 0;
     uint8_t level = 1;
   };
@@ -40,7 +42,10 @@ struct PetCareSimulation {
         engine.evolve(0); result.level=engine.level();
         result.reached[result.level-1]=minute;
       }
-      if(result.level==zen::pet::Evolution::LEVELS) break;
+      if(result.level==zen::pet::Evolution::LEVELS) {
+        if(!policy.retirement)break;
+        if(engine.retirementReady()) { result.retirement_ready=minute; break; }
+      }
     }
     return result;
   }

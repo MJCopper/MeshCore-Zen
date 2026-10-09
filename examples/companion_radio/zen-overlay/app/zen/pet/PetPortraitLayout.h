@@ -24,6 +24,9 @@ struct PetPortraitLayout {
     if(p.size>p.right-p.left-horizontal) p.size=p.right-p.left-horizontal;
     if(p.size>p.bottom-p.top-vertical) p.size=p.bottom-p.top-vertical;
     if(p.size<0) p.size=0;
+    // All masters are native 16x16: never distort anatomy with fractional
+    // enlargement when the available space is smaller than the desired size.
+    p.size=p.size/16*16;
     int spare_x=p.right-p.left-horizontal-p.size;
     int spare_y=p.bottom-p.top-vertical-p.size;
     if(spare_x<0)spare_x=0; if(spare_y<0)spare_y=0;

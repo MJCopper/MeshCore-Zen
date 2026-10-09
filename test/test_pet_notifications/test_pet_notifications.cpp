@@ -86,6 +86,14 @@ TEST(PetNotifications, ReadyCombinesWithRewardAndOnlyOccursOncePerLevel) {
   observe(n,70,true,false,false,true,2); ASSERT_TRUE(n.take(5000,a));
   EXPECT_STREQ("Pet: Ready to evolve",a.text);
 }
+TEST(PetNotifications, FinalStageReadinessUsesRetirementWording) {
+  PetNotifications n; PetNotifications::Alert a;
+  observe(n,70,true,false,false,true,12); ASSERT_TRUE(n.take(0,a));
+  EXPECT_STREQ("Pet: Ready to retire",a.text);
+  PetNotifications bonus; observe(bonus,70,false,false,false,true,12);
+  bonus.reward(20,1); observe(bonus,70,true,false,false,true,12);
+  ASSERT_TRUE(bonus.take(0,a)); EXPECT_STREQ("Pet: +20 XP, +1 Bond; Retire ready",a.text);
+}
 TEST(PetNotifications, SleepDefersAndLowPowerSuspends) {
   PetNotifications n; PetNotifications::Alert a; observe(n);
   n.reward(20,0); observe(n,70,true,true); EXPECT_FALSE(n.take(0,a));

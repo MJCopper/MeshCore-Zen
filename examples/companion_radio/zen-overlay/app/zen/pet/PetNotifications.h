@@ -90,15 +90,17 @@ public:
       _evolution_head = (_evolution_head+1)%EVOLUTION_QUEUE; --_evolution_count;
     } else if (_ready_level || _xp || _bond) {
       const bool ready = _ready_level != 0;
+      const bool retire = _ready_level == Evolution::LEVELS;
+      const char* suffix = !ready ? "" : retire ? "; Retire ready" : "; Evolve ready";
       alert.sound = ready ? READY : REWARD;
       if (_xp && _bond)
         snprintf(alert.text,sizeof(alert.text),"Pet: +%u XP, +%u Bond%s",_xp,_bond,
-                 ready ? "; Evolve ready" : "");
+                 suffix);
       else if (_xp)
-        snprintf(alert.text,sizeof(alert.text),"Pet: +%u XP%s",_xp,ready ? "; Evolve ready" : "");
+        snprintf(alert.text,sizeof(alert.text),"Pet: +%u XP%s",_xp,suffix);
       else if (_bond)
-        snprintf(alert.text,sizeof(alert.text),"Pet: +%u Bond%s",_bond,ready ? "; Evolve ready" : "");
-      else snprintf(alert.text,sizeof(alert.text),"Pet: Ready to evolve");
+        snprintf(alert.text,sizeof(alert.text),"Pet: +%u Bond%s",_bond,suffix);
+      else snprintf(alert.text,sizeof(alert.text),"Pet: Ready to %s",retire?"retire":"evolve");
       _xp = _bond = _ready_level = 0;
     } else if (_hunger) {
       alert.sound = _hunger == 2 ? VERY_HUNGRY : HUNGRY;

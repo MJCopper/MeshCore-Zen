@@ -70,6 +70,11 @@ public:
     _restore_block=true;
   }
   const Progress& progress() const { return _progress; }
+  void retire() {
+    // Preserve claimed daily allowances, date guard and receive deduplication.
+    // Old conversation evidence and unclaimed bonuses belong to the old pet.
+    _progress.pending_xp=0; _progress.pending_bond=0; clearEvidence();
+  }
   bool synchronized() const { return _day.synchronized(); }
   void update(uint32_t now, bool enabled, bool sleeping, bool paused,
               bool synced, int64_t local) {

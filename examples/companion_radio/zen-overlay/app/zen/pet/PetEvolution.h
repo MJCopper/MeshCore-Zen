@@ -35,7 +35,8 @@ struct Evolution {
     return XP[level - 1];
   }
   static uint8_t bond(uint8_t level) {
-    static const uint8_t BOND[] = {20,30,40,50,60,70,80,90,95,98,100,100};
+    // Stage-local care: evolution spends this amount, preserving surplus.
+    static const uint8_t BOND[] = {10,12,16,20,25,30,40,50,65,80,100,100};
     return BOND[level - 1];
   }
 };

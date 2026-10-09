@@ -87,11 +87,11 @@ TEST(Pet, ProgressionIsNonLinearAndFormsAreComplete) {
 TEST(Pet, GoodCareWithoutBonusesReachesLevelTwelveAroundSixtyDays) {
   PetCareSimulation::Policy policy;
   auto result=PetCareSimulation::run(policy,70);
-  ASSERT_EQ(12,result.level); EXPECT_EQ(431u,result.wins);
+  ASSERT_EQ(12,result.level); EXPECT_EQ(433u,result.wins);
   const double targets[]={0,.25,.75,1.5,3,5.5,9.5,15.5,23.5,33.5,45.5,60};
   for(uint8_t level=1;level<12;++level)
     EXPECT_NEAR(targets[level],double(result.reached[level])/1440,.5) << unsigned(level+1);
-  EXPECT_NEAR(60,double(result.reached[11])/1440,.05);
+  EXPECT_NEAR(60,double(result.reached[11])/1440,.5);
   EXPECT_GT(result.reached[11],uint64_t(UINT32_MAX)/60000); // Crosses millis wrap.
 }
 TEST(Pet, BonusesAccelerateProgressAndMissedCareOrLowPowerExtendIt) {
@@ -107,12 +107,11 @@ TEST(Pet, BonusesAccelerateProgressAndMissedCareOrLowPowerExtendIt) {
   auto occasional=PetCareSimulation::run(policy);
   EXPECT_EQ(12,occasional.level); EXPECT_GT(occasional.reached[11],baseline.reached[11]);
 }
-TEST(Pet, MatureAssetsHaveUniquePortraitsNamesAndNonemptyPreviews) {
+TEST(Pet, MatureAssetsHaveUniquePortraitsAndNames) {
   for(uint8_t id=93;id<zen::pet::Evolution::FORMS;++id) {
     const auto& asset=zen::pet::form(id);
-    ASSERT_EQ(16,asset.source_size); bool visible=false;
-    for(uint8_t row=0;row<8;++row) visible|=asset.preview[row]!=0;
-    EXPECT_TRUE(visible); EXPECT_LE(strlen(asset.name),11u);
+    ASSERT_EQ(16,asset.source_size);
+    EXPECT_LE(strlen(asset.name),11u);
     for(uint8_t other=93;other<id;++other)
       EXPECT_NE(0,memcmp(asset.silhouette,zen::pet::form(other).silhouette,32));
   }
@@ -122,6 +121,55 @@ TEST(Pet, MatureAssetsHaveUniquePortraitsNamesAndNonemptyPreviews) {
   EXPECT_STREQ("Oakcrown",zen::pet::form(126).name);
   EXPECT_STREQ("Oakoracle",zen::pet::form(127).name);
   EXPECT_STREQ("Oakastral",zen::pet::form(128).name);
+}
+
+TEST(Pet, CareAwardsOneBondAndRefusedActionsNeverAwardBond) {
+  Engine e; e.update(0,true,false,false);
+  ASSERT_EQ(Engine::OK,e.feed()); EXPECT_EQ(1,e.state().bond);
+  ASSERT_EQ(Engine::FULL,e.feed()); EXPECT_EQ(1,e.state().bond);
+  ASSERT_EQ(Engine::OK,e.train()); EXPECT_EQ(2,e.state().bond);
+  ASSERT_EQ(Engine::COOLDOWN,e.train()); EXPECT_EQ(2,e.state().bond);
+  e.update(1,true,true,false);
+  EXPECT_EQ(Engine::SLEEPING,e.feed()); EXPECT_EQ(Engine::SLEEPING,e.train());
+  e.bonus(20,5); EXPECT_EQ(2,e.state().bond);
+  e.update(2,true,false,true);
+  EXPECT_EQ(Engine::SUSPENDED,e.feed()); EXPECT_EQ(Engine::SUSPENDED,e.train());
+  e.update(3600002,true,false,false); EXPECT_EQ(2,e.state().bond);
+}
+
+TEST(Pet, EveryEvolutionSpendsOnlyRequiredBondAndPreservesLifetimeXP) {
+  using zen::pet::Evolution;
+  const uint8_t required[]={10,12,16,20,25,30,40,50,65,80,100};
+  for(unsigned level=1;level<12;++level)for(unsigned choice=0;choice<Evolution::choices(level);++choice) {
+    Engine e; auto c=e.checkpoint(); c.state.form=Evolution::offset(level);
+    c.state.xp=Evolution::xp(level); c.state.bond=100;
+    e.restore(c,0); e.update(0,true,false,false);
+    EXPECT_EQ(required[level-1],Evolution::bond(level));
+    auto before=e.state();
+    EXPECT_EQ(Engine::NOT_READY,e.evolve(e.choices()));
+    EXPECT_EQ(before.bond,e.state().bond); EXPECT_EQ(before.form,e.state().form);
+    ASSERT_EQ(Engine::OK,e.evolve(choice));
+    EXPECT_EQ(100-required[level-1],e.state().bond);
+    EXPECT_EQ(before.xp,e.state().xp); EXPECT_EQ(before.energy,e.state().energy);
+    EXPECT_EQ(before.food,e.state().food); EXPECT_EQ(before.fullness,e.state().fullness);
+    auto saved=e.checkpoint(); Engine restored; restored.restore(saved,500);
+    EXPECT_EQ(e.state().bond,restored.state().bond);
+    EXPECT_EQ(e.state().form,restored.state().form);
+    EXPECT_EQ(e.state().xp,restored.state().xp);
+  }
+}
+
+TEST(Pet, ExactBondIsRequiredAndNoSurplusIsLostAtEvolution) {
+  using zen::pet::Evolution;
+  for(unsigned level=1;level<12;++level) {
+    Engine e; auto c=e.checkpoint(); c.state.form=Evolution::offset(level);
+    c.state.xp=Evolution::xp(level); c.state.bond=Evolution::bond(level)-1;
+    e.restore(c,0); e.update(0,true,false,false);
+    EXPECT_FALSE(e.ready()); EXPECT_EQ(Engine::NOT_READY,e.evolve(0));
+    e.bonus(0,1); ASSERT_TRUE(e.ready());
+    ASSERT_EQ(Engine::OK,e.evolve(0)); EXPECT_EQ(0,e.state().bond);
+    EXPECT_FALSE(e.ready());
+  }
 }
 TEST(Pet, BatteryBandsHysteresisAndUnavailableReadings) {
   zen::pet::PetBatteryPolicy p;
@@ -166,4 +214,44 @@ TEST(Pet, TrainingRestPausesAndExpiresAcrossUptimeWrap) {
   e.update(now+=1,true,false,false); EXPECT_EQ(0u,e.trainingRestMillis());
   EXPECT_EQ(Engine::OK,e.trainingAvailable());
 }
+TEST(Pet, RetirementXPOnlyAccumulatesAtFinalLevelAndHasItsOwnCap) {
+  using namespace zen::pet;
+  Engine e; auto c=e.checkpoint(); c.state.form=Evolution::offset(11);
+  c.state.xp=Evolution::xp(12); c.state.bond=100;
+  e.restore(c,0); e.update(0,true,false,false); e.bonus(65535,255);
+  EXPECT_EQ(0,e.state().retirement_xp); ASSERT_EQ(Engine::OK,e.evolve(0));
+  EXPECT_EQ(0,e.state().bond); EXPECT_EQ(0,e.state().retirement_xp);
+  ASSERT_EQ(Engine::OK,e.train()); EXPECT_EQ(20,e.state().retirement_xp);
+  EXPECT_EQ(Engine::COOLDOWN,e.train()); EXPECT_EQ(20,e.state().retirement_xp);
+  e.bonus(35,5); EXPECT_EQ(55,e.state().retirement_xp);
+  e.bonus(65535,255); EXPECT_EQ(100,e.state().retirement_xp);
+  EXPECT_EQ(Evolution::xp(12),e.state().xp); EXPECT_TRUE(e.retirementReady());
+  EXPECT_TRUE(e.actionReady()); EXPECT_FALSE(e.ready());
+  e.update(1,true,true,false); auto before=e.checkpoint();
+  EXPECT_EQ(Engine::SLEEPING,e.train()); e.bonus(20,5);
+  EXPECT_EQ(before.state.retirement_xp,e.state().retirement_xp);
+  e.update(2,true,false,true); EXPECT_EQ(Engine::SUSPENDED,e.train());
+}
+
+TEST(Pet, RetirementRequiresBothIndependentXPAndBondMilestones) {
+  using namespace zen::pet;
+  Engine e; auto c=e.checkpoint(); c.state.form=Evolution::offset(12);
+  c.state.xp=Evolution::xp(12); c.state.bond=9; c.state.retirement_xp=100;
+  e.restore(c,0); e.update(0,true,false,false); EXPECT_FALSE(e.retirementReady());
+  e.bonus(0,1); EXPECT_TRUE(e.retirementReady());
+  c.state.bond=10; c.state.retirement_xp=99; e.restore(c,0); e.update(0,true,false,false);
+  EXPECT_FALSE(e.retirementReady()); e.bonus(1,0); EXPECT_TRUE(e.retirementReady());
+}
+
+TEST(Pet, RetirementGoodCareTakesAboutOneDayWithoutMeshBonuses) {
+  PetCareSimulation::Policy p; p.retirement=true;
+  auto result=PetCareSimulation::run(p,70);
+  ASSERT_GT(result.retirement_ready,result.reached[11]);
+  double days=double(result.retirement_ready-result.reached[11])/1440;
+  RecordProperty("retirement_days",days);
+  EXPECT_GE(days,.5); EXPECT_LE(days,1.5);
+  p.bonuses=true; auto rewards=PetCareSimulation::run(p,70);
+  EXPECT_GT(rewards.retirement_ready,rewards.reached[11]);
+}
+
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }

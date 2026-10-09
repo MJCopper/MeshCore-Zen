@@ -71,7 +71,7 @@ TEST(PetPersistence, FutureSchemaInAnyCandidateLocksWithoutWriting) {
     MemoryPetFiles files; PetSnapshot s; uint8_t bytes[PetSnapshotCodec::SIZE];
     ASSERT_TRUE(PetSnapshotCodec::encode(s,1,bytes));
     files.files[0].assign(bytes,bytes+sizeof(bytes));
-    bytes[4]=2; files.files[slot].assign(bytes,bytes+sizeof(bytes));
+    bytes[4]=PetSnapshotCodec::VERSION+1; files.files[slot].assign(bytes,bytes+sizeof(bytes));
     files.files[slot].resize(140); // Future larger envelopes must also lock.
     PetSnapshotStore store; EXPECT_EQ(PetSnapshotStore::INCOMPATIBLE,store.load(files,s));
     EXPECT_FALSE(store.save(files,s)); EXPECT_EQ(0,files.writes);
@@ -222,6 +222,86 @@ TEST(PetPersistence, SpringDstManualNearMidnightAndRebootGuards) {
   PetSavePolicy reboot; reboot.begin(0,false,false,13);
   reboot.update(0,true,true,14*86400); EXPECT_FALSE(reboot.due(0));
   reboot.update(1000,true,true,100*86400); EXPECT_FALSE(reboot.due(1000));
+}
+
+static PetSnapshot retiredCandidate() {
+  PetSnapshot s; s.engine.state.form=Evolution::offset(12);
+  s.engine.state.xp=Evolution::xp(12); s.engine.state.retirement_xp=100;
+  s.engine.state.bond=10; s.temperament=2;
+  s.rewards.progress={true,true,true,true,5,0,0};
+  return s;
+}
+static void requestRetirement(Page& page) {
+  page.close();
+  for(char c:{'e','d','d','e','d','e'})page.input(c,'e','b','h','u','d');
+  ASSERT_TRUE(page.retirementPending());
+}
+TEST(PetPersistence, RetirementCommitsVerifiedStarterAndPreservesDailyAllowances) {
+  g_mock_millis=0; MemoryPetFiles files; PetSnapshotStore store;
+  ASSERT_TRUE(store.save(files,retiredCandidate()));
+  Page page; PetPersistence saving; ASSERT_EQ(PetSnapshotStore::RESTORED,saving.start(0,files,page));
+  page.update(0,true,false,false); requestRetirement(page);
+  auto old=page.checkpoint();
+  EXPECT_EQ(PetPersistence::DEFERRED,saving.process(0,files,page,true,false,0,true,false));
+  EXPECT_EQ(old.engine.state.form,page.checkpoint().engine.state.form);
+  EXPECT_EQ(PetPersistence::NONE,saving.process(1,files,page,true,false,0,true,false));
+  EXPECT_EQ(PetPersistence::RETIRED,saving.process(2,files,page,true,false,0,true,true));
+  auto fresh=page.checkpoint(); EXPECT_EQ(0,fresh.engine.state.form);
+  EXPECT_EQ(0,fresh.engine.state.xp); EXPECT_EQ(0,fresh.engine.state.retirement_xp);
+  EXPECT_EQ(0,fresh.engine.state.bond); EXPECT_EQ(100,fresh.engine.state.energy);
+  EXPECT_EQ(70,fresh.engine.state.fullness); EXPECT_EQ(3,fresh.engine.state.food);
+  EXPECT_EQ(0,fresh.engine.cooldown); EXPECT_FALSE(page.menuOpen());
+  EXPECT_FALSE(page.trainingActive()); EXPECT_FALSE(page.retirementPending());
+  EXPECT_TRUE(fresh.rewards.progress.dm); EXPECT_TRUE(fresh.rewards.progress.shared);
+  EXPECT_EQ(5,fresh.rewards.progress.bond); EXPECT_LT(fresh.temperament,4);
+  PetSnapshot restored; PetSnapshotStore reboot;
+  ASSERT_EQ(PetSnapshotStore::RESTORED,reboot.load(files,restored));
+  EXPECT_EQ(0,restored.engine.state.form); EXPECT_EQ(fresh.temperament,restored.temperament);
+  EXPECT_EQ(5,restored.rewards.progress.bond);
+  int writes=files.writes;
+  EXPECT_EQ(PetPersistence::NONE,saving.process(3,files,page,true,false,0,true,true));
+  EXPECT_EQ(writes,files.writes);
+}
+TEST(PetPersistence, RetirementFailuresAndCancellationNeverResetTheActivePet) {
+  for(unsigned failure=0;failure<5;++failure) {
+    g_mock_millis=0; MemoryPetFiles files; PetSnapshotStore store;
+    ASSERT_TRUE(store.save(files,retiredCandidate()));
+    Page page; PetPersistence p; p.start(0,files,page); page.update(0,true,false,false);
+    requestRetirement(page);
+    if(failure==0)files.fail_write=true;
+    if(failure==1)files.online=false;
+    if(failure==2)files.fail_read=true;
+    auto r=p.process(0,files,page,true,false,0,failure!=3,true);
+    EXPECT_EQ(failure==0?PetPersistence::SAVE_FAILED:failure==1?PetPersistence::STORAGE_UNAVAILABLE:
+              failure==2?PetPersistence::VERIFY_FAILED:failure==3?PetPersistence::LOW_BATTERY:
+              PetPersistence::RETIRED,r);
+    if(failure<4) {
+      EXPECT_EQ(Evolution::offset(12),page.checkpoint().engine.state.form);
+      EXPECT_FALSE(page.retirementPending()); EXPECT_TRUE(p.manualResult());
+    }
+  }
+  Page page; page.restore(retiredCandidate(),0); page.update(0,true,false,false);
+  requestRetirement(page); page.input('b','e','b','h','u','d');
+  EXPECT_FALSE(page.retirementPending()); EXPECT_EQ(Evolution::offset(12),page.checkpoint().engine.state.form);
+  requestRetirement(page); page.update(1,true,true,false); EXPECT_FALSE(page.retirementPending());
+  page.update(2,true,false,false); requestRetirement(page);
+  page.update(3,true,false,true); EXPECT_FALSE(page.retirementPending());
+}
+TEST(PetPersistence, RetirementProgressRoundTripsAndLegacySnapshotsStartAtZero) {
+  auto s=retiredCandidate(); s.engine.state.retirement_xp=60;
+  uint8_t bytes[PetSnapshotCodec::SIZE]; PetSnapshot restored; uint32_t generation;
+  ASSERT_TRUE(PetSnapshotCodec::encode(s,1,bytes));
+  ASSERT_EQ(PetSnapshotCodec::VALID,PetSnapshotCodec::decode(bytes,sizeof(bytes),restored,generation));
+  EXPECT_EQ(60,restored.engine.state.retirement_xp);
+  // Original v1 record layout is unchanged; the new field occupies padding.
+  bytes[4]=1; bytes[66]=0;
+  uint32_t crc=PetSnapshotCodec::checksum(bytes,sizeof(bytes)-4);
+  for(unsigned i=0;i<4;++i)bytes[sizeof(bytes)-4+i]=(crc>>(i*8))&255;
+  ASSERT_EQ(PetSnapshotCodec::VALID,PetSnapshotCodec::decode(bytes,sizeof(bytes),restored,generation));
+  EXPECT_EQ(0,restored.engine.state.retirement_xp); EXPECT_EQ(s.engine.state.form,restored.engine.state.form);
+  s.engine.state.retirement_xp=101; EXPECT_FALSE(PetSnapshotCodec::encode(s,1,bytes));
+  s.engine.state.retirement_xp=1; s.engine.state.form=0;
+  EXPECT_FALSE(PetSnapshotCodec::encode(s,1,bytes));
 }
 
 int main(int argc,char** argv) { ::testing::InitGoogleTest(&argc,argv); return RUN_ALL_TESTS(); }
