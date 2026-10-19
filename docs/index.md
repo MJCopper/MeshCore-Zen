@@ -5,7 +5,7 @@ The guides cover the hardware and software provided by the
 
 ## Start here
 
-- [Firmware overview](../README.md)
+- [Firmware overview](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 - [Getting Started](./getting_started.md)
 - [Hardware and Wiring](./sensor_features/hardware/hardware.md)
 
@@ -18,3 +18,4 @@ The guides cover the hardware and software provided by the
 ## Development
 
 - [Building the Firmware](./building_sensor.md)
+- [Development and Testing](./sensor_features/development/development.md)

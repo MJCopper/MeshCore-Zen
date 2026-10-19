@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <cstring>
 #include <string>
-#include "../../examples/simple_sensor/PublicResponseQueue.h"
+#include "../../examples/bme680_sensor/PublicResponseQueue.h"
 
 TEST(PublicResponseQueue, KeepsShortRepliesInOneMessage) {
   char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
@@ -94,6 +94,25 @@ TEST(PublicResponseQueue, LongSensorNameMarksOverflowWithoutPartialLine) {
   EXPECT_EQ(std::string::npos, std::string(second).find("10 ABCDEFGHIJKL"));
   EXPECT_LE(strlen(first), 127u);
   EXPECT_LE(strlen(second), 127u);
+}
+
+TEST(PublicResponseQueue, PreservesChannelAcrossCompletionAndRescheduling) {
+  PublicResponseQueue queue;
+  int packet = 1;
+  ASSERT_TRUE(queue.scheduleAfterFirst("2/2\nPublic", &packet, 1));
+  ASSERT_TRUE(queue.schedule("2/2\nHillvue", 4000, 0));
+  queue.onFirstSent(&packet, 1000);
+  char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
+  uint8_t channel = 255;
+  ASSERT_TRUE(queue.takeDue(4000, part, &channel));
+  EXPECT_EQ(1, channel);
+  EXPECT_STREQ("2/2\nPublic", part);
+  ASSERT_TRUE(queue.schedule(part, 5000, channel));
+  ASSERT_TRUE(queue.takeDue(4000, part, &channel));
+  EXPECT_EQ(0, channel);
+  ASSERT_TRUE(queue.takeDue(5000, part, &channel));
+  EXPECT_EQ(1, channel);
+  EXPECT_STREQ("2/2\nPublic", part);
 }
 
 int main(int argc, char** argv) {

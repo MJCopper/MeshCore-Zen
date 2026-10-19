@@ -1,6 +1,6 @@
 # Hardware and Wiring
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 The firmware target is built for a Seeed Studio XIAO nRF52840, an SX1262 LoRa
 module and one BME680 I2C sensor. There is no display or local user interface.

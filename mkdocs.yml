@@ -25,4 +25,5 @@ nav:
   - Public-channel Commands: sensor_features/public_bot/public_bot.md
   - Access and Management: sensor_features/access/access.md
   - Building: building_sensor.md
+  - Development and Testing: sensor_features/development/development.md
   - Local Documentation: docs.md

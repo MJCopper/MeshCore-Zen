@@ -1,6 +1,6 @@
 # Access and Management
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 The sensor uses MeshCore's encrypted remote-management protocol and ACL. Live
 telemetry and management requests are handled separately from the unencrypted
@@ -12,24 +12,27 @@ The build default administrator password is `password`. Change it during first
 setup. A successful administrator login can configure the node, inspect status,
 request telemetry and manage ACL entries.
 
-The first successful password login adds the companion identity to the ACL as
-an administrator. Later blank-password login is accepted only for an identity
-already stored in that ACL, retaining its assigned role. An unknown identity
-with a blank or incorrect password is rejected.
+The first successful administrator-password login adds the companion identity
+to the ACL as an administrator. A known identity using a blank password retains
+its assigned ACL role. An unknown identity using a blank password, or a session
+using an incorrect password, receives read-only access with the app's limited
+guest interface.
 
 Remote text/CLI commands require administrator permission. Telemetry requests
-are available to a successfully authenticated ACL session.
+are available to administrator and read-only guest sessions. Guest sessions
+cannot change settings or issue management commands.
 
 ## Persistent and temporary state
 
 The following data persists across reboot:
 
 - Node identity and name.
-- Administrator password and ACL.
+- Administrator password and administrator ACL entries.
 - Radio and advert configuration.
 
 Sensor readings, air-quality calibration, command hashes, response-rate state
-and any pending second reply parts remain in RAM and reset at boot.
+and any pending second reply parts remain in RAM and reset at boot. Read-only
+guest sessions also remain in RAM; guest telemetry access does not write flash.
 
 ## Leaf-node policy
 

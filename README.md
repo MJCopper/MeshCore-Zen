@@ -24,6 +24,10 @@ wiring table.
 
 ## Software features
 
+> **Bot channels:** Send `!hillvue` commands on Public or the hashtag channel
+> `#hillvue`. Replies stay on the channel where the command was received,
+> including multipart replies and trace results.
+
 - Temperature, relative humidity, pressure, calculated altitude and relative
   air-quality telemetry.
 - One sensor sample per minute with the latest result cached in RAM.
@@ -34,6 +38,8 @@ wiring table.
   longer replies use at most two numbered messages, scheduled three seconds apart.
 - Ten-sample air-quality warm-up with descriptive quality ratings.
 - RAM-only air-quality calibration and duplicate-command tracking.
+- Airtime-aware trace timeouts, one silent retry with a passively observed
+  alternate path when available, and bounded late-result recovery.
 - Standard MeshCore remote telemetry and administrator management.
 - Fixed leaf-node operation: received mesh packets are never repeated.
 - Up to four accepted bot commands per rolling minute, with no scheduled sensor
@@ -89,9 +95,13 @@ from an earlier installation take precedence over build defaults.
 
 ## Development
 
-The sensor-specific code is isolated behind `PUBLIC_CHANNEL_SENSOR_BOT` and the
-`Xiao_nrf52_bme680_sensor` PlatformIO environment. This keeps the custom
-behaviour separate from the MeshCore v1.17.1 baseline.
+The sensor application lives in `examples/bme680_sensor/`, selected by the
+`Xiao_nrf52_bme680_sensor` PlatformIO environment. It reuses the MeshCore v1.17.1
+sensor runtime through small application-policy hooks. The environmental
+driver and standard sensor entry point retain their upstream implementations.
+
+See [Development and Testing](./docs/sensor_features/development/development.md)
+for module ownership, baseline integration and the regression checks.
 
 Build the firmware with:
 

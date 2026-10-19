@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
-PublicChannelSensorBot::PublicChannelSensorBot()
+PublicChannelSensorBot::PublicChannelSensorBot(const char* channel_name)
     : _next_recent(0), _next_reply(0), _reply_count(0) {
   static const uint8_t PUBLIC_SECRET[16] = {
     0x8b, 0x33, 0x87, 0xe9, 0xc5, 0xcd, 0xea, 0x6a,
@@ -12,9 +12,18 @@ PublicChannelSensorBot::PublicChannelSensorBot()
   memset(&_channel, 0, sizeof(_channel));
   memset(_recent_commands, 0, sizeof(_recent_commands));
   memset(_reply_times, 0, sizeof(_reply_times));
-  memcpy(_channel.secret, PUBLIC_SECRET, sizeof(PUBLIC_SECRET));
+  if (channel_name && channel_name[0] == '#') {
+    mesh::Utils::sha256(_channel.secret, sizeof(PUBLIC_SECRET),
+                        reinterpret_cast<const uint8_t*>(channel_name), strlen(channel_name));
+  } else {
+    memcpy(_channel.secret, PUBLIC_SECRET, sizeof(PUBLIC_SECRET));
+  }
   mesh::Utils::sha256(_channel.hash, sizeof(_channel.hash),
                       _channel.secret, sizeof(PUBLIC_SECRET));
+  memset(&_public_channel, 0, sizeof(_public_channel));
+  memcpy(_public_channel.secret, PUBLIC_SECRET, sizeof(PUBLIC_SECRET));
+  mesh::Utils::sha256(_public_channel.hash, sizeof(_public_channel.hash),
+                      _public_channel.secret, sizeof(PUBLIC_SECRET));
 }
 
 bool PublicChannelSensorBot::equalsIgnoreCase(const char* lhs, const char* rhs) {
@@ -26,14 +35,25 @@ bool PublicChannelSensorBot::equalsIgnoreCase(const char* lhs, const char* rhs) 
 
 int PublicChannelSensorBot::findChannel(const uint8_t* hash, mesh::GroupChannel channels[],
                                         int max_matches) const {
-  if (!hash || !channels || max_matches < 1 || hash[0] != _channel.hash[0]) return 0;
-  channels[0] = _channel;
-  return 1;
+  if (!hash || !channels || max_matches < 1) return 0;
+  int count = 0;
+  if (hash[0] == _channel.hash[0]) channels[count++] = _channel;
+  if (count < max_matches && hash[0] == _public_channel.hash[0] &&
+      memcmp(_channel.secret, _public_channel.secret, 16) != 0)
+    channels[count++] = _public_channel;
+  return count;
+}
+
+int PublicChannelSensorBot::channelIndex(const mesh::GroupChannel& source) const {
+  if (memcmp(source.secret, _channel.secret, 16) == 0) return 0;
+  if (memcmp(source.secret, _public_channel.secret, 16) == 0) return 1;
+  return -1;
 }
 
 bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
                                     uint32_t now_millis, bool trace_busy,
-                                    uint8_t& metric_mask, bool& busy_trace) {
+                                    uint8_t& metric_mask, bool& busy_trace,
+                                    uint8_t channel_index) {
   metric_mask = 0;
   busy_trace = false;
   if (type != PAYLOAD_TYPE_GRP_TXT || !data || len < 6 || len >= MAX_PACKET_PAYLOAD) return false;
@@ -97,7 +117,7 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
 
   uint32_t command_hash;
   mesh::Utils::sha256(reinterpret_cast<uint8_t*>(&command_hash), sizeof(command_hash),
-                      data, len);
+                      data, len, &channel_index, sizeof(channel_index));
   if (command_hash == 0) command_hash = 1;
   for (int i = 0; i < RECENT_COMMANDS; i++)
     if (_recent_commands[i] == command_hash) return false;

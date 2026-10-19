@@ -1,6 +1,6 @@
 # Getting Started
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 ## Before powering the node
 
@@ -21,7 +21,7 @@ connecting USB or another power source.
    restart.
 
 The detailed procedure and clean-install notes are in the
-[README](../README.md#flashing).
+[README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md#flashing).
 
 ## Configure the node
 
@@ -37,13 +37,14 @@ During that period, telemetry is available but the channel bot reports
 
 ## Test the Public-channel bot
 
-Send this message on MeshCore's built-in Public channel:
+Send this message on Public, or add the hashtag channel `#hillvue` in your
+companion app and send it there. The response stays on the requesting channel:
 
 ```text
 !hillvue
 ```
 
-The node returns all available measurements in one message. Replies are limited
-to one per minute, so wait before testing another command. See
+The node returns all available measurements in at most two messages. Up to four
+commands are accepted per rolling minute across all users. See
 [Public-channel Commands](./sensor_features/public_bot/public_bot.md) for the
 selection syntax.

@@ -52,8 +52,10 @@ public:
   bool clear();
 
   ClientInfo* getClient(const uint8_t* pubkey, int key_len);
-  ClientInfo* putClient(const mesh::Identity& id, uint8_t init_perms);
-  ClientInfo* putClientPreservingAdmins(const mesh::Identity& id, uint8_t init_perms);
+  ClientInfo* putClient(const mesh::Identity& id, uint8_t init_perms, bool preserve_admins=false);
+  ClientInfo* putClientPreservingAdmins(const mesh::Identity& id, uint8_t init_perms) {
+    return putClient(id, init_perms, true);
+  }
   bool applyPermissions(const mesh::LocalIdentity& self_id, const uint8_t* pubkey, int key_len, uint8_t perms);
 
   int getNumClients() const { return num_clients; }

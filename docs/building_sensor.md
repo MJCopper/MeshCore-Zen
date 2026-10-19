@@ -1,6 +1,6 @@
 # Building the BME680 Sensor
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 The firmware is built with Python 3 and
 [PlatformIO Core](https://platformio.org/install/cli). Install Git, Python 3 and
@@ -35,7 +35,7 @@ The second converts the compiled HEX into the flashable UF2. The main artifacts 
 ```
 
 Flash `Xiao_nrf52_bme680_sensor.uf2` using the USB bootloader procedure in the
-[README](../README.md#flashing).
+[README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md#flashing).
 Use `Xiao_nrf52_bme680_sensor.zip` with a compatible nRF52 DFU application for
 OTA updates.
 
@@ -49,18 +49,38 @@ pio run -e Xiao_nrf52_bme680_sensor -t create_uf2
 
 ## Target configuration
 
-The target is defined in `variants/xiao_nrf52/platformio.ini`. Its specialised
-build flags enable only the BME680 environmental driver, air-quality estimator,
-Public-channel bot and 60-second sample interval.
+The target is defined in `variants/xiao_nrf52/platformio.ini`. It selects the
+application in `examples/bme680_sensor/`, the BME680 sensor-manager adapter and
+a 60-second sample interval. Other environmental drivers are disabled for this
+target.
 
 Installation-specific values are also defined there:
 
 - `TELEM_BME680_ALTITUDE_OFFSET_M=100.0f`
 - `ADVERT_NAME="BME680 Sensor"`
 - `ADMIN_PASSWORD="password"`
+- `SENSOR_BOT_CHANNEL_NAME="#hillvue"` (additional watched channel)
+
+Public is always watched. Remove `SENSOR_BOT_CHANNEL_NAME` to watch only Public.
+Requests and replies always use the same channel, including delayed responses.
 
 Change defaults before building when the firmware will be installed elsewhere.
 Existing settings stored on the device can override build defaults.
+
+## Regression tests
+
+```sh
+pio test -e native -e native_sensor -e native_kiss_modem
+bash bin/check-sensor-boundaries.sh
+pio run -e Xiao_nrf52_sensor_baseline
+```
+
+The baseline target compiles the standard sensor application with the raw
+BME680 driver. It checks that custom access and air-quality policy does not
+leak into the upstream application.
+
+See [Development and Testing](./sensor_features/development/development.md)
+for coverage and the hardware acceptance procedure.
 
 ## Documentation
 

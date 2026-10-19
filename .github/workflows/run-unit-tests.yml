@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - meshcore/sensor
   pull_request:
   workflow_dispatch:
 
@@ -15,12 +16,22 @@ jobs:
 
       - name: Clone Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Build Environment
         uses: ./.github/actions/setup-build-environment
 
       - name: Run Unit Tests
-        run: pio test -e native -e native_kiss_modem -vv
+        run: pio test -e native -e native_sensor -e native_kiss_modem -vv
+
+      - name: Check Sensor Boundaries
+        run: bash bin/check-sensor-boundaries.sh
+
+      - name: Check Sensor Memory Safety
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+        run: pio test -e native_sensor_asan
 
       - name: Upload Test Results
         # Upload test results even if the test step failed.
@@ -28,4 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: .pio/build/native/
+          path: |
+            .pio/build/native/
+            .pio/build/native_sensor/
+            .pio/build/native_sensor_asan/

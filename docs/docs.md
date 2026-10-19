@@ -1,6 +1,6 @@
 # Local Documentation
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 Install MkDocs and the Material theme:
 

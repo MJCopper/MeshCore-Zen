@@ -4,7 +4,11 @@
 #include <Mesh.h>
 #include <Utils.h>
 
-// Passive Public-channel command decoder with duplicate and rate limiting.
+#ifndef SENSOR_BOT_CHANNEL_NAME
+  #define SENSOR_BOT_CHANNEL_NAME ""
+#endif
+
+// Passive channel command decoder with duplicate and rate limiting.
 // Sensor acquisition and packet transmission remain application concerns.
 class PublicChannelSensorBot {
   static const uint32_t REPLY_WINDOW_MILLIS = 60000;
@@ -12,6 +16,7 @@ class PublicChannelSensorBot {
   static const int RECENT_COMMANDS = 8;
 
   mesh::GroupChannel _channel;
+  mesh::GroupChannel _public_channel;
   uint32_t _recent_commands[RECENT_COMMANDS];
   uint8_t _next_recent;
   uint32_t _reply_times[MAX_REPLIES_PER_WINDOW];
@@ -34,7 +39,8 @@ public:
                  METRIC_PRESSURE | METRIC_AIR_QUALITY | METRIC_VOLTAGE,
   };
 
-  PublicChannelSensorBot();
+  // Public is always watched. A hashtag name adds its standard channel key.
+  PublicChannelSensorBot(const char* channel_name = SENSOR_BOT_CHANNEL_NAME);
 
   int findChannel(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) const;
 
@@ -42,6 +48,10 @@ public:
   // or a standalone ping/path/trace request in metric_mask. A busy trace can
   // be reported once by the caller without consuming a command-rate slot.
   bool accept(uint8_t type, uint8_t* data, size_t len, uint32_t now_millis,
-              bool trace_busy, uint8_t& metric_mask, bool& busy_trace);
-  const mesh::GroupChannel& channel() const { return _channel; }
+              bool trace_busy, uint8_t& metric_mask, bool& busy_trace,
+              uint8_t channel_index = 0);
+  int channelIndex(const mesh::GroupChannel& source) const;
+  const mesh::GroupChannel& channel(uint8_t index = 0) const {
+    return index == 1 ? _public_channel : _channel;
+  }
 };

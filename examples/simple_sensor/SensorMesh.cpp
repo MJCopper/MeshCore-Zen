@@ -46,7 +46,7 @@
 
 /* ------------------------------ Code -------------------------------- */
 
-#define FIRMWARE_VER_LEVEL       2
+#define FIRMWARE_VER_LEVEL       1
 
 #define REQ_TYPE_LOGIN               0x00
 #define REQ_TYPE_GET_STATUS          0x01
@@ -54,19 +54,12 @@
 #define REQ_TYPE_GET_TELEMETRY_DATA  0x03
 #define REQ_TYPE_GET_AVG_MIN_MAX     0x04
 #define REQ_TYPE_GET_ACCESS_LIST     0x05
-#define REQ_TYPE_GET_OWNER_INFO      0x07     // FIRMWARE_VER_LEVEL >= 2
 
 #define RESP_SERVER_LOGIN_OK      0   // response to ANON_REQ
 
 #define CLI_REPLY_DELAY_MILLIS  1000
 
 #define LAZY_CONTACTS_WRITE_DELAY       5000
-
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-static bool saveAdminClient(ClientInfo* client) {
-  return client->isAdmin();
-}
-#endif
 
 #define ALERT_ACK_EXPIRY_MILLIS         8000   // wait 8 secs for ACKs to alert messages
 
@@ -182,29 +175,10 @@ static uint8_t putFloat(uint8_t * dest, float value, uint8_t size, uint32_t mult
 uint8_t SensorMesh::handleRequest(uint8_t perms, uint32_t sender_timestamp, uint8_t req_type, uint8_t* payload, size_t payload_len) {
   memcpy(reply_data, &sender_timestamp, 4);   // reflect sender_timestamp back in response packet (kind of like a 'tag')
 
-  if (req_type == REQ_TYPE_GET_STATUS) {
-    SensorStats stats;
-    stats.batt_milli_volts = board.getBattMilliVolts();
-    stats.curr_tx_queue_len = _mgr->getOutboundTotal();
-    stats.noise_floor = (int16_t)_radio->getNoiseFloor();
-    stats.last_rssi = (int16_t)radio_driver.getLastRSSI();
-    stats.n_packets_recv = radio_driver.getPacketsRecv();
-    stats.n_packets_sent = radio_driver.getPacketsSent();
-    stats.total_air_time_secs = getTotalAirTime() / 1000;
-    stats.total_up_time_secs = _ms->getMillis() / 1000;
-    stats.n_sent_flood = getNumSentFlood();
-    stats.n_sent_direct = getNumSentDirect();
-    stats.n_recv_flood = getNumRecvFlood();
-    stats.n_recv_direct = getNumRecvDirect();
-    stats.err_events = _err_flags;
-    stats.last_snr = (int16_t)(radio_driver.getLastSNR() * 4);
-    stats.n_direct_dups = ((SimpleMeshTables*)getTables())->getNumDirectDups();
-    stats.n_flood_dups = ((SimpleMeshTables*)getTables())->getNumFloodDups();
-    stats.total_rx_air_time_secs = getReceiveAirTime() / 1000;
-    stats.n_recv_errors = radio_driver.getPacketsRecvErrors();
-    memcpy(&reply_data[4], &stats, sizeof(stats));
-    return 4 + sizeof(stats);
-  }
+  int custom = handleCustomRequest(perms, req_type, payload, payload_len,
+                                   reply_data + 4, sizeof(reply_data) - 4);
+  if (custom >= 0) return custom > 0 && custom <= (int)sizeof(reply_data) - 4 ? 4 + custom : 0;
+
   if (req_type == REQ_TYPE_GET_TELEMETRY_DATA && payload_len >= 1) {  // allow all
     uint8_t perm_mask = ~(payload[0]);    // NEW: first reserved byte (of 4), is now inverse mask to apply to permissions
 
@@ -268,13 +242,7 @@ uint8_t SensorMesh::handleRequest(uint8_t perms, uint32_t sender_timestamp, uint
       return ofs;
     }
   }
-  if (req_type == REQ_TYPE_GET_OWNER_INFO) {
-    int len = snprintf((char*)&reply_data[4], sizeof(reply_data) - 4, "%s\n%s\n%s",
-                       FIRMWARE_VERSION, _prefs.node_name, _prefs.owner_info);
-    if (len < 0) return 0;
-    if (len >= (int)sizeof(reply_data) - 4) len = sizeof(reply_data) - 5;
-    return 4 + len;
-  }
+
   return 0;  // unknown command
 }
 
@@ -415,39 +383,28 @@ void SensorMesh::sendFloodReply(mesh::Packet* packet, unsigned long delay_millis
   }
 }
 
-uint8_t SensorMesh::handleLoginReq(const mesh::Identity& sender, const uint8_t* secret, uint32_t sender_timestamp, const uint8_t* data, bool is_flood) {
-  bool is_admin = data[0] != 0 && strcmp((char *)data, _prefs.password) == 0;
-  bool is_blank = data[0] == 0;
-  ClientInfo* existing = acl.getClient(sender.pub_key, PUB_KEY_SIZE);
-  ClientInfo* client = acl.putClientPreservingAdmins(sender, 0);
-  if (client == NULL) {
-    MESH_DEBUG_PRINTLN("Login rejected: client table contains only administrators");
-    return 0;
-  }
-  if (sender_timestamp <= client->last_timestamp) {
-    MESH_DEBUG_PRINTLN("Possible login replay attack!");
-    return 0;
-  }
-
-  MESH_DEBUG_PRINTLN("Login success (%s)", is_admin ? "admin" :
-                     (is_blank && existing != NULL ? "ACL" : "guest"));
+ClientInfo* SensorMesh::authenticateClient(ClientACL& clients, const mesh::Identity& sender,
+                                           const uint8_t* secret, uint32_t sender_timestamp,
+                                           const char* password, bool& persist) {
+  persist = false;
+  if (!password[0]) return clients.getClient(sender.pub_key, PUB_KEY_SIZE);
+  if (strcmp(password, _prefs.password) != 0) return NULL;
+  ClientInfo* client = clients.putClient(sender, PERM_RECV_ALERTS_HI | PERM_RECV_ALERTS_LO);
+  if (!client || sender_timestamp <= client->last_timestamp) return NULL;
   client->last_timestamp = sender_timestamp;
   client->last_activity = getRTCClock()->getCurrentTime();
-  if (is_admin) {
-    client->permissions &= ~PERM_ACL_ROLE_MASK;
-    client->permissions |= PERM_ACL_ADMIN;
-  } else if (!is_blank || existing == NULL) {
-    // Keep unauthorised sessions as active read-only sensor clients. Permission
-    // zero is the room-server Guest role, but ClientACL also treats it as a
-    // deleted entry; sensor telemetry clients use the read-only ACL role.
-    client->permissions = PERM_ACL_READ_ONLY;
-  }
-  if (is_admin) client->permissions |= PERM_RECV_ALERTS_HI | PERM_RECV_ALERTS_LO;
+  client->permissions |= PERM_ACL_ADMIN;
   memcpy(client->shared_secret, secret, PUB_KEY_SIZE);
+  persist = true;
+  return client;
+}
 
-  // Read-only sessions are intentionally transient. Periodic telemetry access
-  // must not create flash writes; only authenticated administrators are saved.
-  if (is_admin) dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
+uint8_t SensorMesh::handleLoginReq(const mesh::Identity& sender, const uint8_t* secret, uint32_t sender_timestamp, const uint8_t* data, bool is_flood) {
+  bool persist = false;
+  ClientInfo* client = authenticateClient(acl, sender, secret, sender_timestamp,
+                                         (const char*)data, persist);
+  if (!client) return 0;
+  if (persist) dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
 
   if (is_flood) {
     client->out_path_len = OUT_PATH_UNKNOWN;  // need to rediscover out_path
@@ -457,12 +414,10 @@ uint8_t SensorMesh::handleLoginReq(const mesh::Identity& sender, const uint8_t* 
   memcpy(reply_data, &now, 4);   // response packets always prefixed with timestamp
   reply_data[4] = RESP_SERVER_LOGIN_OK;
   reply_data[5] = 0;
-  // Legacy login mode 2 selects the companion app's limited guest UI, while
-  // reply_data[7] carries the sensor's actual read-only ACL permission.
-  reply_data[6] = client->isAdmin() ? 1 : 2;
+  reply_data[6] = loginMode(*client);
   reply_data[7] = client->permissions;
   getRNG()->random(&reply_data[8], 4);   // random blob to help packet-hash uniqueness
-  reply_data[12] = FIRMWARE_VER_LEVEL;
+  reply_data[12] = firmwareLevel();
 
   return 13;  // reply length
 }
@@ -834,11 +789,7 @@ void SensorMesh::begin(FILESYSTEM* fs) {
   _fs = fs;
   // load persisted prefs
   _cli.loadPrefs(_fs);
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-  // This sensor is a leaf node. Keep the reported preference aligned with the
-  // hard forwarding block even if older persisted settings enabled repeating.
-  _prefs.disable_fwd = true;
-#endif
+  onPrefsLoaded(_prefs);
 
   acl.load(_fs, self_id);
   region_map.load(_fs);
@@ -1069,11 +1020,7 @@ void SensorMesh::loop() {
 
   // is there are pending dirty contacts write needed?
   if (dirty_contacts_expiry && millisHasNowPassed(dirty_contacts_expiry)) {
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-    acl.save(_fs, saveAdminClient);
-#else
-    acl.save(_fs);
-#endif
+    acl.save(_fs, clientSaveFilter());
     dirty_contacts_expiry = 0;
   }
 }

@@ -1,41 +1,8 @@
 #include "SensorMesh.h"
 
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-  #include "PublicChannelSensorBot.h"
-  #include "PublicResponseQueue.h"
-  #include "RepeaterNameCache.h"
-  #include "RepeaterTraceProbe.h"
-#endif
-
 #ifdef DISPLAY_CLASS
   #include "UITask.h"
   static UITask ui_task(display);
-#endif
-
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-static const uint32_t TRACE_REPLY_DELAY_MILLIS = 1000;
-
-static const char* airQualityLabel(float score) {
-  return score <= 50 ? "Good" :
-         score <= 100 ? "Moderate" :
-         score <= 150 ? "Poor" :
-         score <= 200 ? "Unhealthy" :
-         score <= 300 ? "Very poor" : "Hazardous";
-}
-
-static void formatAirQuality(char* dest, size_t size, float score, uint8_t sample_count) {
-  if (sample_count < 10) {
-    snprintf(dest, size, "Air Quality: Warming Up (%u/10)", sample_count);
-  } else {
-    snprintf(dest, size, "Air Quality: %.0f/500 (%s)", score, airQualityLabel(score));
-  }
-}
-
-static void appendResponseLine(char* response, size_t size, const char* line) {
-  size_t used = strlen(response);
-  if (used && used < size - 1) response[used++] = '\n';
-  if (used < size - 1) StrHelper::strncpy(&response[used], line, size - used);
-}
 #endif
 
 class MyMesh : public SensorMesh {
@@ -46,58 +13,10 @@ public:
   {
   }
 
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-  void begin(FILESYSTEM* fs) {
-    SensorMesh::begin(fs);
-    repeater_names.begin(fs);
-  }
-
-  void loop() {
-    SensorMesh::loop();
-    repeater_names.loop(millis());
-    if (trace_probe.isQueueTimedOut(millis())) {
-      cancelQueuedPacket(trace_probe.queuedPacket());
-      trace_probe.cancel();
-      if (!sendTraceFallback()) sendPublicResponse("Trace: radio busy");
-    }
-    if (trace_probe.isTimedOut(millis())) {
-      if (trace_probe.retryPending()) {
-        uint32_t tag, auth_code;
-        getRNG()->random(reinterpret_cast<uint8_t*>(&tag), sizeof(tag));
-        getRNG()->random(reinterpret_cast<uint8_t*>(&auth_code), sizeof(auth_code));
-        if (!trace_probe.beginRetry(tag, auth_code, millis()) ||
-            !queueTrace(getRNG()->nextInt(1000, 2001))) {
-          trace_probe.cancel();
-          if (!sendTraceFallback()) sendPublicResponse("Trace: unable to retry");
-        }
-      } else {
-        if (!sendTraceFallback()) sendPublicResponse("Trace: route timed out");
-      }
-    }
-    char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
-    if (public_replies.takeDue(millis(), part) && !sendPublicPart(part, 0))
-      public_replies.schedule(part, millis() + 1000);
-  }
-#endif
-
 protected:
   /* ========================== custom logic here ========================== */
   Trigger low_batt, critical_batt;
   TimeSeriesData  battery_data;
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-  PublicChannelSensorBot public_bot;
-  PublicResponseQueue public_replies;
-  RepeaterNameCache repeater_names;
-  RepeaterTraceProbe trace_probe;
-  bool busy_trace_reported = false;
-  float bme_temperature = NAN;
-  float bme_humidity = NAN;
-  float bme_pressure = NAN;
-  float bme_air_quality = NAN;
-  float cached_voltage = NAN;
-  bool bme_data_ready = false;
-  uint8_t bme_sample_count = 0;
-#endif
 
   void onSensorDataRead() override {
     float batt_voltage = getVoltage(TELEM_CHANNEL_SELF);
@@ -105,18 +24,6 @@ protected:
     battery_data.recordData(getRTCClock(), batt_voltage);   // record battery
     alertIf(batt_voltage < 3.4f, critical_batt, HIGH_PRI_ALERT, "Battery is critical!");
     alertIf(batt_voltage < 3.6f, low_batt, LOW_PRI_ALERT, "Battery is low");
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-    cached_voltage = batt_voltage;
-    // This build enables only the BME680, so it occupies telemetry channel 2.
-    bme_temperature = getTemperature(2);
-    bme_humidity = getRelativeHumidity(2);
-    bme_pressure = getBarometricPressure(2);
-    bme_air_quality = getTelemValue(2, LPP_GENERIC_SENSOR);
-    // getTelemValue() returns zero for a missing field. Pressure is strictly
-    // positive for a successful BME680 reading, while AQ zero is valid.
-    bme_data_ready = bme_pressure > 0.0f;
-    if (bme_data_ready && bme_sample_count < 10) bme_sample_count++;
-#endif
   }
 
   int querySeriesData(uint32_t start_secs_ago, uint32_t end_secs_ago, MinMaxAvg dest[], int max_num) override {
@@ -125,228 +32,12 @@ protected:
   }
 
   bool handleCustomCommand(uint32_t sender_timestamp, char* command, char* reply) override {
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-    if (strcmp(command, "get repeat") == 0) {
-      strcpy(reply, "> off");
-      return true;
-    }
-    if (strncmp(command, "set repeat ", 11) == 0) {
-      strcpy(reply, "OK - repeat is fixed OFF");
-      return true;
-    }
-#endif
     if (strcmp(command, "magic") == 0) {    // example 'custom' command handling
       strcpy(reply, "**Magic now done**");
       return true;   // handled
     }
     return false;  // not handled
   }
-
-#ifdef PUBLIC_CHANNEL_SENSOR_BOT
-  bool allowPacketForward(const mesh::Packet*) override { return false; }
-
-  bool queueTrace(uint32_t delay_millis = 0) {
-    auto trace = createTrace(trace_probe.tag(), trace_probe.authCode(), trace_probe.flags());
-    if (!trace) return false;
-    trace_probe.setQueuedPacket(trace);
-    sendDirect(trace, trace_probe.path(), trace_probe.pathBytes(), delay_millis);
-    return isQueuedPacket(trace);
-  }
-
-  void onTxStarted(mesh::Packet* packet, uint32_t now_millis) override {
-    trace_probe.onTxStarted(packet, now_millis);
-  }
-
-  void logTx(mesh::Packet* packet, int) override {
-    trace_probe.onTxComplete(packet);
-    public_replies.onFirstSent(packet, millis());
-  }
-
-  void logTxFail(mesh::Packet* packet, int) override {
-    if (trace_probe.onTxFailed(packet) && !sendTraceFallback())
-      sendPublicResponse("Trace: transmit failed");
-    public_replies.onFirstFailed(packet);
-  }
-
-  mesh::Packet* createPublicPart(const char* response) {
-    uint8_t payload[MAX_PACKET_PAYLOAD];
-    uint32_t timestamp = getRTCClock()->getCurrentTimeUnique();
-    memcpy(payload, &timestamp, sizeof(timestamp));
-    payload[4] = 0;
-    int prefix_len = snprintf(reinterpret_cast<char*>(&payload[5]), sizeof(payload) - 5,
-                              "%s: ", getNodeName());
-    if (prefix_len < 0 || prefix_len >= (int)(sizeof(payload) - 5)) return NULL;
-    size_t response_len = strlen(response);
-    if (prefix_len + response_len > PublicResponseQueue::MAX_PART_LENGTH) return NULL;
-    memcpy(&payload[5 + prefix_len], response, response_len);
-
-    return createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, public_bot.channel(), payload,
-                               5 + prefix_len + response_len);
-  }
-
-  bool sendPublicPart(const char* response, uint32_t delay_millis) {
-    auto reply_packet = createPublicPart(response);
-    if (!reply_packet) return false;
-    sendFlood(reply_packet, delay_millis);
-    return isQueuedPacket(reply_packet);
-  }
-
-  void sendPublicResponse(const char* response, uint32_t extra_delay_millis = 0) {
-    size_t prefix_len = strlen(getNodeName()) + 2;
-    if (prefix_len >= PublicResponseQueue::MAX_PART_LENGTH) return;
-    char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
-    char second[PublicResponseQueue::MAX_PART_LENGTH + 1];
-    bool multipart = PublicResponseQueue::split(response,
-                                                 PublicResponseQueue::MAX_PART_LENGTH - prefix_len,
-                                                 first, second);
-    uint32_t first_delay = extra_delay_millis + getRNG()->nextInt(500, 2001);
-    auto first_packet = createPublicPart(first);
-    if (!first_packet) return;
-    if (multipart && !public_replies.scheduleAfterFirst(second, first_packet)) {
-      releasePacket(first_packet);
-      sendPublicPart("Reply queue busy", first_delay);
-      return;
-    }
-    sendFlood(first_packet, first_delay);
-    if (!isQueuedPacket(first_packet)) public_replies.onFirstFailed(first_packet);
-  }
-
-  void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
-                    const uint8_t* app_data, size_t app_data_len) override {
-    repeater_names.onAdvert(id, timestamp, app_data, app_data_len, millis());
-  }
-
-  void onTraceRecv(mesh::Packet* packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
-                   const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len) override {
-    uint32_t elapsed_millis;
-    uint8_t repeater_count;
-    if (trace_probe.complete(packet, tag, auth_code, flags, path_hashes, path_len,
-                             millis(), elapsed_millis, repeater_count)) {
-      sendTraceResult(elapsed_millis, repeater_count, flags, path_snrs, path_hashes);
-      return;
-    }
-    if (trace_probe.captureLateFirst(packet, tag, auth_code, flags, path_snrs,
-                                     path_hashes, path_len, millis()) ==
-        RepeaterTraceProbe::RETRY_QUEUED &&
-        cancelQueuedPacket(trace_probe.queuedPacket())) {
-      trace_probe.cancel();
-      sendTraceFallback();
-    }
-  }
-
-  void sendTraceResult(uint32_t elapsed_millis, uint8_t repeater_count, uint8_t flags,
-                       const uint8_t* path_snrs, const uint8_t* path_hashes) {
-    char response[2 * PublicResponseQueue::MAX_PART_LENGTH + 1];
-    snprintf(response, sizeof(response), "Trace: %lu ms RTT", (unsigned long)elapsed_millis);
-    uint8_t hash_size = 1 << (flags & 0x03);
-    for (uint8_t i = 0; i < repeater_count; i++) {
-      char label[13];
-      char line[40];
-      repeater_names.formatLabel(&path_hashes[i * hash_size], hash_size,
-                                 label, sizeof(label));
-      snprintf(line, sizeof(line), "%u %s %+.1f dB", i + 1, label,
-               (float)(int8_t)path_snrs[i] / 4.0f);
-      appendResponseLine(response, sizeof(response), line);
-    }
-    sendPublicResponse(response, TRACE_REPLY_DELAY_MILLIS);
-  }
-
-  bool sendTraceFallback() {
-    RepeaterTraceProbe::Result result;
-    if (!trace_probe.takeFallback(result)) return false;
-    sendTraceResult(result.elapsed_millis, result.repeater_count, trace_probe.flags(),
-                    result.snrs, trace_probe.path());
-    return true;
-  }
-
-  int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) override {
-    return public_bot.findChannel(hash, channels, max_matches);
-  }
-
-  void onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel&,
-                       uint8_t* data, size_t len) override {
-    uint8_t metric_mask;
-    bool busy_trace;
-    if (!public_bot.accept(type, data, len, millis(), trace_probe.isActive(),
-                           metric_mask, busy_trace)) return;
-
-    if (busy_trace) {
-      if (!busy_trace_reported) {
-        busy_trace_reported = true;
-        sendPublicResponse("Trace: already running");
-      }
-      return;
-    }
-
-    if (metric_mask == PublicChannelSensorBot::REQUEST_TRACE) {
-      uint32_t tag, auth_code;
-      getRNG()->random(reinterpret_cast<uint8_t*>(&tag), sizeof(tag));
-      getRNG()->random(reinterpret_cast<uint8_t*>(&auth_code), sizeof(auth_code));
-      switch (trace_probe.start(packet, tag, auth_code, millis())) {
-        case RepeaterTraceProbe::STARTED: {
-          busy_trace_reported = false;
-          if (queueTrace()) return;  // Reply on return or after the retry.
-          trace_probe.cancel();
-          sendPublicResponse("Trace: unable to start");
-          return;
-        }
-        case RepeaterTraceProbe::BUSY:
-          sendPublicResponse("Trace: already running");
-          return;
-        case RepeaterTraceProbe::NO_REPEATERS:
-          sendPublicResponse("Trace: no repeaters in request path");
-          return;
-        case RepeaterTraceProbe::TOO_LONG:
-          sendPublicResponse("Trace: path too long (max 10 repeaters)");
-          return;
-        case RepeaterTraceProbe::INVALID_PATH:
-          sendPublicResponse("Trace: request path unavailable");
-          return;
-      }
-    }
-
-    char response[2 * PublicResponseQueue::MAX_PART_LENGTH + 1];
-    char air_quality[48];
-    char line[64];
-    response[0] = 0;
-    if (metric_mask == PublicChannelSensorBot::REQUEST_PING) {
-      StrHelper::strncpy(response, "Pong", sizeof(response));
-    } else if (metric_mask == PublicChannelSensorBot::REQUEST_PATH) {
-      // Leave room for the node name and group-message framing.
-      repeater_names.formatPath(packet, response, 120);
-    } else if (metric_mask & PublicChannelSensorBot::METRIC_VOLTAGE && cached_voltage > 0.0f) {
-      snprintf(line, sizeof(line), "Voltage: %.2f V", cached_voltage);
-      appendResponseLine(response, sizeof(response), line);
-    }
-
-    const uint8_t bme_metrics = PublicChannelSensorBot::METRIC_ALL &
-                                ~PublicChannelSensorBot::METRIC_VOLTAGE;
-    if ((metric_mask & bme_metrics) && !bme_data_ready) {
-      appendResponseLine(response, sizeof(response), "Sensor data is not ready");
-    } else if (metric_mask != PublicChannelSensorBot::REQUEST_PING &&
-               metric_mask != PublicChannelSensorBot::REQUEST_PATH && bme_data_ready) {
-      formatAirQuality(air_quality, sizeof(air_quality), bme_air_quality, bme_sample_count);
-      if (metric_mask & PublicChannelSensorBot::METRIC_TEMPERATURE) {
-        snprintf(line, sizeof(line), "Temperature: %.1f C", bme_temperature);
-        appendResponseLine(response, sizeof(response), line);
-      }
-      if (metric_mask & PublicChannelSensorBot::METRIC_HUMIDITY) {
-        snprintf(line, sizeof(line), "Humidity: %.1f%%", bme_humidity);
-        appendResponseLine(response, sizeof(response), line);
-      }
-      if (metric_mask & PublicChannelSensorBot::METRIC_PRESSURE) {
-        snprintf(line, sizeof(line), "Pressure: %.1f hPa", bme_pressure);
-        appendResponseLine(response, sizeof(response), line);
-      }
-      if (metric_mask & PublicChannelSensorBot::METRIC_AIR_QUALITY)
-        appendResponseLine(response, sizeof(response), air_quality);
-    }
-    if (response[0] == 0)
-      StrHelper::strncpy(response, "Sensor data is not ready", sizeof(response));
-
-    sendPublicResponse(response);
-  }
-#endif
   /* ======================================================================= */
 };
 

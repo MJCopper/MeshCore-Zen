@@ -1,6 +1,6 @@
 # Telemetry
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
 The node samples the BME680 once every 60 seconds and caches the most recent
 successful reading. A telemetry request returns cached node and sensor data; it

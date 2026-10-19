@@ -1,0 +1,81 @@
+#pragma once
+
+#include <Mesh.h>
+#include <helpers/TxtDataHelpers.h>
+#include "Bme680Telemetry.h"
+#include "PublicChannelSensorBot.h"
+#include "PublicResponseQueue.h"
+#include "RepeaterNameCache.h"
+#include "RepeaterTraceProbe.h"
+
+// Radio ownership stays in the MeshCore adapter; service tests supply this interface.
+class SensorBotTransport {
+public:
+  virtual uint32_t now() = 0;
+  virtual uint32_t uniqueTime() = 0;
+  virtual const char* nodeName() = 0;
+  virtual mesh::RNG& rng() = 0;
+  virtual uint32_t estimateAirtime(uint8_t length) = 0;
+  virtual mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) = 0;
+  virtual mesh::Packet* createGroupDatagram(uint8_t type, const mesh::GroupChannel& channel,
+                                           const uint8_t* data, size_t length) = 0;
+  virtual void sendFlood(mesh::Packet* packet, uint32_t delay) = 0;
+  virtual void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length,
+                          uint32_t delay = 0) = 0;
+  virtual void releasePacket(mesh::Packet* packet) = 0;
+  virtual bool isQueuedPacket(const mesh::Packet* packet) const = 0;
+  virtual bool cancelQueuedPacket(mesh::Packet* packet) = 0;
+};
+
+class SensorBotService {
+public:
+  SensorBotService(SensorBotTransport& transport, Bme680Telemetry& telemetry)
+      : _transport(transport), _telemetry(telemetry) { }
+
+  void begin(FILESYSTEM* fs);
+
+  void loop();
+
+  void onTxStarted(mesh::Packet* packet, uint32_t now_millis);
+
+  void logTx(mesh::Packet* packet, int);
+
+  void logTxFail(mesh::Packet* packet, int);
+  void observeRoute(const mesh::Packet* packet);
+
+  void sendPublicResponse(const char* response, uint8_t channel_index, uint32_t extra_delay_millis = 0);
+
+  void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
+                    const uint8_t* app_data, size_t app_data_len);
+
+  void onTraceRecv(mesh::Packet* packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
+                   const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len);
+
+  int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches);
+
+  void onGroupDataRecv(mesh::Packet* packet, uint8_t type, const mesh::GroupChannel&,
+                       uint8_t* data, size_t len);
+
+private:
+  SensorBotTransport& _transport;
+  Bme680Telemetry& _telemetry;
+  PublicChannelSensorBot public_bot;
+  PublicResponseQueue public_replies;
+  RepeaterNameCache repeater_names;
+  RepeaterTraceProbe trace_probe;
+  TraceRouteCandidates trace_routes;
+  mesh::Packet* trace_failure_packet = NULL;
+  uint32_t next_trace_tag = 0;
+  bool busy_trace_reported = false;
+  uint8_t trace_channel = 0;
+
+  bool queueTrace(uint32_t delay_millis = 0);
+  mesh::Packet* createPublicPart(const char* response, uint8_t channel_index);
+  bool sendPublicPart(const char* response, uint8_t channel_index, uint32_t delay_millis);
+  void sendTraceResult(const RepeaterTraceProbe::Result& result);
+  void finishTrace(const RepeaterTraceProbe::Result& result);
+  void closeTrace();
+  void queueTraceFailure();
+  void traceIdentifiers(uint32_t& tag, uint32_t& auth);
+};
+

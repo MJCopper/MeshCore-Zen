@@ -17,9 +17,6 @@
 #define TELEM_BME680_ADDRESS 0x76
 #endif
 #define TELEM_BME680_SEALEVELPRESSURE_HPA (1013.25)
-#ifndef TELEM_BME680_ALTITUDE_OFFSET_M
-#define TELEM_BME680_ALTITUDE_OFFSET_M (0.0f)
-#endif
 #include <bsec.h>
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
@@ -47,10 +44,6 @@ static uint32_t bsec_last_save_ms    = 0;
 #define TELEM_BME680_SEALEVELPRESSURE_HPA (1013.25)
 #include <Adafruit_BME680.h>
 static Adafruit_BME680 BME680(TELEM_WIRE);
-#ifdef ENV_BME680_AIR_QUALITY
-  #include "BME680AirQuality.h"
-  static BME680AirQuality BME680_AIR_QUALITY;
-#endif
 #endif
 
 #ifdef ENV_INCLUDE_BMP085
@@ -269,16 +262,8 @@ static void query_bme680(uint8_t ch, uint8_t, CayenneLPP& lpp) {
     lpp.addRelativeHumidity(ch, BME680.humidity);
     const float pressure_hpa = BME680.pressure / 100.0f;
     lpp.addBarometricPressure(ch, pressure_hpa);
-    float altitude = 44330.0f *
-        (1.0f - powf(pressure_hpa / (float)TELEM_BME680_SEALEVELPRESSURE_HPA, 0.1903f));
-    lpp.addAltitude(ch, altitude + (float)TELEM_BME680_ALTITUDE_OFFSET_M);
-#ifdef ENV_BME680_AIR_QUALITY
-    float air_quality;
-    if (BME680_AIR_QUALITY.update(BME680.gas_resistance, BME680.humidity, air_quality))
-      lpp.addGenericSensor(ch, air_quality);
-#else
+    lpp.addAltitude(ch, 44330.0f * (1.0f - powf(pressure_hpa / (float)TELEM_BME680_SEALEVELPRESSURE_HPA, 0.1903f)));
     lpp.addGenericSensor(ch, BME680.gas_resistance);
-#endif
   }
 }
 #endif

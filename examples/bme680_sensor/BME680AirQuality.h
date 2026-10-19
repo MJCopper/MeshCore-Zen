@@ -16,4 +16,5 @@ public:
 
   // Returns true when score contains a usable 0 (best) to 500 (worst) value.
   bool update(float gas_ohms, float humidity_percent, float& score);
+  uint8_t samples() const { return _samples; }
 };

@@ -44,6 +44,7 @@ public:
 
     size_t print(char c) { return write(c); }
     size_t print(const char* str) { return write(str); }
+    size_t println() { return write('\n'); }
 
     //size_t println(void)  { return 0; }
     

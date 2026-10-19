@@ -47,23 +47,6 @@
 #define MAX_SEARCH_RESULTS      8
 #define MAX_CONCURRENT_ALERTS   4
 
-struct SensorStats {
-  uint16_t batt_milli_volts;
-  uint16_t curr_tx_queue_len;
-  int16_t noise_floor;
-  int16_t last_rssi;
-  uint32_t n_packets_recv;
-  uint32_t n_packets_sent;
-  uint32_t total_air_time_secs;
-  uint32_t total_up_time_secs;
-  uint32_t n_sent_flood, n_sent_direct;
-  uint32_t n_recv_flood, n_recv_direct;
-  uint16_t err_events;
-  int16_t last_snr;  // x 4
-  uint16_t n_direct_dups, n_flood_dups;
-  uint32_t total_rx_air_time_secs;
-  uint32_t n_recv_errors;
-};
 
 class SensorMesh : public mesh::Mesh, public CommonCLICallbacks {
 public:
@@ -131,6 +114,18 @@ protected:
   virtual void onSensorDataRead() = 0;   // for app to implement
   virtual int querySeriesData(uint32_t start_secs_ago, uint32_t end_secs_ago, MinMaxAvg dest[], int max_num) = 0;  // for app to implement
   virtual bool handleCustomCommand(uint32_t sender_timestamp, char* command, char* reply) { return false; }
+
+  // Optional application policies. Defaults retain the standard sensor behaviour.
+  virtual ClientInfo* authenticateClient(ClientACL& clients, const mesh::Identity& sender,
+                                         const uint8_t* secret, uint32_t sender_timestamp,
+                                         const char* password, bool& persist);
+  virtual uint8_t loginMode(const ClientInfo& client) const { return client.isAdmin() ? 1 : 0; }
+  virtual uint8_t firmwareLevel() const { return 1; }
+  virtual int handleCustomRequest(uint8_t perms, uint8_t type, const uint8_t* payload,
+                                  size_t length, uint8_t* reply, size_t capacity) { return -1; }
+  virtual void onPrefsLoaded(NodePrefs&) { }
+  using ClientSaveFilter = bool (*)(ClientInfo*);
+  virtual ClientSaveFilter clientSaveFilter() const { return NULL; }
 
   // Mesh overrides
   float getAirtimeBudgetFactor() const override;

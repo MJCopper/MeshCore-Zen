@@ -4,7 +4,8 @@
 
 bool BME680AirQuality::update(float gas_ohms, float humidity_percent, float& score) {
   score = 0.0f;
-  if (gas_ohms <= 0.0f || humidity_percent < 0.0f || humidity_percent > 100.0f) return false;
+  if (!isfinite(gas_ohms) || !isfinite(humidity_percent) || gas_ohms <= 0.0f ||
+      humidity_percent < 0.0f || humidity_percent > 100.0f) return false;
 
   if (_gas_baseline <= 0.0f || gas_ohms > _gas_baseline) {
     // Gas resistance normally rises during heater warm-up. Track that quickly,

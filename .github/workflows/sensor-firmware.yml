@@ -1,0 +1,24 @@
+name: Sensor Firmware Regression
+on:
+  push:
+    branches: [meshcore/sensor]
+  pull_request:
+    paths: ['examples/bme680_sensor/**', 'examples/simple_sensor/**', 'src/**', 'variants/xiao_nrf52/**', 'platformio.ini']
+  workflow_dispatch:
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [Xiao_nrf52_bme680_sensor, Xiao_nrf52_sensor_baseline, Xiao_nrf52_companion_radio_usb, Xiao_nrf52_repeater, Xiao_nrf52_room_server]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-build-environment
+      - run: pio run -e ${{ matrix.environment }}
+      - run: pio run -e ${{ matrix.environment }} -t create_uf2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.environment }}
+          path: |
+            .pio/build/${{ matrix.environment }}/*.uf2
+            .pio/build/${{ matrix.environment }}/*.zip

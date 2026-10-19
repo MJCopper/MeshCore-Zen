@@ -16,7 +16,7 @@ WRAPPER_CLASS radio_driver(radio, board);
 VolatileRTCClock fallback_clock;
 AutoDiscoverRTCClock rtc_clock(fallback_clock);
 
-EnvironmentSensorManager sensors;
+SENSOR_MANAGER_CLASS sensors;
 
 bool radio_init() {
   rtc_clock.begin(Wire);

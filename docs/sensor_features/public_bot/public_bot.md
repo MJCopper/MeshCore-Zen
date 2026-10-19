@@ -1,9 +1,14 @@
 # Public-channel Commands
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md)
 
-The node listens on MeshCore's built-in Public channel for messages beginning
-with the exact command word `!hillvue`. Matching is case-insensitive.
+The node listens on MeshCore's built-in Public channel and `#hillvue` for
+messages beginning with the exact command word `!hillvue`. Matching is
+case-insensitive. Each response stays on the requesting channel, including
+delayed message parts, trace results, fallback results and error notices.
+Both channels share the same four-command-per-minute limit and active trace.
+
+Hashtag channels are not private: anyone who knows the name can derive the key.
 
 ## Commands
 
@@ -42,7 +47,7 @@ request on its way to the sensor, using names from verified repeater adverts
 where available. Unknown or ambiguous names are shown as path hashes. This is
 the first received route, not necessarily the best route or the return path.
 The sensor retains up to 48 repeater names in its internal flash filesystem;
-unchanged adverts do not cause writes. The reply appears on the Public channel,
+unchanged adverts do not cause writes. The reply appears on the requesting channel,
 not as a private message to the requester.
 
 `!hillvue trace` is standalone. The sensor sends one direct MeshCore trace out
@@ -64,23 +69,51 @@ queue is excluded. It is not a
 one-way latency or a measurement to the companion. Only one trace runs at
 a time; paths over ten repeaters are rejected. A probe that cannot begin
 transmitting within ten seconds is cancelled. Once transmission begins, the
-timeout is five seconds plus 2.5 seconds per repeater, rounded up to a whole
-second. For example, two repeaters have ten seconds, three have 13 seconds,
-and ten have 30 seconds. If the route times out, the sensor makes one retry
-over the same path after a random one-to-two-second pause. The retry has a
-fresh trace identifier and the same per-repeater timeout. Only a final result
-or failure is posted to Public. If the first trace returns after its timeout
-but before the retry transmits, the sensor cancels the retry and reports that
-result. If the retry is already on air, the late first result is held in RAM
-and used only if the retry fails. Queue and transmit failures do not trigger a
-retry. The original command counts once toward the unchanged
+timeout is the larger of the existing hop allowance and an airtime estimate,
+rounded up to whole seconds:
+
+```text
+Hop allowance:     5000 + 2500 × repeater count
+Airtime allowance: 500 + (6 × maximum packet airtime + 250) × (2 × repeater count)
+```
+
+All values are milliseconds. Maximum packet airtime includes the SNR bytes
+accumulated during the loop. The minimum is ten seconds for two repeaters,
+13 seconds for three, and 30 seconds for ten. Slower radio settings can increase
+that allowance; remote repeater congestion cannot be predicted exactly.
+
+After the first timeout, the sensor makes one silent retry following a random
+one-to-two-second pause. It passively watches additional copies of the exact
+same command for one alternate flood path. A distinct observed path is preferred
+for the retry; otherwise it uses the original path. Shorter alternate candidates
+are preferred, with recency breaking equal-length ties. This sends no discovery
+packets and does not treat repeater advert names as network topology.
+An observed path is a routing hint, not proof that its links work in reverse.
+
+Each attempt has fresh identifiers and retains its own path, hash width and
+transmission-start time. Only a final result or failure is posted to the
+requesting channel. A first result received before retry transmission cancels
+the queued retry. During retry it is retained in RAM as fallback; a successful
+retry takes precedence. Fallback names and SNRs always describe the first route,
+even if the retry used another route.
+
+When both probes expire without a result, a three-second final grace period
+allows either result to arrive. Valid late results can also replace an unsent
+failure report. Once failure transmission starts, the outcome is committed and
+late results are ignored, preventing contradictory reports. Failure-report
+queueing is bounded to ten seconds, including the normal random send delay.
+The node reports `Trace: no result after retry`, not that no route exists.
+Radio-busy, transmit-failure and unsent-retry conditions have separate messages.
+Queue and transmit failures do not trigger additional probes.
+
+The original command counts once toward the unchanged
 four-command-per-minute limit, although a retry sends a second trace packet.
 Requests received while a trace is running do not use a rate-limit slot; the
 node sends at most one `Trace: already running` notice for that trace.
 Incoming 3-byte path hashes cannot be mirrored by MeshCore TRACE and are
 reported as unavailable.
 
-After a trace result arrives, its Public-channel reply is scheduled with a
+After a trace result arrives, its channel reply is scheduled with a
 one-second minimum plus the usual random 0.5–2-second transmit delay. This
 spacing does not guarantee a collision-free transmission. The RTT is measured
 when the trace returns; the reply delay is not included. Repeater labels retain
@@ -88,7 +121,7 @@ their existing 12-byte UTF-8-safe limit. With the default `BME680 Sensor` name,
 all ten repeater lines fit in at most two replies. A longer sensor name may
 leave too little room; the second reply then ends with `...truncated`.
 
-Each selected value appears on its own line in a Public-channel reply;
+Each selected value appears on its own line in a channel reply;
 `!hillvue` and `!hillvue all` include voltage. A voltage-only request works
 even when the BME680 is not ready. Before the first voltage sample, or for
 requested BME680 readings that are not ready, the reply says

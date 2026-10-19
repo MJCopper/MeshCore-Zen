@@ -300,7 +300,7 @@
     "semantic_hash": ""
   },
   "build.sh": {
-    "mtime": 1789873330.8506198,
+    "mtime": 1792400393.2695568,
     "ast_hash": "8d9faf2de03b036936311effc3615e9b",
     "semantic_hash": ""
   },
@@ -310,57 +310,57 @@
     "semantic_hash": ""
   },
   "create-uf2.py": {
-    "mtime": 1789873330.8536198,
+    "mtime": 1792400393.2745566,
     "ast_hash": "a6b4689d3cc1039fdf571ecfe155579c",
     "semantic_hash": ""
   },
   "examples/companion_radio/AbstractUITask.h": {
-    "mtime": 1789873330.8966198,
+    "mtime": 1786709959.0,
     "ast_hash": "c867e4b6d1fa7e256a8059ac6fbe68f4",
     "semantic_hash": ""
   },
   "examples/companion_radio/DataStore.cpp": {
-    "mtime": 1789873330.8996198,
+    "mtime": 1786709959.0,
     "ast_hash": "87ebbb55af8b5be013d7adf6780b5d9f",
     "semantic_hash": ""
   },
   "examples/companion_radio/DataStore.h": {
-    "mtime": 1789873330.90362,
+    "mtime": 1786709959.0,
     "ast_hash": "df60756e7ee2ca8165c7b59468abab47",
     "semantic_hash": ""
   },
   "examples/companion_radio/MyMesh.cpp": {
-    "mtime": 1789873330.90762,
+    "mtime": 1786709959.0,
     "ast_hash": "716160f14a1e022e2b5ea8f54c248475",
     "semantic_hash": ""
   },
   "examples/companion_radio/MyMesh.h": {
-    "mtime": 1789873330.91162,
+    "mtime": 1786709959.0,
     "ast_hash": "7707ad61b54a1688bb06fc9128583e0c",
     "semantic_hash": ""
   },
   "examples/companion_radio/NodePrefs.h": {
-    "mtime": 1789873330.9156199,
+    "mtime": 1786709959.0,
     "ast_hash": "29dbc43e55230b9b8ccd304e8dae364c",
     "semantic_hash": ""
   },
   "examples/companion_radio/main.cpp": {
-    "mtime": 1789873330.9186199,
+    "mtime": 1786709959.0,
     "ast_hash": "f7484b530b0f2a074e60aaad88932b8a",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/UITask.cpp": {
-    "mtime": 1789873330.9226198,
+    "mtime": 1786709959.0,
     "ast_hash": "4b7fd1e07032ec290148686bcc712ed6",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/UITask.h": {
-    "mtime": 1789873330.92762,
+    "mtime": 1786709959.0,
     "ast_hash": "59ed5f14be277342225dc4c7547209cb",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-new/icons.h": {
-    "mtime": 1789873330.93162,
+    "mtime": 1786709959.0,
     "ast_hash": "47c4e161ed3ec3905e7a100df14abf95",
     "semantic_hash": ""
   },
@@ -375,12 +375,12 @@
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-orig/UITask.cpp": {
-    "mtime": 1789873330.93462,
+    "mtime": 1790165548.3902192,
     "ast_hash": "9c739a3c26d7e94c8a6c21d59100d848",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-orig/UITask.h": {
-    "mtime": 1789873330.9386199,
+    "mtime": 1790165548.395219,
     "ast_hash": "0123cd0f4bad3b6014edd87a317b7bff",
     "semantic_hash": ""
   },
@@ -390,12 +390,12 @@
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/UITask.cpp": {
-    "mtime": 1789873330.94362,
+    "mtime": 1790165548.3992193,
     "ast_hash": "e11daaba92d778b93e7dd368277bd0df",
     "semantic_hash": ""
   },
   "examples/companion_radio/ui-tiny/UITask.h": {
-    "mtime": 1789873330.94762,
+    "mtime": 1790165548.4032192,
     "ast_hash": "a4f4420fe37658410c0f63f72d5fa6d4",
     "semantic_hash": ""
   },
@@ -480,13 +480,13 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/SensorMesh.cpp": {
-    "mtime": 1789873330.97762,
-    "ast_hash": "ecea8c86d716c43eefdebd275fdcd54b",
+    "mtime": 1792402815.5314538,
+    "ast_hash": "0127a6103018204ce4b926472d9e8f8a",
     "semantic_hash": ""
   },
   "examples/simple_sensor/SensorMesh.h": {
-    "mtime": 1789873330.98062,
-    "ast_hash": "d5de33282dd52aac854fabdda43219ec",
+    "mtime": 1792401910.6054924,
+    "ast_hash": "02924e98a86a6368cd8f0b46652df28b",
     "semantic_hash": ""
   },
   "examples/simple_sensor/TimeSeriesData.cpp": {
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "examples/simple_sensor/main.cpp": {
-    "mtime": 1789884985.3141255,
-    "ast_hash": "cc874fb96dddc612d71cec7c49d1103d",
+    "mtime": 1792401828.6904957,
+    "ast_hash": "44ded58f85ed4247c7e44e69d4d57976",
     "semantic_hash": ""
   },
   "lib/ed25519/add_scalar.c": {
@@ -790,12 +790,12 @@
     "semantic_hash": ""
   },
   "src/Dispatcher.cpp": {
-    "mtime": 1789875203.1595404,
+    "mtime": 1792400400.2035563,
     "ast_hash": "9693e2f25c480feaeaa0f1af361ab7f9",
     "semantic_hash": ""
   },
   "src/Dispatcher.h": {
-    "mtime": 1789875203.0385404,
+    "mtime": 1792400400.2065563,
     "ast_hash": "0978b0edec7f6047d315f78d804438fe",
     "semantic_hash": ""
   },
@@ -810,12 +810,12 @@
     "semantic_hash": ""
   },
   "src/Mesh.cpp": {
-    "mtime": 1789875156.1505425,
+    "mtime": 1792400400.2105563,
     "ast_hash": "57f7f27ebc410d7ce256710d6eb3a538",
     "semantic_hash": ""
   },
   "src/Mesh.h": {
-    "mtime": 1789873337.2626197,
+    "mtime": 1790165548.4202192,
     "ast_hash": "0b398b0753d50a15a4da2327372a93dd",
     "semantic_hash": ""
   },
@@ -865,7 +865,7 @@
     "semantic_hash": ""
   },
   "src/helpers/ArduinoSerialInterface.cpp": {
-    "mtime": 1789873337.2666197,
+    "mtime": 1790165548.4242191,
     "ast_hash": "df2d074c7fbaf4493b188724c223b92e",
     "semantic_hash": ""
   },
@@ -875,27 +875,27 @@
     "semantic_hash": ""
   },
   "src/helpers/AutoDiscoverRTCClock.cpp": {
-    "mtime": 1789873337.2696197,
+    "mtime": 1790165548.428219,
     "ast_hash": "ee0d4b12490bca7635716098a2308694",
     "semantic_hash": ""
   },
   "src/helpers/AutoDiscoverRTCClock.h": {
-    "mtime": 1789873337.2736197,
+    "mtime": 1790165548.4322193,
     "ast_hash": "fc6f15ec99c55c525b340d898548ff39",
     "semantic_hash": ""
   },
   "src/helpers/BaseChatMesh.cpp": {
-    "mtime": 1789873337.2776196,
+    "mtime": 1790165548.4362192,
     "ast_hash": "fd436a9fc21ba4893f49debbbed75ce2",
     "semantic_hash": ""
   },
   "src/helpers/BaseChatMesh.h": {
-    "mtime": 1789873337.2816195,
+    "mtime": 1790165548.441219,
     "ast_hash": "bfb2fc81afcc4d3d899bb3b6759cec6f",
     "semantic_hash": ""
   },
   "src/helpers/BaseSerialInterface.h": {
-    "mtime": 1789873337.2846196,
+    "mtime": 1790165548.445219,
     "ast_hash": "d2c1c670cf36a0930d14c0996c8cf1a6",
     "semantic_hash": ""
   },
@@ -905,13 +905,13 @@
     "semantic_hash": ""
   },
   "src/helpers/ClientACL.cpp": {
-    "mtime": 1789873337.2876196,
-    "ast_hash": "485cbbd994095efead52a424b2488b33",
+    "mtime": 1792402303.5644755,
+    "ast_hash": "8fc4321222498c983bedb0297bf19a71",
     "semantic_hash": ""
   },
   "src/helpers/ClientACL.h": {
-    "mtime": 1789873337.2906196,
-    "ast_hash": "bba0635faed84685826132880cef1ed2",
+    "mtime": 1792402303.6114757,
+    "ast_hash": "5c7e0b28410d2fb9a18bf66a963c545d",
     "semantic_hash": ""
   },
   "src/helpers/CommonCLI.cpp": {
@@ -970,7 +970,7 @@
     "semantic_hash": ""
   },
   "src/helpers/MultiSerialInterface.h": {
-    "mtime": 1789873337.2946196,
+    "mtime": 1790165548.4502192,
     "ast_hash": "22aae573190e30c45a384486977f91e7",
     "semantic_hash": ""
   },
@@ -1010,7 +1010,7 @@
     "semantic_hash": ""
   },
   "src/helpers/SensorManager.h": {
-    "mtime": 1789873337.2976196,
+    "mtime": 1790165548.4552193,
     "ast_hash": "b8efb82b784f38d6dc2cfb1ae37537c9",
     "semantic_hash": ""
   },
@@ -1175,12 +1175,12 @@
     "semantic_hash": ""
   },
   "src/helpers/nrf52/SerialBLEInterface.cpp": {
-    "mtime": 1789873337.3016195,
+    "mtime": 1790165548.4602191,
     "ast_hash": "c17899606a83e21680a5af5f6c600306",
     "semantic_hash": ""
   },
   "src/helpers/nrf52/SerialBLEInterface.h": {
-    "mtime": 1789873337.3046196,
+    "mtime": 1790165548.4652193,
     "ast_hash": "1d1e4f3358095b3c415d840dbb96a3fc",
     "semantic_hash": ""
   },
@@ -1260,12 +1260,12 @@
     "semantic_hash": ""
   },
   "src/helpers/radiolib/RadioLibWrappers.cpp": {
-    "mtime": 1789873337.3076196,
+    "mtime": 1790165548.4702191,
     "ast_hash": "bcc4f5ab627a500eccb5034966912ca1",
     "semantic_hash": ""
   },
   "src/helpers/radiolib/RadioLibWrappers.h": {
-    "mtime": 1789873337.3116195,
+    "mtime": 1790165548.474219,
     "ast_hash": "62e2579b402900ed854a5969acfcd6ae",
     "semantic_hash": ""
   },
@@ -1275,27 +1275,27 @@
     "semantic_hash": ""
   },
   "src/helpers/sensors/EnvironmentSensorManager.cpp": {
-    "mtime": 1789873337.3226197,
-    "ast_hash": "5779649cb1ab0a82407859cac345683a",
+    "mtime": 1792401840.0194952,
+    "ast_hash": "cccb00f148f87b69970e2d77d46950bf",
     "semantic_hash": ""
   },
   "src/helpers/sensors/EnvironmentSensorManager.h": {
-    "mtime": 1789873337.3266196,
+    "mtime": 1790165548.4822192,
     "ast_hash": "e78f2ada702946961f35eaf03df7f8f9",
     "semantic_hash": ""
   },
   "src/helpers/sensors/LPPDataHelpers.h": {
-    "mtime": 1789873337.3296196,
+    "mtime": 1790165548.4862192,
     "ast_hash": "380de36b22a62d2b8ab53e5a4d72c6ed",
     "semantic_hash": ""
   },
   "src/helpers/sensors/LocationProvider.h": {
-    "mtime": 1789873337.3336196,
+    "mtime": 1790165548.490219,
     "ast_hash": "5c2b1c5ec9f4ca3d7683783dc2203fd0",
     "semantic_hash": ""
   },
   "src/helpers/sensors/MicroNMEALocationProvider.h": {
-    "mtime": 1789873337.3376195,
+    "mtime": 1790165548.4932191,
     "ast_hash": "308fa8196ec5dd05472b51ba23de6d0f",
     "semantic_hash": ""
   },
@@ -1335,7 +1335,7 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/DisplayDriver.h": {
-    "mtime": 1789873337.3406196,
+    "mtime": 1790165548.4982193,
     "ast_hash": "72ab46ab2135645788dcfc10f085a85e",
     "semantic_hash": ""
   },
@@ -1370,12 +1370,12 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/GxEPDDisplay.cpp": {
-    "mtime": 1789873337.3446195,
+    "mtime": 1790165548.5022192,
     "ast_hash": "551e35700ff85ba5bd7158219cfb994b",
     "semantic_hash": ""
   },
   "src/helpers/ui/GxEPDDisplay.h": {
-    "mtime": 1789873337.3486197,
+    "mtime": 1790165548.5062191,
     "ast_hash": "442f04ed99ff1bd7fdf63a6182e664c2",
     "semantic_hash": ""
   },
@@ -1390,12 +1390,12 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/MomentaryButton.cpp": {
-    "mtime": 1789873337.3536196,
+    "mtime": 1790165548.5122192,
     "ast_hash": "da2a936d146087a53ce5a8cdf6902a88",
     "semantic_hash": ""
   },
   "src/helpers/ui/MomentaryButton.h": {
-    "mtime": 1789873337.3576195,
+    "mtime": 1790165548.517219,
     "ast_hash": "58123c0e039bede4c6a45d742a9a5e82",
     "semantic_hash": ""
   },
@@ -1445,12 +1445,12 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/SH1106Display.cpp": {
-    "mtime": 1789873337.3616197,
+    "mtime": 1790165548.520219,
     "ast_hash": "5e2c98590ba7fd3f5311b41352901125",
     "semantic_hash": ""
   },
   "src/helpers/ui/SH1106Display.h": {
-    "mtime": 1789873337.3646197,
+    "mtime": 1790165548.524219,
     "ast_hash": "c33fa81f55f9386499392e870cd4acf2",
     "semantic_hash": ""
   },
@@ -1510,17 +1510,17 @@
     "semantic_hash": ""
   },
   "src/helpers/ui/UIScreen.h": {
-    "mtime": 1789873337.3676195,
+    "mtime": 1790165548.5292192,
     "ast_hash": "087391161e9c63a7902e0c44531561ac",
     "semantic_hash": ""
   },
   "src/helpers/ui/buzzer.cpp": {
-    "mtime": 1789873337.3706195,
+    "mtime": 1790165548.5322192,
     "ast_hash": "fda80af749bce7b03f431d923c8480a4",
     "semantic_hash": ""
   },
   "src/helpers/ui/buzzer.h": {
-    "mtime": 1789873337.3736196,
+    "mtime": 1790165548.5362191,
     "ast_hash": "044706a2e54286934d7196d401555eae",
     "semantic_hash": ""
   },
@@ -1530,8 +1530,8 @@
     "semantic_hash": ""
   },
   "test/mocks/Arduino.h": {
-    "mtime": 1786358682.3349743,
-    "ast_hash": "d8ca830f45390888a9df0e3d402db532",
+    "mtime": 1792402474.2944684,
+    "ast_hash": "4df99f77ce3464192ac48a55e05cb0b7",
     "semantic_hash": ""
   },
   "test/mocks/CayenneLPP.h": {
@@ -1555,8 +1555,8 @@
     "semantic_hash": ""
   },
   "test/mocks/Stream.h": {
-    "mtime": 1786358682.3589742,
-    "ast_hash": "ac20e2910e14c3aa06d037ed116d5c75",
+    "mtime": 1792401683.923502,
+    "ast_hash": "5b00619af3ce15895ae0fd1d0e477d3b",
     "semantic_hash": ""
   },
   "test/mocks/Utils.h": {
@@ -3460,32 +3460,32 @@
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/WioTrackerL1Board.cpp": {
-    "mtime": 1789873337.3916197,
+    "mtime": 1790165548.546219,
     "ast_hash": "2c379b234665b66e576b16b108792c44",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/WioTrackerL1Board.h": {
-    "mtime": 1789873337.3956196,
+    "mtime": 1790165548.550219,
     "ast_hash": "75d6734c82aec98b61f37f727cdfe15e",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/target.cpp": {
-    "mtime": 1789873337.4036195,
+    "mtime": 1790165548.560219,
     "ast_hash": "efada8a8e6355c28df4990c091dd126c",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/target.h": {
-    "mtime": 1789873337.4066195,
+    "mtime": 1790165548.5642192,
     "ast_hash": "9964e88a08356fe12cb606c9a7b6a5af",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/variant.cpp": {
-    "mtime": 1789873337.4096196,
+    "mtime": 1790165548.569219,
     "ast_hash": "6d2328f0fdeab375f55af558043680ff",
     "semantic_hash": ""
   },
   "variants/wio-tracker-l1/variant.h": {
-    "mtime": 1789873337.4136195,
+    "mtime": 1790165548.5742192,
     "ast_hash": "653742afbaa58cdd9c3b712e3e0ee1a2",
     "semantic_hash": ""
   },
@@ -3560,13 +3560,13 @@
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/target.cpp": {
-    "mtime": 1786358684.2089744,
-    "ast_hash": "96f00e96e3be457cbd94cd69aff24440",
+    "mtime": 1792401871.7034938,
+    "ast_hash": "24dc0e0e5c2688ae083257e69bbf4ca2",
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/target.h": {
-    "mtime": 1786358684.2119741,
-    "ast_hash": "0dacbf6f9d1d992c2777ad7627c79354",
+    "mtime": 1792401871.654494,
+    "ast_hash": "25969f81eb3f84b33709b43cafe29144",
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/variant.cpp": {
@@ -3635,22 +3635,22 @@
     "semantic_hash": ""
   },
   ".github/actions/setup-build-environment/action.yml": {
-    "mtime": 1789873330.8076198,
+    "mtime": 1792400393.2275567,
     "ast_hash": "3eda38b78fca777ccff5d047494a74f9",
     "semantic_hash": ""
   },
   ".github/workflows/build-companion-firmwares.yml": {
-    "mtime": 1789873330.81162,
+    "mtime": 1792400393.2315567,
     "ast_hash": "0d6b1901c3d84607c04be9247d55933c",
     "semantic_hash": ""
   },
   ".github/workflows/build-repeater-firmwares.yml": {
-    "mtime": 1789873330.8166199,
+    "mtime": 1792400393.2355566,
     "ast_hash": "e69f4a8d8377cd0ce160a841043518bd",
     "semantic_hash": ""
   },
   ".github/workflows/build-room-server-firmwares.yml": {
-    "mtime": 1789873330.81962,
+    "mtime": 1792400393.2385566,
     "ast_hash": "576c706a6adf266f692aafecfa1eca7d",
     "semantic_hash": ""
   },
@@ -3660,18 +3660,18 @@
     "semantic_hash": ""
   },
   ".github/workflows/github-pages.yml": {
-    "mtime": 1789873330.8236198,
+    "mtime": 1792400393.2415566,
     "ast_hash": "5418468665b26a303e18a33f0ad56624",
     "semantic_hash": ""
   },
   ".github/workflows/pr-build-check.yml": {
-    "mtime": 1789873330.8266199,
+    "mtime": 1792400393.2445567,
     "ast_hash": "b8586b00787d427d66c7f646734f472e",
     "semantic_hash": ""
   },
   ".github/workflows/run-unit-tests.yml": {
-    "mtime": 1786358680.5449743,
-    "ast_hash": "ca61efba9d0acb78118c2a8cc0d8ed92",
+    "mtime": 1792405708.1673312,
+    "ast_hash": "93395213e6fd9a4ee4023524113048c1",
     "semantic_hash": ""
   },
   ".github/workflows/stale-bot.yml": {
@@ -3680,18 +3680,18 @@
     "semantic_hash": ""
   },
   "CONTRIBUTING.md": {
-    "mtime": 1789873330.83762,
+    "mtime": 1792400393.2595565,
     "ast_hash": "0d89ddf140b548b5e79403c40567fa44",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1789874492.5975707,
-    "ast_hash": "707932790d32e496e6bff809bc0d48ec",
+    "mtime": 1792405458.4793417,
+    "ast_hash": "b5532d3bdc8c4ba84af6494b28f718c9",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1789874492.4715707,
-    "ast_hash": "8c9999cd525965ea979e15819ffc4a5c",
+    "mtime": 1792405458.4243417,
+    "ast_hash": "0e228e84ebe27282ee43109dad46a9d0",
     "semantic_hash": ""
   },
   "RELEASE.md": {
@@ -3730,23 +3730,23 @@
     "semantic_hash": ""
   },
   "docs/companion_protocol.md": {
-    "mtime": 1789873330.8596199,
+    "mtime": 1792400393.2825565,
     "ast_hash": "a412d39702e899f2f746a58e76d8d3d1",
     "semantic_hash": ""
   },
   "docs/docs.md": {
-    "mtime": 1789873330.8636198,
-    "ast_hash": "b80387f391ac7fee45171aa3ce220d3d",
+    "mtime": 1792403101.9584417,
+    "ast_hash": "16d28326f65e4a923d8d386beb4747f4",
     "semantic_hash": ""
   },
   "docs/faq.md": {
-    "mtime": 1789873330.8666198,
+    "mtime": 1792400393.2925568,
     "ast_hash": "49cca5a402fb5fa69b58fc213affde0d",
     "semantic_hash": ""
   },
   "docs/index.md": {
-    "mtime": 1789873330.8736198,
-    "ast_hash": "239e37de708cae940152f86a492263f0",
+    "mtime": 1792403102.9464417,
+    "ast_hash": "34e6efbef0d64ef4f114c21f48934ab1",
     "semantic_hash": ""
   },
   "docs/kiss_modem_protocol.md": {
@@ -3800,8 +3800,8 @@
     "semantic_hash": ""
   },
   "mkdocs.yml": {
-    "mtime": 1789873337.2446196,
-    "ast_hash": "6d58c0fdad41de5c5f502b5511a1e355",
+    "mtime": 1792402928.7244492,
+    "ast_hash": "8522aee412d8a0fed44061f8837f5e84",
     "semantic_hash": ""
   },
   "docs/_assets/meshcore.svg": {
@@ -3835,7 +3835,7 @@
     "semantic_hash": ""
   },
   "test/test_companion_node_prefs/test_companion_node_prefs.cpp": {
-    "mtime": 1789873337.3766196,
+    "mtime": 1792400400.2415564,
     "ast_hash": "1edfb67460cdfbd2aebda57864c54911",
     "semantic_hash": ""
   },
@@ -3854,119 +3854,249 @@
     "ast_hash": "ce7ba25a5a9d3aec74581a74353a49e8",
     "semantic_hash": ""
   },
-  "examples/simple_sensor/PublicChannelSensorBot.cpp": {
-    "mtime": 1789875235.3155391,
-    "ast_hash": "414b63c4557aa9fb15eedde96166ac3c",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/PublicChannelSensorBot.h": {
-    "mtime": 1789875235.181539,
-    "ast_hash": "999410b2d2d6b6042c748e381dfd1e44",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/PublicResponseQueue.cpp": {
-    "mtime": 1789875262.6455379,
-    "ast_hash": "89f4c6672520a39babfca99eb51699d9",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/PublicResponseQueue.h": {
-    "mtime": 1789875254.6895382,
-    "ast_hash": "4a43174bdfd7c316be39f6752f48e2cd",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/RepeaterNameCache.cpp": {
-    "mtime": 1789873330.96362,
-    "ast_hash": "9405db5ea79888829d34e9905fcb3ccf",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/RepeaterNameCache.h": {
-    "mtime": 1789873330.96762,
-    "ast_hash": "348f85799dcb844a29dbad0c80309147",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/RepeaterTraceProbe.cpp": {
-    "mtime": 1789884967.4751263,
-    "ast_hash": "a15220b2d9213fac878216f267854846",
-    "semantic_hash": ""
-  },
-  "examples/simple_sensor/RepeaterTraceProbe.h": {
-    "mtime": 1789884967.3451262,
-    "ast_hash": "d856cacc05da7ad1242af0227d04162a",
-    "semantic_hash": ""
-  },
-  "src/helpers/sensors/BME680AirQuality.cpp": {
-    "mtime": 1789873337.3156197,
-    "ast_hash": "a02807903964a761ee7bf52a94348977",
-    "semantic_hash": ""
-  },
-  "src/helpers/sensors/BME680AirQuality.h": {
-    "mtime": 1789873337.3186197,
-    "ast_hash": "c8fa68f524c4cf7d6bb58279ef380ab3",
-    "semantic_hash": ""
-  },
   "test/test_public_response_queue/test_public_response_queue.cpp": {
-    "mtime": 1789875402.176532,
-    "ast_hash": "014012f012d5e7290d5dcdc372f4d13a",
+    "mtime": 1792403694.6254165,
+    "ast_hash": "3d693b9e33524b8f710c87627aa669cb",
     "semantic_hash": ""
   },
   "test/test_repeater_trace_probe/test_repeater_trace_probe.cpp": {
-    "mtime": 1789885118.08612,
-    "ast_hash": "7bd28ff823aa97a1a80cc33cf9ee657e",
+    "mtime": 1792405471.5913413,
+    "ast_hash": "2d832d6f7c4b2c01e39ddc3ebdfa9698",
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/create-sensor-dfu-zip.py": {
-    "mtime": 1789873337.4166195,
+    "mtime": 1792400400.2595563,
     "ast_hash": "a97a4eab54dc1dca762d51535ea6f76c",
     "semantic_hash": ""
   },
   "docs/building_sensor.md": {
-    "mtime": 1789873330.8566198,
-    "ast_hash": "ae053dfa1f795fa8fc5c811d4a437fe2",
+    "mtime": 1792403753.9344141,
+    "ast_hash": "2763e5bb36da4c557d734aadff67e64d",
     "semantic_hash": ""
   },
   "docs/getting_started.md": {
-    "mtime": 1789873330.87062,
-    "ast_hash": "efd06aea41095a229131af4d2d797913",
+    "mtime": 1792403753.8814142,
+    "ast_hash": "2f8c8818a19ffd866a01d4eadb89e437",
     "semantic_hash": ""
   },
   "docs/sensor_features/access/access.md": {
-    "mtime": 1789873330.87862,
-    "ast_hash": "ba27bd325d01679d70365af0e1d075a5",
+    "mtime": 1792403102.3534417,
+    "ast_hash": "c23c6c0e9ad7e2f6f345ac67b8a9fe6a",
     "semantic_hash": ""
   },
   "docs/sensor_features/hardware/hardware.md": {
-    "mtime": 1789873330.8826199,
-    "ast_hash": "ed571a727da4bae8ee750dd3837f25d9",
+    "mtime": 1792403102.6214416,
+    "ast_hash": "e19b996ea43bd63e2c5fe078999f7fc7",
     "semantic_hash": ""
   },
   "docs/sensor_features/public_bot/public_bot.md": {
-    "mtime": 1789885024.6371238,
-    "ast_hash": "450a539bc717bde1d7658745219c633d",
+    "mtime": 1792405841.1633255,
+    "ast_hash": "1f98dc72f46fec4ae0e0cfe626d9d0e2",
     "semantic_hash": ""
   },
   "docs/sensor_features/telemetry/telemetry.md": {
-    "mtime": 1789873330.89062,
-    "ast_hash": "015abfee4129d0ea62ef0ba2c339a8f5",
+    "mtime": 1792403102.7594416,
+    "ast_hash": "98e6595ea7eb297b23f4ca4b1436f5d5",
     "semantic_hash": ""
   },
   "docs/xiao_bme680_sensor.md": {
-    "mtime": 1789873330.89362,
-    "ast_hash": "e740512dddff5ddcbbc5341d80911037",
+    "mtime": 1792403754.0364141,
+    "ast_hash": "1663ad39a698062f72d6ce3b9b850fd2",
     "semantic_hash": ""
   },
   "src/helpers/TracePathBounds.h": {
-    "mtime": 1789875156.0235424,
+    "mtime": 1792400400.2245564,
     "ast_hash": "2c6505fd5ffbfdcc6152e157fbccfdca",
     "semantic_hash": ""
   },
   "test/test_public_channel_sensor_bot/test_public_channel_sensor_bot.cpp": {
-    "mtime": 1789875413.0905316,
-    "ast_hash": "1947ec9781229e7881cb21222568949c",
+    "mtime": 1792403799.897412,
+    "ast_hash": "5be67c379ef3280cac12b82cdbb1bcd7",
     "semantic_hash": ""
   },
   "test/test_trace_path_bounds/test_trace_path_bounds.cpp": {
-    "mtime": 1789875156.3525424,
+    "mtime": 1792400400.2565563,
     "ast_hash": "cda78f3e23aa43855af1c9e9c8d20bab",
+    "semantic_hash": ""
+  },
+  "bin/check-sensor-boundaries.sh": {
+    "mtime": 1792405841.1173255,
+    "ast_hash": "5a15f2ab39cbe32bedfaa98be54adc5a",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/BME680AirQuality.cpp": {
+    "mtime": 1792401828.7924957,
+    "ast_hash": "617e70ce1d393bed4663c0b59f6cd807",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/BME680AirQuality.h": {
+    "mtime": 1792401828.7464957,
+    "ast_hash": "0ee3343f9ca4ff7dd3eb87608b33329f",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/Bme680SensorManager.h": {
+    "mtime": 1792402038.426487,
+    "ast_hash": "fd712f7751916d8c93146ac960bcfaf3",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/Bme680SensorMesh.h": {
+    "mtime": 1792404916.4013648,
+    "ast_hash": "939ce72fbb947f93e406bbf11b64562f",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/Bme680Telemetry.cpp": {
+    "mtime": 1792402778.6244555,
+    "ast_hash": "864884a95b306f3c568507aabf0255e6",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/Bme680Telemetry.h": {
+    "mtime": 1792401871.513494,
+    "ast_hash": "e2ec1d6b4bbc9bad1efe7447a7b89974",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/PublicChannelSensorBot.cpp": {
+    "mtime": 1792403627.4274194,
+    "ast_hash": "3c06d5360c22e4d4b4fbf45ac8002d43",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/PublicChannelSensorBot.h": {
+    "mtime": 1792403627.3794193,
+    "ast_hash": "f9b25078384277c55c0684150644b14a",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/PublicResponseQueue.cpp": {
+    "mtime": 1792403627.5194194,
+    "ast_hash": "2cafd566d427e2917f1698911dabf7a8",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/PublicResponseQueue.h": {
+    "mtime": 1792403627.4744194,
+    "ast_hash": "a68066aeb51522566551de83a02db98b",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/RepeaterNameCache.cpp": {
+    "mtime": 1792401828.0724957,
+    "ast_hash": "9405db5ea79888829d34e9905fcb3ccf",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/RepeaterNameCache.h": {
+    "mtime": 1792401827.9854958,
+    "ast_hash": "348f85799dcb844a29dbad0c80309147",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/RepeaterTraceProbe.cpp": {
+    "mtime": 1792405471.5383413,
+    "ast_hash": "e73314323c0f9bd8eda1e4a03579699b",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/RepeaterTraceProbe.h": {
+    "mtime": 1792404916.1243649,
+    "ast_hash": "e309bfe21c0dab04856c1245b6efcc5e",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/SensorBotService.cpp": {
+    "mtime": 1792404946.2193635,
+    "ast_hash": "5ac6242cdc15393f6959a94a7355e27e",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/SensorBotService.h": {
+    "mtime": 1792404916.3553648,
+    "ast_hash": "86209039a2f52508a53ae0680c7bd682",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/SensorManagementPolicy.cpp": {
+    "mtime": 1792401940.098491,
+    "ast_hash": "77bad568d5453b45ddb10d2ac7d5a59f",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/SensorManagementPolicy.h": {
+    "mtime": 1792401940.045491,
+    "ast_hash": "8dcb2c378df3cee7fa2deae3c80eefb6",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/main.cpp": {
+    "mtime": 1792401828.5524957,
+    "ast_hash": "621158e84aa1076eebeaf8762dceeb71",
+    "semantic_hash": ""
+  },
+  "test/sensor_mocks/Arduino.h": {
+    "mtime": 1792402262.7014773,
+    "ast_hash": "29103287b77dfd3e9d4f3599bb9334a4",
+    "semantic_hash": ""
+  },
+  "test/sensor_mocks/MemoryFileSystem.h": {
+    "mtime": 1792401743.1694994,
+    "ast_hash": "518d40d65505711bed0716ab845c5ceb",
+    "semantic_hash": ""
+  },
+  "test/sensor_mocks/Print.h": {
+    "mtime": 1792401683.832502,
+    "ast_hash": "4428c03b428ae996dfdbee6ca63b1c88",
+    "semantic_hash": ""
+  },
+  "test/sensor_mocks/Stream.h": {
+    "mtime": 1792401683.786502,
+    "ast_hash": "5ac0ccfc1ea6c4f201c916ef441cf441",
+    "semantic_hash": ""
+  },
+  "test/test_bme680_air_quality/test_bme680_air_quality.cpp": {
+    "mtime": 1792401839.8674953,
+    "ast_hash": "3aa56c92ed144b50d448f891bd138873",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_integration/test_sensor_integration.cpp": {
+    "mtime": 1792405395.0933444,
+    "ast_hash": "2d47a76d94c8683bfb4cb840811cc1a9",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_policy/test_sensor_policy.cpp": {
+    "mtime": 1792403799.9444122,
+    "ast_hash": "6cce48ed6607a8392d7c60d31a4f342f",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_storage/test_sensor_storage.cpp": {
+    "mtime": 1792402352.6504736,
+    "ast_hash": "9e60cee5ec9e6850b289863aa92b24b0",
+    "semantic_hash": ""
+  },
+  ".github/workflows/sensor-firmware.yml": {
+    "mtime": 1792402778.6704555,
+    "ast_hash": "0fc2794ba9221256f6f1a09d9c0ce6ad",
+    "semantic_hash": ""
+  },
+  "docs/sensor_features/development/development.md": {
+    "mtime": 1792405841.2103255,
+    "ast_hash": "c6f8eaa18b3551af16cdd6f1efa7ec6f",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceRouteCandidates.cpp": {
+    "mtime": 1792405841.0703256,
+    "ast_hash": "b65d9b1011b429a37d7b341197e97284",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceRouteCandidates.h": {
+    "mtime": 1792404872.7333667,
+    "ast_hash": "7296728f81f9ece292f7e06a27fcedef",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceTimingPolicy.h": {
+    "mtime": 1792404872.6753666,
+    "ast_hash": "d05deb44d8fa8333b1150440485e9da3",
+    "semantic_hash": ""
+  },
+  "test/sensor_mocks/SensorTestRig.h": {
+    "mtime": 1792405129.8973558,
+    "ast_hash": "f34ebd6bd58bdf58c5dac76c0461c9c5",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_network/test_sensor_network.cpp": {
+    "mtime": 1792405708.0633311,
+    "ast_hash": "ef77ec99ea885a72f0a47cc6440fb597",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_routes/test_sensor_routes.cpp": {
+    "mtime": 1792405149.2063549,
+    "ast_hash": "e18683b3a854450b9cf0b449dd55fd5c",
     "semantic_hash": ""
   }
 }
