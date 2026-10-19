@@ -122,16 +122,38 @@ RepeaterTraceProbe::ReceiveResult RepeaterTraceProbe::receive(
     Result value{};
     value.elapsed_millis = (uint32_t)(now - attempt.started_at);
     value.route = attempt.route;
-    memcpy(value.snrs, snrs, attempt.route.repeaters);
+    memcpy(value.snrs, snrs, 2 * attempt.route.repeaters - 1);
+    value.snrs[2 * attempt.route.repeaters - 1] = (uint8_t)(int8_t)(packet->getSNR() * 4);
+    value.attempt = i;
+    result = value;
     // Prefer the retry while it is still in flight, but never lose the first result.
     if (i == 0 && _current == 1 && _state == IN_FLIGHT) {
       if (!_fallback_valid) { _fallback = value; _fallback_valid = true; }
       return STORED;
     }
-    result = value;
     return COMPLETE;
   }
   return IGNORED;
+}
+
+bool RepeaterTraceProbe::matchProgress(const mesh::Packet* packet, uint8_t& index,
+                                      uint32_t& elapsed, uint32_t now) const {
+  if (!isActive() || !packet || !packet->isRouteDirect() ||
+      packet->getPayloadType() != PAYLOAD_TYPE_TRACE || packet->payload_len < 9) return false;
+  uint32_t tag, auth;
+  memcpy(&tag, packet->payload, 4);
+  memcpy(&auth, packet->payload + 4, 4);
+  for (uint8_t i = 0; i <= _current; i++) {
+    const auto& attempt = _attempts[i];
+    if (!attempt.transmitted || tag != attempt.tag || auth != attempt.auth ||
+        packet->payload[8] != attempt.route.flags || packet->payload_len != 9 + attempt.route.bytes ||
+        packet->path_len == 0 || packet->path_len > 2 * attempt.route.repeaters - 1 ||
+        memcmp(packet->payload + 9, attempt.route.path, attempt.route.bytes) != 0) continue;
+    index = i;
+    elapsed = now - attempt.started_at;
+    return true;
+  }
+  return false;
 }
 
 bool RepeaterTraceProbe::takeFallback(Result& result) {

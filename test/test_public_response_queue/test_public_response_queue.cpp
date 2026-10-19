@@ -115,6 +115,33 @@ TEST(PublicResponseQueue, PreservesChannelAcrossCompletionAndRescheduling) {
   EXPECT_STREQ("2/2\nPublic", part);
 }
 
+TEST(PublicResponseQueue, PathSplitsBetweenNamesRatherThanSpacesInNames) {
+  char first[161], second[161];
+  EXPECT_TRUE(PublicResponseQueue::split("Path (3 repeaters): North Ridge > South Hill > West Peak",
+                                         42, first, second, " > "));
+  EXPECT_STREQ("1/2\nPath (3 repeaters): North Ridge", first);
+  EXPECT_STREQ("2/2\nSouth Hill > West Peak", second);
+}
+
+TEST(PublicResponseQueue, PathOverflowKeepsWholeEntriesAndMarksTruncation) {
+  char first[161], second[161];
+  std::string path = "Path (20 repeaters): North Ridge";
+  for (int i = 1; i < 20; i++) path += " > South Hill";
+  EXPECT_TRUE(PublicResponseQueue::split(path.c_str(), 60, first, second, " > "));
+  EXPECT_LE(strlen(first), 60u);
+  EXPECT_LE(strlen(second), 60u);
+  EXPECT_STREQ("2/2\nSouth Hill > South Hill > South Hill\n...truncated", second);
+}
+
+TEST(PublicResponseQueue, PathExactBoundaryStaysSingleAndTinyBudgetKeepsNamesWhole) {
+  char first[161], second[161];
+  const char* path = "Path (2 repeaters): North Ridge > South Hill";
+  EXPECT_FALSE(PublicResponseQueue::split(path, strlen(path), first, second, " > "));
+  EXPECT_STREQ(path, first);
+  EXPECT_TRUE(PublicResponseQueue::split(path, 20, first, second, " > "));
+  EXPECT_STREQ("2/2\n...truncated", second);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

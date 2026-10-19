@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include "TraceRouteCandidates.h"
+#include "TraceRouteHistory.h"
 
 static mesh::Packet command(uint8_t count = 3, uint8_t width = 1, uint8_t first = 10) {
   mesh::Packet packet;
+  packet._snr = 0;
   packet.header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
   packet.setPathHashSizeAndCount(width, count);
   for (uint8_t i = 0; i < packet.getPathByteLen() && i < MAX_PATH_SIZE; i++) packet.path[i] = first + i;
@@ -11,28 +13,29 @@ static mesh::Packet command(uint8_t count = 3, uint8_t width = 1, uint8_t first 
   return packet;
 }
 
-TEST(SensorTraceRoutes, KeepsOneDistinctShorterThenMoreRecentEqualLengthRoute) {
+TEST(SensorTraceRoutes, KeepsThreeDistinctCandidatesAndUpdatesDuplicatesInPlace) {
   TraceRouteCandidates routes;
   auto original = command();
   routes.begin(&original);
   routes.observe(&original);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
   auto alternate = command(4);
   routes.observe(&alternate);
-  ASSERT_NE(nullptr, routes.alternate());
-  EXPECT_EQ(4, routes.alternate()->repeaters);
+  ASSERT_EQ(1, routes.count());
+  EXPECT_EQ(4, routes.candidate(0).repeaters);
   auto shorter = command(2, 2, 20);
   routes.observe(&shorter);
-  EXPECT_EQ(2, routes.alternate()->repeaters);
-  EXPECT_EQ(1, routes.alternate()->flags);
+  EXPECT_EQ(2, routes.candidate(1).repeaters);
+  EXPECT_EQ(1, routes.candidate(1).flags);
   auto newer = command(2, 1, 30);
   routes.observe(&newer);
-  EXPECT_EQ(31, routes.alternate()->path[0]);
+  EXPECT_EQ(31, routes.candidate(2).path[0]);
   routes.observe(&alternate);
-  EXPECT_EQ(31, routes.alternate()->path[0]);
+  EXPECT_EQ(31, routes.candidate(2).path[0]);
+  EXPECT_EQ(3, routes.count());
   routes.clear();
   routes.observe(&shorter);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
 }
 
 TEST(SensorTraceRoutes, RejectsDifferentPayloadChannelAndUnsupportedRoutes) {
@@ -42,17 +45,17 @@ TEST(SensorTraceRoutes, RejectsDifferentPayloadChannelAndUnsupportedRoutes) {
   auto other = command(2);
   other.payload[0] ^= 1;  // Includes the channel hash in the command fingerprint.
   routes.observe(&other);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
   other = command(2);
   other.payload[20] ^= 1;
   routes.observe(&other);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
   for (auto invalid : { command(0), command(11), command(2, 3) }) routes.observe(&invalid);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
   other = command(2);
   other.header = ROUTE_TYPE_DIRECT | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
   routes.observe(&other);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
 }
 
 TEST(SensorTraceRoutes, StartingAnotherCommandDropsThePreviousCandidate) {
@@ -60,12 +63,53 @@ TEST(SensorTraceRoutes, StartingAnotherCommandDropsThePreviousCandidate) {
   auto first = command(), alternate = command(2);
   routes.begin(&first);
   routes.observe(&alternate);
-  ASSERT_NE(nullptr, routes.alternate());
+  ASSERT_EQ(1, routes.count());
   auto next = command();
   next.payload[4] = 20;
   routes.begin(&next);
   routes.observe(&alternate);
-  EXPECT_EQ(nullptr, routes.alternate());
+  EXPECT_EQ(0, routes.count());
+}
+
+TEST(SensorTraceRoutes, BoundedCandidatesUseRecentSuccessBeforeLength) {
+  TraceRouteCandidates routes;
+  TraceRouteHistory history;
+  auto original = command(), short_path = command(2, 1, 20), long_path = command(4, 1, 30);
+  routes.begin(&original, 100);
+  routes.observe(&short_path, 200);
+  routes.observe(&long_path, 300);
+  uint32_t airtimes[] = { 100, 200, 0 };
+  auto longer = routes.candidate(1);
+  history.record(longer, 0, 123, 300, true, 5319);
+  ASSERT_NE(nullptr, routes.best(history, 0, 123, 400, airtimes));
+  EXPECT_TRUE(routes.best(history, 0, 123, 400, airtimes)->equals(longer));
+  EXPECT_EQ(2, routes.best(history, 1, 123, 400, airtimes)->repeaters);
+  EXPECT_EQ(2, routes.best(history, 0, 124, 400, airtimes)->repeaters);
+  EXPECT_EQ(2, routes.best(history, 0, 123, 300 + TraceRouteHistory::TTL_MILLIS, airtimes)->repeaters);
+  for (uint8_t i = 40; i < 50; i++) {
+    auto next = command(2, 1, i);
+    routes.observe(&next, 1000 + i);
+  }
+  EXPECT_EQ(3, routes.count());
+}
+
+TEST(SensorTraceRoutes, DiversityAndAirtimeBreakUnprovenRouteTies) {
+  TraceRouteCandidates routes;
+  TraceRouteHistory history;
+  auto original = command(3, 1, 10);
+  auto similar = original;
+  similar.path[0] = 9;
+  auto distinct = command(3, 1, 20);
+  routes.begin(&original, 0);
+  routes.observe(&similar, 100);
+  routes.observe(&distinct, 200);
+  uint32_t airtimes[] = { 100, 100, 0 };
+  EXPECT_TRUE(routes.best(history, 0, 0, 300, airtimes)->equals(routes.candidate(1)));
+  history.record(routes.candidate(1), 0, 0, 300, false);
+  EXPECT_TRUE(routes.best(history, 0, 0, 301, airtimes)->equals(routes.candidate(0)));
+  EXPECT_EQ(200u, routes.lastSeen());
+  routes.observe(&original, 400);
+  EXPECT_EQ(400u, routes.lastSeen());
 }
 
 int main(int argc, char** argv) {

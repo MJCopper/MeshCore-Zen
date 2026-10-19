@@ -4,12 +4,14 @@
 #include "../sensor_mocks/SensorTestRig.h"
 
 // Deterministic packet medium: real MeshCore forwarding, simulated links and airtime.
-// It does not model RF capture, interference or hardware sensor behaviour.
+// Optional overlap/capture/half-duplex model is deliberately approximate, not RF acceptance.
 class NetworkRadio : public TestRadio {
 public:
   std::deque<std::vector<uint8_t>> received;
   uint32_t started_at = 0;
   bool active = false;
+  uint32_t busy_until = 0;
+  bool isReceiving() override { return g_mock_millis < busy_until; }
   int recvRaw(uint8_t* bytes, int size) override {
     if (received.empty()) return 0;
     auto packet = received.front();
@@ -34,6 +36,7 @@ public:
   PublicChannelSensorBot channels;
   std::vector<std::string> messages;
   uint32_t direct_delay = 0, flood_delay = 0;
+  bool standard_delay = false;
   NetworkRelay(NetworkRadio& radio, TestClock& clock, TestRandom& random, TestRTC& rtc,
                StaticPoolPacketManager& pool, SimpleMeshTables& tables, bool forward)
       : Mesh(radio, clock, random, rtc, pool, tables), forwards(forward) { }
@@ -48,7 +51,11 @@ protected:
   bool allowPacketForward(const mesh::Packet*) override { return forwards; }
   int calcRxDelay(float, uint32_t) const override { return 0; }
   uint32_t getRetransmitDelay(const mesh::Packet*) override { return flood_delay; }
-  uint32_t getDirectRetransmitDelay(const mesh::Packet*) override { return direct_delay; }
+  uint32_t getDirectRetransmitDelay(const mesh::Packet* packet) override {
+    if (!standard_delay) return direct_delay;
+    uint32_t delay = _radio->getEstAirtimeFor(packet->getRawLength()) * 3 / 10;
+    return getRNG()->nextInt(0, 5 * delay + 1);
+  }
 };
 
 class SensorNetwork : public ::testing::Test {
@@ -70,8 +77,47 @@ protected:
   bool links[COUNT][COUNT]{};
   size_t consumed[COUNT]{};
   int drop_sensor_traces = 0;
-  struct Delivery { uint32_t due; int target; std::vector<uint8_t> bytes; };
+  bool rf_model = false, capture = false;
+  uint32_t collision_drops = 0, half_duplex_drops = 0, received_signals = 0;
+  uint32_t tx_until[COUNT]{}, loss_seed = 1;
+  uint8_t loss_percent = 0;
+  int power[COUNT][COUNT]{};
+  struct Delivery { uint32_t due; int target; std::vector<uint8_t> bytes;
+                    uint32_t start; int power; bool lost; };
   std::vector<Delivery> pending;
+
+  void emit(int source, const std::vector<uint8_t>& bytes, uint32_t now, uint32_t duration) {
+    uint32_t end = now + duration;
+    tx_until[source] = end;
+    if (rf_model) for (auto& incoming : pending)
+      if (incoming.target == source && incoming.due > now && !incoming.lost) {
+        incoming.lost = true; half_duplex_drops++;
+      }
+    for (int target = 0; target < COUNT; target++) {
+      if (!links[source][target]) continue;
+      Delivery delivery{end, target, bytes, now, power[source][target], false};
+      if (rf_model) {
+        radios[target].busy_until = std::max(radios[target].busy_until, end);
+        if (tx_until[target] > now) { delivery.lost = true; half_duplex_drops++; }
+        for (auto& other : pending) {
+          if (other.target != target || other.due <= now) continue;
+          if (!capture || abs(delivery.power - other.power) < 6) {
+            if (!other.lost) collision_drops++;
+            other.lost = true;
+            if (!delivery.lost) collision_drops++;
+            delivery.lost = true;
+          } else if (delivery.power > other.power) {
+            if (!other.lost) collision_drops++;
+            other.lost = true;
+          } else {
+            if (!delivery.lost) collision_drops++;
+            delivery.lost = true;
+          }
+        }
+      }
+      pending.push_back(delivery);
+    }
+  }
 
   void connect(int a, int b) { links[a][b] = links[b][a] = true; }
   void SetUp() override {
@@ -101,9 +147,14 @@ protected:
       g_mock_millis = now;
       for (size_t i = 0; i < pending.size();) {
         if (pending[i].due > now) { i++; continue; }
-        radios[pending[i].target].received.push_back(pending[i].bytes);
+        loss_seed = loss_seed * 1664525UL + 1013904223UL;
+        if (!pending[i].lost && (loss_seed >> 16) % 100 >= loss_percent) {
+          radios[pending[i].target].received.push_back(pending[i].bytes);
+          received_signals++;
+        }
         pending.erase(pending.begin() + i);
       }
+      bot->beforeRadioLoop();
       for (auto& mesh : meshes) mesh->loop();
       bot->loop();
       for (int source = 0; source < COUNT; source++) {
@@ -114,8 +165,7 @@ protected:
             drop_sensor_traces--;
             continue;
           }
-          for (int target = 0; target < COUNT; target++)
-            if (links[source][target]) pending.push_back({now + radios[source].airtime, target, bytes});
+          emit(source, bytes, now, radios[source].airtime);
         }
       }
     }
@@ -244,6 +294,98 @@ TEST_F(SensorNetwork, DelayedFirstLoopRemainsUsefulAfterTheRetryHasStarted) {
   EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
   expectCleanPools();
 }
+
+TEST_F(SensorNetwork, HiddenTerminalsCollideAndTheCaptureModelSelectsTheStrongerSignal) {
+  memset(links, 0, sizeof(links));
+  connect(1, 3); connect(5, 3);
+  rf_model = true;
+  emit(1, { 0 }, 0, 100); emit(5, { 0 }, 0, 100);
+  runUntil(200);
+  EXPECT_EQ(0u, received_signals);
+  EXPECT_GE(collision_drops, 2u);
+  capture = true;
+  power[1][3] = -60; power[5][3] = -80;
+  emit(1, { 0 }, 200, 100); emit(5, { 0 }, 200, 100);
+  runUntil(400);
+  EXPECT_EQ(1u, received_signals);
+  expectCleanPools();
+}
+
+TEST_F(SensorNetwork, HalfDuplexTransmittingNodeCannotReceiveAnOverlappingFrame) {
+  memset(links, 0, sizeof(links));
+  connect(1, 3);
+  rf_model = true;
+  emit(1, { 0 }, 0, 100); emit(3, { 0 }, 0, 100);
+  runUntil(200);
+  EXPECT_EQ(0u, received_signals);
+  EXPECT_GE(half_duplex_drops, 2u);
+  expectCleanPools();
+}
+
+TEST_F(SensorNetwork, BusyChannelDefersInitialProbeWithoutConsumingItsRttBudget) {
+  rf_model = true;
+  request();
+  runUntil(500);
+  emit(3, { 0 }, 500, 2000);
+  runUntil(2000);
+  EXPECT_EQ(0, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  runUntil(15000);
+  EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  ASSERT_TRUE(bot->diagnostics().has_result);
+  EXPECT_LT(bot->diagnostics().selected.elapsed_millis, 10000u);
+  EXPECT_EQ(TraceReportDelivery::DELIVERED, bot->diagnostics().delivery);
+  expectCleanPools();
+}
+
+TEST_F(SensorNetwork, CorrelatedLossAcrossBothAttemptsStillProducesOneBoundedFailure) {
+  rf_model = true;
+  drop_sensor_traces = 2;
+  request();
+  runUntil(60000);
+  ASSERT_EQ(1u, reports().size());
+  EXPECT_EQ("BME680 Sensor: Trace: no result after retry", reports()[0]);
+  EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  EXPECT_LE(bot->diagnostics().probe_submissions, 2u);
+  expectCleanPools();
+}
+
+class SensorHashCollision : public SensorNetwork, public ::testing::WithParamInterface<int> { };
+TEST_P(SensorHashCollision, HashWidthControlsWhetherCompetingRepeatersForwardTheProbe) {
+  rf_model = true;
+  meshes[5]->self_id.pub_key[0] = meshes[2]->self_id.pub_key[0];
+  connect(1, 5); connect(3, 5);
+  relay(5).flood_delay = 300;
+  request(GetParam());
+  runUntil(60000);
+  auto messages = reports();
+  ASSERT_EQ(1u, messages.size());
+  if (GetParam() == 1) {
+    EXPECT_GT(collision_drops, 0u);
+    EXPECT_FALSE(bot->diagnostics().has_result);
+    EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  } else {
+    EXPECT_TRUE(bot->diagnostics().has_result);
+    EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  }
+  expectCleanPools();
+}
+INSTANTIATE_TEST_SUITE_P(OneAndTwoBytes, SensorHashCollision, ::testing::Values(1, 2));
+
+class SensorContention : public SensorNetwork, public ::testing::WithParamInterface<int> { };
+TEST_P(SensorContention, SeededLossAndStandardRepeaterDelaysRemainBounded) {
+  rf_model = true;
+  loss_percent = 5;
+  loss_seed = GetParam();
+  random.seed(GetParam());
+  for (int i : { 1, 2, 3 }) relay(i).standard_delay = true;
+  request();
+  runUntil(90000);
+  EXPECT_LE(transmitted(SENSOR, PAYLOAD_TYPE_TRACE), 2);
+  EXPECT_LE(reports().size(), 1u);
+  EXPECT_LE(bot->diagnostics().starts, 2u);
+  expectCleanPools();
+}
+INSTANTIATE_TEST_SUITE_P(DeterministicSeeds, SensorContention, ::testing::Range(1, 9));
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

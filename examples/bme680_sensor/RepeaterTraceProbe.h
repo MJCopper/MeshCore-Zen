@@ -12,7 +12,8 @@ public:
   struct Result {
     uint32_t elapsed_millis;
     TraceRoute route;
-    uint8_t snrs[TraceRoute::MAX_REPEATERS];
+    uint8_t snrs[2 * TraceRoute::MAX_REPEATERS];
+    uint8_t attempt;
   };
 
   StartResult start(const mesh::Packet* request, uint32_t tag, uint32_t auth, uint32_t now);
@@ -20,6 +21,11 @@ public:
   bool isActive() const { return _state != IDLE; }
   bool retryPending() const { return _state == RETRY_PENDING; }
   bool retryStarted() const { return _current == 1; }
+  bool waitingForQueue() const { return _state == QUEUED; }
+  bool currentTransmitted() const { return _attempts[_current].transmitted; }
+  void resetQueueClock(uint32_t now) { _phase_at = now; }
+  void retryAfterLocalFailure() { if (_current == 0) _state = RETRY_PENDING; }
+  bool matchProgress(const mesh::Packet* packet, uint8_t& attempt, uint32_t& elapsed, uint32_t now) const;
   bool isFinalizing() const { return _state == FINAL_GRACE || _state == FAILURE_PENDING; }
   bool failurePending() const { return _state == FAILURE_PENDING; }
   Failure failure() const { return _failure; }

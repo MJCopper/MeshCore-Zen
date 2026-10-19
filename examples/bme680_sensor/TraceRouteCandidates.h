@@ -14,15 +14,29 @@ struct TraceRoute {
   uint8_t maxPacketLength() const { return 2 + 9 + bytes + 2 * repeaters - 1; }
 };
 
-// One passive alternate for the exact accepted command, with no persistent state.
+class TraceRouteHistory;
+
+// Bounded passive alternatives for the exact accepted command.
 class TraceRouteCandidates {
   uint8_t _fingerprint[16];
   uint16_t _payload_length = 0;
-  TraceRoute _original{}, _alternate{};
-  bool _active = false, _has_alternate = false;
+  TraceRoute _original{};
+  struct Candidate {
+    TraceRoute route{};
+    uint32_t seen = 0, sequence = 0;
+    int8_t snr = -128;
+    uint8_t observations = 0;
+  } _candidates[3];
+  uint8_t _count = 0;
+  uint32_t _last_seen = 0, _sequence = 0;
+  bool _active = false;
 public:
-  void begin(const mesh::Packet* request);
-  void observe(const mesh::Packet* packet);
-  void clear() { _active = _has_alternate = false; }
-  const TraceRoute* alternate() const { return _has_alternate ? &_alternate : NULL; }
+  void begin(const mesh::Packet* request, uint32_t now = 0);
+  void observe(const mesh::Packet* packet, uint32_t now = 0);
+  void clear() { _active = false; _count = 0; }
+  uint32_t lastSeen() const { return _last_seen; }
+  uint8_t count() const { return _count; }
+  const TraceRoute& candidate(uint8_t index) const { return _candidates[index].route; }
+  const TraceRoute* best(const TraceRouteHistory& history, uint8_t channel, uint32_t profile,
+                         uint32_t now, const uint32_t airtimes[3]) const;
 };

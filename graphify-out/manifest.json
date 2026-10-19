@@ -3685,13 +3685,13 @@
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1792405458.4793417,
-    "ast_hash": "b5532d3bdc8c4ba84af6494b28f718c9",
+    "mtime": 1792410996.831107,
+    "ast_hash": "7253ef84ff1f41a8e99ba8baef815972",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1792405458.4243417,
-    "ast_hash": "0e228e84ebe27282ee43109dad46a9d0",
+    "mtime": 1792411163.6070998,
+    "ast_hash": "32e75ca3b47254cd6c4a7d5de4ea5ee1",
     "semantic_hash": ""
   },
   "RELEASE.md": {
@@ -3855,13 +3855,13 @@
     "semantic_hash": ""
   },
   "test/test_public_response_queue/test_public_response_queue.cpp": {
-    "mtime": 1792403694.6254165,
-    "ast_hash": "3d693b9e33524b8f710c87627aa669cb",
+    "mtime": 1792407864.9332397,
+    "ast_hash": "56c6c38f7a0dd7267cffb447a1e5fd9c",
     "semantic_hash": ""
   },
   "test/test_repeater_trace_probe/test_repeater_trace_probe.cpp": {
-    "mtime": 1792405471.5913413,
-    "ast_hash": "2d832d6f7c4b2c01e39ddc3ebdfa9698",
+    "mtime": 1792411306.7270937,
+    "ast_hash": "82ee75146c1afb8628e680cb20c768fe",
     "semantic_hash": ""
   },
   "variants/xiao_nrf52/create-sensor-dfu-zip.py": {
@@ -3890,8 +3890,8 @@
     "semantic_hash": ""
   },
   "docs/sensor_features/public_bot/public_bot.md": {
-    "mtime": 1792405841.1633255,
-    "ast_hash": "1f98dc72f46fec4ae0e0cfe626d9d0e2",
+    "mtime": 1792410996.7321067,
+    "ast_hash": "30718d2a168b19794673acc44791dcda",
     "semantic_hash": ""
   },
   "docs/sensor_features/telemetry/telemetry.md": {
@@ -3920,8 +3920,8 @@
     "semantic_hash": ""
   },
   "bin/check-sensor-boundaries.sh": {
-    "mtime": 1792405841.1173255,
-    "ast_hash": "5a15f2ab39cbe32bedfaa98be54adc5a",
+    "mtime": 1792410896.189111,
+    "ast_hash": "20e6d36797f5effad293c7810b2e2a75",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/BME680AirQuality.cpp": {
@@ -3940,8 +3940,8 @@
     "semantic_hash": ""
   },
   "examples/bme680_sensor/Bme680SensorMesh.h": {
-    "mtime": 1792404916.4013648,
-    "ast_hash": "939ce72fbb947f93e406bbf11b64562f",
+    "mtime": 1792411474.5070865,
+    "ast_hash": "2ee78a315d2ae6328748683b881d0675",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/Bme680Telemetry.cpp": {
@@ -3965,18 +3965,18 @@
     "semantic_hash": ""
   },
   "examples/bme680_sensor/PublicResponseQueue.cpp": {
-    "mtime": 1792403627.5194194,
-    "ast_hash": "2cafd566d427e2917f1698911dabf7a8",
+    "mtime": 1792407840.3682406,
+    "ast_hash": "6abc76b354cad45b4b108df45ab10203",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/PublicResponseQueue.h": {
-    "mtime": 1792403627.4744194,
-    "ast_hash": "a68066aeb51522566551de83a02db98b",
+    "mtime": 1792407927.151237,
+    "ast_hash": "1d7e3a3dbab249e6c876e48afa52e24e",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/RepeaterNameCache.cpp": {
-    "mtime": 1792401828.0724957,
-    "ast_hash": "9405db5ea79888829d34e9905fcb3ccf",
+    "mtime": 1792408936.6251943,
+    "ast_hash": "e2dbb2ad58927097749707b3bcbbad6a",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/RepeaterNameCache.h": {
@@ -3985,23 +3985,23 @@
     "semantic_hash": ""
   },
   "examples/bme680_sensor/RepeaterTraceProbe.cpp": {
-    "mtime": 1792405471.5383413,
-    "ast_hash": "e73314323c0f9bd8eda1e4a03579699b",
+    "mtime": 1792410268.5761378,
+    "ast_hash": "d53ea91c8407789cc8736f8b088e5a28",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/RepeaterTraceProbe.h": {
-    "mtime": 1792404916.1243649,
-    "ast_hash": "e309bfe21c0dab04856c1245b6efcc5e",
+    "mtime": 1792410864.5241125,
+    "ast_hash": "d2b698f5c0530ca7d752eefd6add0270",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/SensorBotService.cpp": {
-    "mtime": 1792404946.2193635,
-    "ast_hash": "5ac6242cdc15393f6959a94a7355e27e",
+    "mtime": 1792411306.6270936,
+    "ast_hash": "d26e5a97bed7baf84aad77ebd1af32d6",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/SensorBotService.h": {
-    "mtime": 1792404916.3553648,
-    "ast_hash": "86209039a2f52508a53ae0680c7bd682",
+    "mtime": 1792411043.9301047,
+    "ast_hash": "63f4f87fdbe82721a4bf0e0374e02b69",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/SensorManagementPolicy.cpp": {
@@ -4045,8 +4045,8 @@
     "semantic_hash": ""
   },
   "test/test_sensor_integration/test_sensor_integration.cpp": {
-    "mtime": 1792405395.0933444,
-    "ast_hash": "2d47a76d94c8683bfb4cb840811cc1a9",
+    "mtime": 1792411044.1871047,
+    "ast_hash": "7aeba0dcc535e0cc8b699b024d886cee",
     "semantic_hash": ""
   },
   "test/test_sensor_policy/test_sensor_policy.cpp": {
@@ -4055,8 +4055,8 @@
     "semantic_hash": ""
   },
   "test/test_sensor_storage/test_sensor_storage.cpp": {
-    "mtime": 1792402352.6504736,
-    "ast_hash": "9e60cee5ec9e6850b289863aa92b24b0",
+    "mtime": 1792408980.6911924,
+    "ast_hash": "a1edcb7b46bb16da084a69c59817b1c3",
     "semantic_hash": ""
   },
   ".github/workflows/sensor-firmware.yml": {
@@ -4065,38 +4065,58 @@
     "semantic_hash": ""
   },
   "docs/sensor_features/development/development.md": {
-    "mtime": 1792405841.2103255,
-    "ast_hash": "c6f8eaa18b3551af16cdd6f1efa7ec6f",
+    "mtime": 1792411425.1550887,
+    "ast_hash": "6761dac4fb11ef4cbffc23cbad46da74",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/TraceRouteCandidates.cpp": {
-    "mtime": 1792405841.0703256,
-    "ast_hash": "b65d9b1011b429a37d7b341197e97284",
+    "mtime": 1792411093.9361026,
+    "ast_hash": "bc7637333cb936d444ab9035f5adb6bc",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/TraceRouteCandidates.h": {
-    "mtime": 1792404872.7333667,
-    "ast_hash": "7296728f81f9ece292f7e06a27fcedef",
+    "mtime": 1792411093.8851027,
+    "ast_hash": "551548ca89f498b1c6f43bbcc224e11f",
     "semantic_hash": ""
   },
   "examples/bme680_sensor/TraceTimingPolicy.h": {
-    "mtime": 1792404872.6753666,
-    "ast_hash": "d05deb44d8fa8333b1150440485e9da3",
+    "mtime": 1792410268.4791377,
+    "ast_hash": "cc7755a30af7ca40d9c34a4b792334a2",
     "semantic_hash": ""
   },
   "test/sensor_mocks/SensorTestRig.h": {
-    "mtime": 1792405129.8973558,
-    "ast_hash": "f34ebd6bd58bdf58c5dac76c0461c9c5",
+    "mtime": 1792411044.0831048,
+    "ast_hash": "77a99585b2310b8d48ab73c9b371436d",
     "semantic_hash": ""
   },
   "test/test_sensor_network/test_sensor_network.cpp": {
-    "mtime": 1792405708.0633311,
-    "ast_hash": "ef77ec99ea885a72f0a47cc6440fb597",
+    "mtime": 1792411044.1341047,
+    "ast_hash": "71dbaa83240b2d887c72d8495d6f4835",
     "semantic_hash": ""
   },
   "test/test_sensor_routes/test_sensor_routes.cpp": {
-    "mtime": 1792405149.2063549,
-    "ast_hash": "e18683b3a854450b9cf0b449dd55fd5c",
+    "mtime": 1792411306.6740937,
+    "ast_hash": "b9e721dd3d1e691791ea42f9a637664d",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceDiagnostics.h": {
+    "mtime": 1792410864.4731123,
+    "ast_hash": "7a65521e317eea1a7d22f6ca6f548671",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceReportDelivery.h": {
+    "mtime": 1792411306.5780938,
+    "ast_hash": "926e6e7e962fbbe99472fea784b35aa5",
+    "semantic_hash": ""
+  },
+  "examples/bme680_sensor/TraceRouteHistory.h": {
+    "mtime": 1792410306.0851362,
+    "ast_hash": "23e7239ec577ac3b25ee0b57913ad006",
+    "semantic_hash": ""
+  },
+  "test/test_sensor_trace_reliability/test_sensor_trace_reliability.cpp": {
+    "mtime": 1792410896.0451112,
+    "ast_hash": "276c5b547c30d1c882bc069081d69dca",
     "semantic_hash": ""
   }
 }

@@ -3,10 +3,45 @@
 #include <helpers/AdvertDataHelpers.h>
 #include <helpers/UTF8Helpers.h>
 #include <string.h>
+#include <ctype.h>
 
 static const char* CACHE_FILE = "/repeaters";
 static const char* TEMP_FILE = "/repeaters.tmp";
 static const uint32_t CACHE_MAGIC = 0x31504552;  // REP1
+
+static bool isNameWord(unsigned char ch) {
+  return ch >= 0x80 || isalnum(ch) || ch == '_';
+}
+
+static bool isRepeaterWord(const char* word, size_t length) {
+  const char* match = length == 8 ? "repeater" : length == 4 ? "rptr" : NULL;
+  if (!match) return false;
+  for (size_t i = 0; i < length; i++)
+    if (tolower((unsigned char)word[i]) != match[i]) return false;
+  return true;
+}
+
+// Shorten display labels only; keep the original advert name in the cache.
+static void cleanDisplayName(const char* name, char* dest) {
+  size_t used = 0;
+  bool space = false;
+  while (*name) {
+    if (isspace((unsigned char)*name)) {
+      space = used != 0;
+      name++;
+      continue;
+    }
+    const char* start = name++;
+    if (isNameWord((unsigned char)*start)) {
+      while (isNameWord((unsigned char)*name)) name++;
+      if (isRepeaterWord(start, name - start)) continue;
+    }
+    if (space) dest[used++] = ' ';
+    space = false;
+    while (start < name) dest[used++] = *start++;
+  }
+  dest[used] = 0;
+}
 
 static File openRead(FILESYSTEM* fs, const char* path) {
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -170,10 +205,16 @@ void RepeaterNameCache::formatLabel(const uint8_t* hash, uint8_t hash_size,
 
   const char* name = findName(hash, hash_size);
   if (name) {
-    size_t len = mesh::validUtf8PrefixLength(name, size - 1);
-    memcpy(dest, name, len);
-    dest[len] = 0;
-  } else if (size >= hash_size * 2 + 1) {
+    char display[sizeof(_entries[0].name)];
+    cleanDisplayName(name, display);
+    if (display[0]) {
+      size_t len = mesh::validUtf8PrefixLength(display, size - 1);
+      memcpy(dest, display, len);
+      dest[len] = 0;
+      return;
+    }
+  }
+  if (size >= hash_size * 2 + 1) {
     for (uint8_t i = 0; i < hash_size; i++)
       snprintf(&dest[i * 2], size - i * 2, "%02X", hash[i]);
   }
@@ -189,6 +230,10 @@ void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_
 
   uint8_t count = packet->getPathHashCount();
   uint8_t hash_size = packet->getPathHashSize();
+  if (hash_size > 3 || count * hash_size > sizeof(packet->path)) {
+    snprintf(dest, size, "Path unavailable (invalid route)");
+    return;
+  }
   if (count == 0) {
     snprintf(dest, size, "Path: direct (0 repeaters)");
     return;
@@ -197,11 +242,13 @@ void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_
   int used = snprintf(dest, size, "Path (%u repeaters): ", count);
   for (uint8_t i = 0; i < count && used > 0 && (size_t)used < size; i++) {
     const uint8_t* hash = &packet->path[i * hash_size];
-    char label[33];
+    char label[13];
     formatLabel(hash, hash_size, label, sizeof(label));
     size_t needed = strlen(label) + (i ? 3 : 0);
-    if ((size_t)used + needed >= size) {
-      snprintf(&dest[used], size - used, "...");
+    // Reserve an explicit overflow marker while more repeaters remain.
+    size_t reserve = i + 1 < count ? strlen("\n...truncated") : 0;
+    if ((size_t)used + needed + reserve >= size) {
+      snprintf(&dest[used], size - used, "\n...truncated");
       break;
     }
     used += snprintf(&dest[used], size - used, "%s%s", i ? " > " : "", label);

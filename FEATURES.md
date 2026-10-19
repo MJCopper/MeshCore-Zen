@@ -13,7 +13,7 @@ built from a XIAO nRF52840, an SX1262 radio and a BME680.
 | Air quality | Relative `0–500` score, ten-sample warm-up and Good through Hazardous labels |
 | Public bot | `!hillvue` command on Public and `#hillvue`, replying only on the requesting channel, with selectable measurements, ping, incoming path and round-trip traces of up to ten repeaters |
 | Traffic control | Four accepted bot commands per rolling minute shared across both channels; replies may use two numbered messages three seconds apart, with a channel-aware eight-command duplicate cache and no automatic channel posts |
-| Trace recovery | Airtime-aware deadlines, one silent retry, one RAM-only alternate request path, per-attempt result validation and bounded late-result recovery before failure transmission |
+| Trace recovery | Airtime-aware settling/deadlines, two-probe limit, three passive alternate paths, RAM-only recent route history, late-result recovery and retained bounded report delivery |
 | Mesh role | Sensor leaf node; packet forwarding is fixed Off |
 | Storage | Identity, configuration, ACL and a bounded repeater-name cache persist; readings, air baseline and bot rate-limit state remain in RAM |
 | Management | MeshCore sensor telemetry, administrator login, node configuration and USB serial console |

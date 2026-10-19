@@ -10,6 +10,8 @@ class Bme680SensorMesh : public SensorMesh, private SensorBotTransport {
   TimeSeriesData _battery{12 * 24, 5 * 60};
   Trigger _low_batt, _critical_batt;
   CayenneLPP _cached_reply{MAX_PACKET_PAYLOAD - 4};
+  uint32_t _trace_radio_generation = 0, _trace_radio_at = 0, _trace_radio_revert = 0;
+  bool _trace_radio_pending = false, _trace_revert_pending = false;
 public:
   Bme680SensorMesh(mesh::MainBoard& board, mesh::Radio& radio, mesh::MillisecondClock& ms,
                    mesh::RNG& rng, mesh::RTCClock& rtc, mesh::MeshTables& tables)
@@ -19,9 +21,20 @@ public:
     sensors.snapshot.setVoltage(board.getBattMilliVolts() / 1000.0f);
     _bot.begin(fs);
   }
-  void loop() { SensorMesh::loop(); _bot.loop(); }
+  void loop() {
+    _bot.beforeRadioLoop();
+    SensorMesh::loop();
+    updateTraceRadioContext();
+    _bot.loop();
+  }
 
 protected:
+  void applyTempRadioParams(float freq, float bw, uint8_t sf, uint8_t cr, int timeout_mins) override {
+    SensorMesh::applyTempRadioParams(freq, bw, sf, cr, timeout_mins);
+    _trace_radio_at = futureMillis(2000);
+    _trace_radio_revert = futureMillis(2000 + timeout_mins * 60 * 1000);
+    _trace_radio_pending = _trace_revert_pending = true;
+  }
   void onSensorDataRead() override {
     float voltage = getVoltage(TELEM_CHANNEL_SELF);
     sensors.snapshot.setVoltage(voltage);
@@ -111,11 +124,37 @@ protected:
   }
 
 private:
+  void updateTraceRadioContext() {
+    // Observe changes after SensorMesh has applied/reverted its temporary settings,
+    // never while a command is still being decoded on the preceding configuration.
+    if (_trace_radio_pending && millisHasNowPassed(_trace_radio_at)) {
+      _trace_radio_pending = false; _trace_radio_generation++;
+    }
+    if (_trace_revert_pending && millisHasNowPassed(_trace_radio_revert)) {
+      _trace_revert_pending = false; _trace_radio_generation++;
+    }
+  }
   uint32_t now() override { return _ms->getMillis(); }
   uint32_t uniqueTime() override { return getRTCClock()->getCurrentTimeUnique(); }
   const char* nodeName() override { return getNodeName(); }
   mesh::RNG& rng() override { return *getRNG(); }
   uint32_t estimateAirtime(uint8_t length) override { return _radio->getEstAirtimeFor(length); }
+  uint32_t radioProfile() override {
+    // Temporary CLI changes leave NodePrefs untouched. Generation changes also
+    // invalidate history when that temporary configuration is applied/reverted.
+    // Hash values individually: NodePrefs padding and unrelated settings are not context.
+    uint32_t hash = 2166136261UL;
+    const auto& prefs = *getNodePrefs();
+    auto add = [&hash](const void* value, size_t length) {
+      auto bytes = static_cast<const uint8_t*>(value);
+      while (length--) hash = (hash ^ *bytes++) * 16777619UL;
+    };
+    add(&prefs.freq, sizeof(prefs.freq)); add(&prefs.bw, sizeof(prefs.bw));
+    add(&prefs.sf, sizeof(prefs.sf)); add(&prefs.cr, sizeof(prefs.cr));
+    add(&prefs.tx_power_dbm, sizeof(prefs.tx_power_dbm));
+    add(&_trace_radio_generation, sizeof(_trace_radio_generation));
+    return hash;
+  }
   mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) override {
     return Mesh::createTrace(tag, auth, flags);
   }

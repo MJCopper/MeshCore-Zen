@@ -5,8 +5,13 @@
 static const char* TRUNCATED = "\n...truncated";
 
 // Prefer complete lines, then a word boundary for an unusually long line.
-static size_t findCut(const char* text, size_t limit) {
+static size_t findCut(const char* text, size_t limit, const char* separator = NULL) {
   size_t cut = 0;
+  if (separator) {
+    for (const char* next = strstr(text, separator); next && (size_t)(next - text) <= limit;
+         next = strstr(next + strlen(separator), separator)) cut = next - text;
+    return cut;
+  }
   for (size_t i = 0; i < limit && text[i]; i++)
     if (text[i] == '\n') cut = i;
   if (cut) return cut;
@@ -26,7 +31,7 @@ PublicResponseQueue::PublicResponseQueue() {
 
 bool PublicResponseQueue::split(const char* response, size_t max_body,
                                 char first[MAX_PART_LENGTH + 1],
-                                char second[MAX_PART_LENGTH + 1]) {
+                                char second[MAX_PART_LENGTH + 1], const char* separator) {
   first[0] = second[0] = 0;
   if (!response || max_body < 4 + strlen(TRUNCATED)) return false;
   if (max_body > MAX_PART_LENGTH) max_body = MAX_PART_LENGTH;
@@ -38,12 +43,14 @@ bool PublicResponseQueue::split(const char* response, size_t max_body,
   }
 
   const size_t content_limit = max_body - 4;  // "1/2\n" and "2/2\n"
-  size_t first_len = findCut(response, content_limit);
+  if (separator && !separator[0]) separator = NULL;
+  size_t first_len = findCut(response, content_limit, separator);
   memcpy(first, "1/2\n", 4);
   memcpy(first + 4, response, first_len);
   first[4 + first_len] = 0;
 
-  const char* remaining = skipBreak(response + first_len);
+  const char* remaining = separator && strncmp(response + first_len, separator, strlen(separator)) == 0
+                            ? response + first_len + strlen(separator) : skipBreak(response + first_len);
   memcpy(second, "2/2\n", 4);
   size_t remaining_len = strlen(remaining);
   if (remaining_len <= content_limit) {
@@ -51,8 +58,12 @@ bool PublicResponseQueue::split(const char* response, size_t max_body,
   } else {
     size_t marker_len = strlen(TRUNCATED);
     size_t second_len = 0;
-    for (size_t i = 0; i < content_limit - marker_len && remaining[i]; i++)
-      if (remaining[i] == '\n') second_len = i;
+    if (separator) {
+      second_len = findCut(remaining, content_limit - marker_len, separator);
+    } else {
+      for (size_t i = 0; i < content_limit - marker_len && remaining[i]; i++)
+        if (remaining[i] == '\n') second_len = i;
+    }
     memcpy(second + 4, remaining, second_len);
     const char* marker = second_len ? TRUNCATED : TRUNCATED + 1;
     strcpy(second + 4 + second_len, marker);

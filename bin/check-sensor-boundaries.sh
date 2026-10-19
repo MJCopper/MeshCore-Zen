@@ -8,7 +8,7 @@ git diff --exit-code "$baseline" -- \
   examples/simple_sensor/main.cpp \
   src/helpers/sensors/EnvironmentSensorManager.cpp
 
-if rg -n 'PUBLIC_CHANNEL_SENSOR_BOT|hillvue|BME680AirQuality|Bme680Telemetry|SensorBotService|SensorManagementPolicy|Bme680SensorMesh|TraceRouteCandidates|TraceTimingPolicy' \
+if rg -n 'PUBLIC_CHANNEL_SENSOR_BOT|hillvue|BME680AirQuality|Bme680Telemetry|SensorBotService|SensorManagementPolicy|Bme680SensorMesh|TraceRouteCandidates|TraceTimingPolicy|TraceReportDelivery|TraceRouteHistory|TraceDiagnostics' \
     examples/simple_sensor src/Dispatcher.cpp src/Dispatcher.h src/Mesh.cpp \
     src/helpers/ClientACL.cpp src/helpers/ClientACL.h \
     src/helpers/sensors/EnvironmentSensorManager.cpp; then

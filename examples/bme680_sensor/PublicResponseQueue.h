@@ -13,9 +13,10 @@ public:
   PublicResponseQueue();
 
   // Returns true if a second part is needed. max_body includes the part label.
+  // An optional separator keeps route entries intact instead of splitting words.
   static bool split(const char* response, size_t max_body,
                     char first[MAX_PART_LENGTH + 1],
-                    char second[MAX_PART_LENGTH + 1]);
+                    char second[MAX_PART_LENGTH + 1], const char* separator = NULL);
   bool scheduleAfterFirst(const char* second, const void* first_packet, uint8_t channel_index = 0);
   void onFirstSent(const void* first_packet, uint32_t now_millis);
   void onFirstFailed(const void* first_packet);

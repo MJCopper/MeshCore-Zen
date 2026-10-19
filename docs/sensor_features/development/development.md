@@ -20,7 +20,10 @@ to a different, Solo-related commit. The extraction started from sensor commit
 | `PublicResponseQueue` | Bounded two-part replies and transmission-completion spacing |
 | `RepeaterTraceProbe` | Path validation, timeouts, single retry and late-result fallback |
 | `TraceTimingPolicy` | Hop/airtime timeout estimates and bounded queue, grace and report periods |
-| `TraceRouteCandidates` | One passive, RAM-only alternate path for the exact accepted command |
+| `TraceRouteCandidates` | Three bounded passive alternatives and deterministic retry ranking |
+| `TraceRouteHistory` | Four RAM-only, context-scoped recent route outcomes with lazy expiry |
+| `TraceReportDelivery` | Frozen two-part report, bounded local retry and uncertain-outcome handling |
+| `TraceDiagnostics` | Full directional SNR, passive progress and local outcome counters |
 | `RepeaterNameCache` | Verified repeater names and bounded persistent cache |
 | `Bme680Telemetry` | Cached measurements, channel discovery and telemetry encoding |
 | `Bme680SensorManager` | Upstream BME680 driver adapter and installation altitude adjustment |
@@ -68,6 +71,9 @@ reply splitting, trace state transitions and malformed TRACE paths. The
 handling, dispatcher queues, telemetry encoding and ACL storage. Its simulated
 clock, radio and filesystem make failure timing and write counts repeatable.
 Hardware randomness is replaced only by deterministic test input.
+The legacy exact-time packet cases explicitly suppress settling; production
+defaults and separate settling tests enable it. Multi-node tests use the
+production default.
 
 Integration cases include silent retry, duplicate command reception, cancelling
 a queued retry, late first-result fallback, multipart spacing after actual TX
@@ -118,10 +124,10 @@ Recorded on 19 October 2026:
 | Check | Result |
 | ----- | ------ |
 | Pre-extraction characterization tests | Passed before moving application code |
-| `native` | 85 test cases passed |
-| `native_sensor` | 58 test cases passed, including 31 packet integration and seven multi-repeater cases |
+| `native` | 88 test cases passed |
+| `native_sensor` | 108 test cases passed, including 49 packet integration and 21 network-medium cases |
 | `native_kiss_modem` | 8 test cases passed |
-| `native_sensor_asan` | The same 58 sensor cases passed with AddressSanitizer |
+| `native_sensor_asan` | The same 108 sensor cases passed with AddressSanitizer |
 | Custom sensor, baseline sensor, companion USB, repeater and room-server builds | All five passed |
 | Baseline boundary check and `git diff --check` | Passed |
 | Strict MkDocs site build | Passed |
@@ -156,12 +162,70 @@ installing system packages.
 - CI runs the regular tests, sanitizer tests and five firmware targets.
 - Firmware artifacts and documentation are validated separately from hardware.
 
-The software plan is complete. Physical RF, phone-app presentation and OTA
+The software extraction and earlier remediation are complete. Physical RF, phone-app presentation and OTA
 installation remain pending acceptance on an attached node; simulation is not
 a substitute for those checks.
 
 The software extraction, automated checks and build integration are complete.
 Full hardware acceptance is not claimed until the following checklist passes.
+
+### Trace reliability validation
+
+The pre-change baseline passed 162 regular cases. The reliability change adds
+retained report delivery, bounded allocation/queue recovery, conservative radio
+start handling, a first-probe settling window, recent route evidence and passive
+diagnostics. All buffers are fixed-capacity; history and progress are RAM-only.
+Idle operation performs no route scans or periodic radio/configuration queries.
+
+| Reliability plan item | Software validation |
+| --------------------- | ------------------- |
+| Retain successful results through report delivery | Allocation/queue recovery, frozen text, multipart gap, expiry and uncertain-outcome cases pass |
+| Recover from local probe failures | Admission backoff, rejected starts, remaining-attempt budget and late-first recovery pass |
+| Airtime-aware first-probe settling | Production defaults, quiet extension, hard limit, unrelated traffic and RTT exclusion pass |
+| Rank alternatives and retain recent evidence | Three-candidate/four-history bounds, channel/radio context, expiry and deterministic ranking pass |
+| Directional SNR and passive progress | Both hash widths and one through ten repeaters pass; malformed/stale progress is rejected |
+| Collision/contention/hash-collision tests | 21 deterministic network cases pass, including eight seeded-loss runs |
+| Physical RF measurements and OTA install | Pending: no attached XIAO; no physical performance claim |
+
+Final automated validation comprises 204 regular cases and 108 repeated sensor
+cases under AddressSanitizer: 312 executions passed. The existing sanitizer
+leak-detection qualification above still applies; packet-pool return is checked
+explicitly by integration/network tests.
+
+The final custom sensor linker reports 32,408 bytes of static RAM and 362,956
+bytes of flash. Static RAM increased by 968 bytes from the preceding 31,440-byte
+build, below the two-KiB review budget. These figures exclude the linker's
+reserved heap area and do not claim a measured runtime stack/heap peak. The
+additional modules introduce no per-request application heap allocations or
+new persistent formats/writes.
+
+The radio medium now has optional half-duplex, overlapping-frame collision,
+hidden-terminal, six-decibel capture-threshold, busy-channel and seeded-loss
+models. It includes standard direct-forwarding delay estimates and competing
+repeaters sharing a one-byte prefix. These are reproducible approximations,
+not measured RF capture behaviour. Packet ownership callbacks are synchronous
+and precede dispatcher release; reports retain no packet handle after callback
+completion. No asynchronous callback may refer to a recycled allocation.
+The adapter runs queued-work expiry before the dispatcher, preventing an old
+queued report from starting after its deadline when the loop resumes late.
+
+Production conservatively treats rejected report starts as uncertain: the
+RadioLib Boolean interface does not expose whether an error occurred before or
+after the TX command. Tests explicitly mark a simulated rejection as definitely
+unsent only when their fake radio emits no frame. No generic MeshCore callback
+or forwarding changes were needed for this reliability change.
+
+Hardware acceptance remains a separate gate. Use an isolated/controlled RF
+setup: `#hillvue` alone does not isolate interference on the shared frequency.
+For each important condition, compare baseline and updated firmware, preferably
+interleaving at least thirty runs each where practical. Observe the existing
+command limit and allow each operation to finish. Record firmware, radio
+settings, topology, trial count, confirmed starts, potentially emitting probe
+submissions, local failures, timeouts, selected route, passive progress, RTT,
+total response delay, local report outcome, companion receipt, duplicates and
+airtime. Include clean two-/three-relay routes, slow settings, contention,
+asymmetry, alternate paths, delayed results and multipart reception. Report
+sample sizes and uncertainty rather than claiming a universal success rate.
 
 ## Storage and firmware updates
 

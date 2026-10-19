@@ -27,36 +27,127 @@ static void appendResponseLine(char* response, size_t size, const char* line) {
 void SensorBotService::begin(FILESYSTEM* fs) {
   repeater_names.begin(fs);
   _transport.rng().random(reinterpret_cast<uint8_t*>(&next_trace_tag), sizeof(next_trace_tag));
+  _profile = _transport.radioProfile();
 }
 
 void SensorBotService::loop() {
   uint32_t now = _transport.now();
+  beforeRadioLoop();
   repeater_names.loop(now);
-  if (trace_probe.isQueueTimedOut(now)) {
-    _transport.cancelQueuedPacket(trace_probe.queuedPacket());
-    trace_probe.queueFailed(now);
+  if (trace_probe.isActive() && _profile != _transport.radioProfile()) {
+    trace_history.clear();
+    _profile = _transport.radioProfile();
+    // A route observed on the old radio configuration cannot be retried on the new one.
+    if (trace_probe.isActive()) {
+      auto packet = trace_probe.queuedPacket();
+      if (packet) _transport.cancelQueuedPacket(packet);
+      trace_probe.queueFailed(now);
+      _settling = false;
+    }
   }
-  if (trace_probe.isTimedOut(now) && trace_probe.retryPending()) {
+  if (_settling && ((uint32_t)(now - _settle_at) >= 2500 ||
+      ((uint32_t)(now - _settle_at) >= _settle_delay &&
+       (uint32_t)(now - trace_routes.lastSeen()) >= _quiet))) {
+    _settling = false;
+    trace_probe.resetQueueClock(now);
+    _next_queue_at = now;
+  }
+  if (trace_probe.isTimedOut(now)) {
+    trace_diagnostics.timeouts++;
+    trace_history.record(trace_probe.route(), trace_channel, _trace_profile, now, false);
+  }
+  if (trace_probe.retryPending()) {
     uint32_t tag, auth;
     traceIdentifiers(tag, auth);
-    if (!trace_probe.beginRetry(tag, auth, now, trace_routes.alternate()) ||
-        !queueTrace(_transport.rng().nextInt(1000, 2001)))
-      trace_probe.queueFailed(now);
+    uint32_t airtimes[3]{};
+    for (uint8_t i = 0; i < trace_routes.count(); i++)
+      airtimes[i] = _transport.estimateAirtime(trace_routes.candidate(i).maxPacketLength());
+    auto alternate = trace_routes.best(trace_history, trace_channel, _trace_profile, now, airtimes);
+    if (alternate && trace_history.rank(trace_probe.route(), trace_channel, _trace_profile, now) >
+                     trace_history.rank(*alternate, trace_channel, _trace_profile, now)) alternate = NULL;
+    if (!trace_probe.beginRetry(tag, auth, now, alternate)) trace_probe.queueFailed(now);
+    else {
+      _local_failures = 0;
+      _next_queue_at = now;
+      admitTrace(now, _transport.rng().nextInt(1000, 2001));
+    }
   }
+  if (!_settling) admitTrace(now);
   if (trace_probe.isFinalizing()) {
     RepeaterTraceProbe::Result result;
     if (trace_probe.takeFallback(result)) finishTrace(result);
     else trace_probe.advanceFinal(now);
   }
-  if (trace_probe.failurePending()) {
-    if (trace_probe.reportExpired(now)) closeTrace();
-    else if (!trace_failure_packet) queueTraceFailure();
-  }
+  if (trace_probe.failurePending() && !trace_report.active()) queueTraceFailure();
+  pumpTraceReport(now);
   char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
   uint8_t channel_index;
   if (public_replies.takeDue(now, part, &channel_index) &&
       !sendPublicPart(part, channel_index, 0))
     public_replies.schedule(part, now + 1000, channel_index);
+}
+
+void SensorBotService::beforeRadioLoop() {
+  // Expire queued work before MeshCore can start it on a later loop iteration.
+  // In-flight packets remain exclusively owned by the dispatcher watchdog.
+  uint32_t now = _transport.now();
+  if (!_settling && trace_probe.isQueueTimedOut(now)) {
+    auto packet = trace_probe.queuedPacket();
+    if (packet) _transport.cancelQueuedPacket(packet);
+    trace_diagnostics.queue_failures++;
+    trace_probe.queueFailed(now);
+  }
+  if (trace_probe.failurePending() && trace_probe.reportExpired(now)) {
+    closeTrace();
+    trace_report.expire();
+  }
+  if (trace_report.expired(now)) {
+    auto packet = (mesh::Packet*)trace_report.queuedPacket();
+    trace_report.expire();
+    if (packet) _transport.cancelQueuedPacket(packet);
+    trace_probe.cancel();
+    trace_routes.clear();
+  }
+  trace_diagnostics.delivery = trace_report.outcome();
+}
+
+void SensorBotService::admitTrace(uint32_t now, uint32_t delay) {
+  if (delay) _probe_not_before = now + delay;
+  if (!trace_probe.waitingForQueue() || trace_probe.queuedPacket() ||
+      (int32_t)(now - _next_queue_at) < 0) return;
+  uint32_t remaining = (int32_t)(_probe_not_before - now) > 0 ? _probe_not_before - now : 0;
+  auto queued = queueTrace(remaining);
+  if (queued != TRACE_QUEUED) {
+    trace_probe.setQueuedPacket(NULL);
+    if (queued == TRACE_NO_PACKET) trace_diagnostics.allocations_failed++;
+    else trace_diagnostics.queue_failures++;
+    _next_queue_at = now + TraceTimingPolicy::localBackoff(_local_failures) + _transport.rng().nextInt(0, 251);
+    if (_local_failures < 255) _local_failures++;
+  }
+}
+
+void SensorBotService::pumpTraceReport(uint32_t now, bool queue_early) {
+  if (trace_report.ready(now) || (queue_early && trace_report.waiting())) {
+    uint8_t payload[MAX_PACKET_PAYLOAD]{};
+    uint32_t time = _transport.uniqueTime();
+    memcpy(payload, &time, 4);
+    size_t length = strlen(trace_report.text());
+    memcpy(payload + 5, trace_report.text(), length);
+    auto packet = _transport.createGroupDatagram(PAYLOAD_TYPE_GRP_TXT,
+                  public_bot.channel(trace_report.channel()), payload, 5 + length);
+    if (!packet) {
+      trace_diagnostics.allocations_failed++;
+      trace_report.retry(now, _transport.rng().nextInt(0, 251));
+    } else {
+      trace_report.queued(packet);
+      _transport.sendFlood(packet, trace_report.delay(now));
+      if (!_transport.isQueuedPacket(packet)) {
+        trace_diagnostics.queue_failures++;
+        trace_report.retry(now);
+      }
+    }
+  }
+  trace_diagnostics.delivery = trace_report.outcome();
 }
 
 void SensorBotService::traceIdentifiers(uint32_t& tag, uint32_t& auth) {
@@ -65,44 +156,62 @@ void SensorBotService::traceIdentifiers(uint32_t& tag, uint32_t& auth) {
   _transport.rng().random(reinterpret_cast<uint8_t*>(&auth), sizeof(auth));
 }
 
-bool SensorBotService::queueTrace(uint32_t delay_millis) {
+SensorBotService::QueueTraceResult SensorBotService::queueTrace(uint32_t delay_millis) {
   trace_probe.setAirtimeEstimate(_transport.estimateAirtime(trace_probe.route().maxPacketLength()));
   auto trace = _transport.createTrace(trace_probe.tag(), trace_probe.authCode(), trace_probe.flags());
-  if (!trace) return false;
+  if (!trace) return TRACE_NO_PACKET;
   trace_probe.setQueuedPacket(trace);
   _transport.sendDirect(trace, trace_probe.path(), trace_probe.pathBytes(), delay_millis);
-  return _transport.isQueuedPacket(trace);
+  return _transport.isQueuedPacket(trace) ? TRACE_QUEUED : TRACE_QUEUE_REJECTED;
 }
 
 void SensorBotService::observeRoute(const mesh::Packet* packet) {
-  if (trace_probe.isActive() && !trace_probe.retryStarted()) trace_routes.observe(packet);
+  if (trace_probe.isActive() && !trace_probe.retryStarted()) trace_routes.observe(packet, _transport.now());
+  trace_diagnostics.observe(packet, trace_probe, _transport.now());
 }
 
 void SensorBotService::onTxStarted(mesh::Packet* packet, uint32_t now_millis) {
-  if (packet == trace_failure_packet) {
+  if (trace_report.started(packet) && trace_report.failure()) {
     // Failure is committed once it goes on air; never send a contradictory result.
-    trace_failure_packet = NULL;
     trace_probe.cancel();
     trace_routes.clear();
   }
-  trace_probe.onTxStarted(packet, now_millis);
+  if (trace_probe.onTxStarted(packet, now_millis)) {
+    trace_diagnostics.starts++;
+    trace_diagnostics.probe_submissions++;
+  }
 }
 
 void SensorBotService::logTx(mesh::Packet* packet, int) {
   trace_probe.onTxComplete(packet);
+  trace_report.completed(packet, _transport.now());
+  trace_diagnostics.delivery = trace_report.outcome();
   public_replies.onFirstSent(packet, _transport.now());
 }
 
 void SensorBotService::logTxFail(mesh::Packet* packet, int) {
-  if (packet == trace_failure_packet) trace_failure_packet = NULL;
-  trace_probe.onTxFailed(packet, _transport.now());
+  if (trace_report.failed(packet, _transport.now(), _transport.failedStartDefinitelyNotSent())) {
+    trace_diagnostics.report_failures++;
+    if (trace_report.outcome() == TraceReportDelivery::UNCERTAIN) {
+      trace_probe.cancel();
+      trace_routes.clear();
+    }
+  }
+  trace_diagnostics.delivery = trace_report.outcome();
+  bool transmitted = trace_probe.currentTransmitted();
+  if (trace_probe.onTxFailed(packet, _transport.now())) {
+    if (!transmitted) trace_diagnostics.probe_submissions++;
+    trace_diagnostics.local_failures++;
+    trace_probe.retryAfterLocalFailure();
+  }
   public_replies.onFirstFailed(packet);
 }
 
 void SensorBotService::closeTrace() {
   auto pending = trace_probe.queuedPacket();
-  auto failure = trace_failure_packet;
-  trace_failure_packet = NULL;
+  auto failure = (mesh::Packet*)trace_report.queuedPacket();
+  trace_report.reset();
+  _settling = false;
   trace_probe.cancel();
   trace_routes.clear();
   if (pending) _transport.cancelQueuedPacket(pending);
@@ -111,6 +220,8 @@ void SensorBotService::closeTrace() {
 
 void SensorBotService::finishTrace(const RepeaterTraceProbe::Result& result) {
   closeTrace();
+  trace_diagnostics.selected = result;
+  trace_diagnostics.has_result = true;
   sendTraceResult(result);
 }
 
@@ -122,11 +233,9 @@ void SensorBotService::queueTraceFailure() {
     case RepeaterTraceProbe::RETRY_NOT_SENT: text = "Trace: retry not sent"; break;
     default: text = "Trace: no result after retry"; break;
   }
-  auto packet = createPublicPart(text, trace_channel);
-  if (!packet) return;
-  trace_failure_packet = packet;
-  _transport.sendFlood(packet, _transport.rng().nextInt(500, 2001));
-  if (!_transport.isQueuedPacket(packet)) trace_failure_packet = NULL;
+  trace_report.begin(text, _transport.nodeName(), trace_channel, _transport.now(),
+      _transport.rng().nextInt(500, 2001), TraceTimingPolicy::REPORT_TIMEOUT_MILLIS, true);
+  pumpTraceReport(_transport.now(), true);
 }
 
 mesh::Packet* SensorBotService::createPublicPart(const char* response, uint8_t channel_index) {
@@ -153,14 +262,14 @@ bool SensorBotService::sendPublicPart(const char* response, uint8_t channel_inde
 }
 
 void SensorBotService::sendPublicResponse(const char* response, uint8_t channel_index,
-                                          uint32_t extra_delay_millis) {
+                                          uint32_t extra_delay_millis, const char* separator) {
   size_t prefix_len = strlen(_transport.nodeName()) + 2;
   if (prefix_len >= PublicResponseQueue::MAX_PART_LENGTH) return;
   char first[PublicResponseQueue::MAX_PART_LENGTH + 1];
   char second[PublicResponseQueue::MAX_PART_LENGTH + 1];
   bool multipart = PublicResponseQueue::split(response,
                                                PublicResponseQueue::MAX_PART_LENGTH - prefix_len,
-                                               first, second);
+                                               first, second, separator);
   uint32_t first_delay = extra_delay_millis + _transport.rng().nextInt(500, 2001);
   auto first_packet = createPublicPart(first, channel_index);
   if (!first_packet) return;
@@ -181,9 +290,15 @@ void SensorBotService::onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uin
 void SensorBotService::onTraceRecv(mesh::Packet* packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
                                   const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len) {
   RepeaterTraceProbe::Result result;
-  if (trace_probe.receive(packet, tag, auth_code, flags, path_snrs, path_hashes, path_len,
-                           _transport.now(), result) == RepeaterTraceProbe::COMPLETE)
-    finishTrace(result);
+  auto received = trace_probe.receive(packet, tag, auth_code, flags, path_snrs, path_hashes, path_len,
+                                     _transport.now(), result);
+  if (received != RepeaterTraceProbe::IGNORED) {
+    if (!trace_diagnostics.progress[result.attempt].complete) {
+      trace_diagnostics.progress[result.attempt].complete = true;
+      trace_history.record(result.route, trace_channel, _trace_profile, _transport.now(), true, result.elapsed_millis);
+    }
+    if (received == RepeaterTraceProbe::COMPLETE) finishTrace(result);
+  }
 }
 
 void SensorBotService::sendTraceResult(const RepeaterTraceProbe::Result& result) {
@@ -197,7 +312,10 @@ void SensorBotService::sendTraceResult(const RepeaterTraceProbe::Result& result)
     snprintf(line, sizeof(line), "%u %s %+.1f dB", i + 1, label, (float)(int8_t)result.snrs[i] / 4.0f);
     appendResponseLine(response, sizeof(response), line);
   }
-  sendPublicResponse(response, trace_channel, TRACE_REPLY_DELAY_MILLIS);
+  trace_report.begin(response, _transport.nodeName(), trace_channel, _transport.now(),
+      TRACE_REPLY_DELAY_MILLIS + _transport.rng().nextInt(500, 2001),
+      TraceTimingPolicy::reportBudget(_transport.estimateAirtime(MAX_TRANS_UNIT)));
+  pumpTraceReport(_transport.now(), true);
 }
 
 int SensorBotService::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) {
@@ -210,7 +328,7 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
   bool busy_trace;
   int channel_index = public_bot.channelIndex(channel);
   if (channel_index < 0) return;
-  if (!public_bot.accept(type, data, len, _transport.now(), trace_probe.isActive(),
+  if (!public_bot.accept(type, data, len, _transport.now(), trace_probe.isActive() || trace_report.active(),
                          metric_mask, busy_trace, channel_index)) return;
 
   if (busy_trace) {
@@ -222,14 +340,26 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
   }
 
   if (metric_mask == PublicChannelSensorBot::REQUEST_TRACE) {
+    uint32_t profile = _transport.radioProfile();
+    if (profile != _profile) { trace_history.clear(); _profile = profile; }
     uint32_t tag, auth_code;
     traceIdentifiers(tag, auth_code);
     switch (trace_probe.start(packet, tag, auth_code, _transport.now())) {
       case RepeaterTraceProbe::STARTED: {
         busy_trace_reported = false;
         trace_channel = channel_index;
-        trace_routes.begin(packet);
-        if (!queueTrace()) trace_probe.queueFailed(_transport.now());
+        trace_diagnostics.begin();
+        trace_report.reset();
+        uint32_t now = _transport.now();
+        trace_routes.begin(packet, now);
+        _settling = _settle_enabled;
+        _settle_at = _next_queue_at = _probe_not_before = now;
+        _trace_profile = _profile;
+        _local_failures = 0;
+        uint32_t airtime = _transport.estimateAirtime(packet->getRawLength());
+        _settle_delay = TraceTimingPolicy::settleDelay(airtime, _transport.rng().nextInt(0, 251));
+        _quiet = TraceTimingPolicy::quietInterval(airtime);
+        if (!_settling) admitTrace(now);
         return;
       }
       case RepeaterTraceProbe::BUSY:
@@ -254,8 +384,7 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
   if (metric_mask == PublicChannelSensorBot::REQUEST_PING) {
     StrHelper::strncpy(response, "Pong", sizeof(response));
   } else if (metric_mask == PublicChannelSensorBot::REQUEST_PATH) {
-    // Leave room for the node name and group-message framing.
-    repeater_names.formatPath(packet, response, 120);
+    repeater_names.formatPath(packet, response, sizeof(response));
   } else if (metric_mask & PublicChannelSensorBot::METRIC_VOLTAGE && _telemetry.voltage > 0.0f) {
     snprintf(line, sizeof(line), "Voltage: %.2f V", _telemetry.voltage);
     appendResponseLine(response, sizeof(response), line);
@@ -286,6 +415,7 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
   if (response[0] == 0)
     StrHelper::strncpy(response, "Sensor data is not ready", sizeof(response));
 
-  sendPublicResponse(response, channel_index);
+  sendPublicResponse(response, channel_index, 0,
+                     metric_mask == PublicChannelSensorBot::REQUEST_PATH ? " > " : NULL);
 }
 

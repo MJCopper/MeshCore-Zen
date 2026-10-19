@@ -14,6 +14,7 @@ public:
   std::vector<std::vector<uint8_t>> sent;
   bool complete = false;
   bool fail = false;
+  unsigned start_calls = 0;
   uint32_t airtime = 100;
   int recvRaw(uint8_t* bytes, int size) override {
     int count = std::min((int)incoming.size(), size);
@@ -24,6 +25,7 @@ public:
   uint32_t getEstAirtimeFor(int) override { return airtime; }
   float packetScore(float, int) override { return 1; }
   bool startSendRaw(const uint8_t* bytes, int length) override {
+    start_calls++;
     if (fail) return false;
     sent.emplace_back(bytes, bytes + length);
     complete = false;
@@ -45,6 +47,9 @@ class TestRTC : public mesh::RTCClock {
 };
 class TestRandom : public mesh::RNG {
   uint8_t _value = 0;
+public:
+  void seed(uint8_t value) { _value = value; }
+private:
   void random(uint8_t* dest, size_t length) override {
     for (size_t i = 0; i < length; i++) dest[i] = ++_value;
   }
@@ -54,6 +59,10 @@ class TestRandom : public mesh::RNG {
 class TestMesh : public mesh::Mesh, public SensorBotTransport {
 public:
   SensorBotService* bot = nullptr;
+  void loop() { if (bot) bot->beforeRadioLoop(); Mesh::loop(); }
+  uint32_t profile = 0;
+  uint8_t reject_direct = 0, reject_group = 0;
+  bool definite_start_failure = true;
   TestMesh(TestRadio& radio, TestClock& clock, TestRandom& rng, TestRTC& rtc,
             StaticPoolPacketManager& pool, SimpleMeshTables& tables)
       : Mesh(radio, clock, rng, rtc, pool, tables) { }
@@ -62,6 +71,8 @@ public:
   const char* nodeName() override { return "BME680 Sensor"; }
   mesh::RNG& rng() override { return *getRNG(); }
   uint32_t estimateAirtime(uint8_t length) override { return _radio->getEstAirtimeFor(length); }
+  uint32_t radioProfile() override { return profile; }
+  bool failedStartDefinitelyNotSent() const override { return definite_start_failure; }
   mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) override {
     return Mesh::createTrace(tag, auth, flags);
   }
@@ -69,9 +80,13 @@ public:
                                    const uint8_t* data, size_t length) override {
     return Mesh::createGroupDatagram(type, channel, data, length);
   }
-  void sendFlood(mesh::Packet* packet, uint32_t delay) override { Mesh::sendFlood(packet, delay); }
+  void sendFlood(mesh::Packet* packet, uint32_t delay) override {
+    if (reject_group) { reject_group--; releasePacket(packet); }
+    else Mesh::sendFlood(packet, delay);
+  }
   void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length, uint32_t delay) override {
-    Mesh::sendDirect(packet, path, length, delay);
+    if (reject_direct) { reject_direct--; releasePacket(packet); }
+    else Mesh::sendDirect(packet, path, length, delay);
   }
   void releasePacket(mesh::Packet* packet) override { Mesh::releasePacket(packet); }
   bool isQueuedPacket(const mesh::Packet* packet) const override { return Mesh::isQueuedPacket(packet); }

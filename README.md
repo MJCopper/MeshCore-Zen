@@ -38,8 +38,9 @@ wiring table.
   longer replies use at most two numbered messages, scheduled three seconds apart.
 - Ten-sample air-quality warm-up with descriptive quality ratings.
 - RAM-only air-quality calibration and duplicate-command tracking.
-- Airtime-aware trace timeouts, one silent retry with a passively observed
-  alternate path when available, and bounded late-result recovery.
+- Airtime-aware trace settling and timeouts, one silent retry with ranked passive
+  alternatives, RAM-only recent route history, late-result recovery and retained
+  bounded report delivery.
 - Standard MeshCore remote telemetry and administrator management.
 - Fixed leaf-node operation: received mesh packets are never repeated.
 - Up to four accepted bot commands per rolling minute, with no scheduled sensor

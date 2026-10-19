@@ -55,6 +55,76 @@ TEST(SensorStorage, RejectsNonRepeatersAndRecoversFromCorruptCache) {
   EXPECT_STREQ("21", label);
 }
 
+TEST(SensorStorage, DisplayNamesRemoveWholeRepeaterWordsBeforeTruncation) {
+  RepeaterNameCache cache;
+  const struct { const char* name; const char* expected; } cases[] = {
+    { "Hillvue Repeater", "Hillvue" },
+    { "Tamworth rptr", "Tamworth" },
+    { "RPTR North Ridge", "North Ridge" },
+    { "North RePeAtEr Hill", "North Hill" },
+    { "  rptr   Hillvue  repeater  ", "Hillvue" },
+    { "Repeater RPTR", "12" },
+    { "RepeaterHill", "RepeaterHill" },
+    { "My_rptr", "My_rptr" },
+    { "rptr2 Hill", "rptr2 Hill" },
+    { "Hillvue-Repeater", "Hillvue-" },
+    { "Repeater Long Location Name", "Long Locatio" },
+    { "Repeater \xF0\x9F\xA6\x89 Hill", "\xF0\x9F\xA6\x89 Hill" },
+    { "Repeater\xC3\xA9", "Repeater\xC3\xA9" },
+  };
+  uint32_t timestamp = 0;
+  for (const auto& entry : cases) {
+    SCOPED_TRACE(entry.name);
+    advert(cache, identity(0x12), entry.name, ++timestamp);
+    char label[13];
+    cache.formatLabel(identity(0x12).pub_key, 1, label, sizeof(label));
+    EXPECT_STREQ(entry.expected, label);
+  }
+}
+
+TEST(SensorStorage, DisplayCleanupPreservesUtf8AndTinyBufferBoundaries) {
+  RepeaterNameCache cache;
+  auto id = identity(0x12);
+  advert(cache, id, "Repeater ABCDEFGHIJK\xF0\x9F\xA6\x89", 1);
+  char label[13];
+  cache.formatLabel(id.pub_key, 1, label, sizeof(label));
+  EXPECT_STREQ("ABCDEFGHIJK", label);
+  char tiny[2] = { 'x', 'x' };
+  cache.formatLabel(id.pub_key, 1, tiny, 1);
+  EXPECT_EQ(0, tiny[0]);
+  EXPECT_EQ('x', tiny[1]);
+  cache.formatLabel(id.pub_key, 1, tiny, 0);
+  cache.formatLabel(id.pub_key, 1, NULL, 0);
+  advert(cache, id, "Repeater", 2);
+  char hash[7];
+  cache.formatLabel(id.pub_key, 3, hash, sizeof(hash));
+  EXPECT_STREQ("120000", hash);
+}
+
+TEST(SensorStorage, FormattingNeverChangesStoredAdvertNamesOrWritesFlash) {
+  g_mock_millis = 0;
+  MemoryFileSystem fs;
+  RepeaterNameCache cache;
+  cache.begin(&fs);
+  advert(cache, identity(0x12), "Hillvue Repeater", 1);
+  cache.loop(30000);
+  ASSERT_TRUE(fs.exists("/repeaters"));
+  auto original = *fs.files.at("/repeaters");
+  size_t writes = fs.writes;
+  char label[13];
+  cache.formatLabel(identity(0x12).pub_key, 1, label, sizeof(label));
+  EXPECT_STREQ("Hillvue", label);
+  EXPECT_EQ(original, *fs.files.at("/repeaters"));
+  EXPECT_NE(std::string::npos, std::string(original.begin(), original.end()).find("Hillvue Repeater"));
+  advert(cache, identity(0x12), "Hillvue Repeater", 2);
+  cache.loop(700000);
+  EXPECT_EQ(writes, fs.writes);
+  RepeaterNameCache rebooted;
+  rebooted.begin(&fs);
+  rebooted.formatLabel(identity(0x12).pub_key, 1, label, sizeof(label));
+  EXPECT_STREQ("Hillvue", label);
+}
+
 TEST(SensorStorage, GuestPressureDoesNotEvictAdministrators) {
   ClientACL acl;
   for (int i = 1; i <= MAX_CLIENTS; i++)
@@ -102,6 +172,26 @@ TEST(SensorStorage, CacheCapacityAndFailedReplacementKeepPreviousFile) {
   fs.fail_rename = false;
   cache.loop(1330000);
   EXPECT_NE(previous, *fs.files.at("/repeaters"));
+}
+
+TEST(SensorStorage, PathFormatterBoundsLongRoutesAndPreservesWholeShortLabels) {
+  RepeaterNameCache cache;
+  mesh::Packet packet;
+  packet.header = ROUTE_TYPE_FLOOD;
+  packet.setPathHashSizeAndCount(1, 48);
+  memset(packet.path, 0x12, 48);
+  advert(cache, identity(0x12), "North Ridge Long Name", 1);
+  char response[321];
+  cache.formatPath(&packet, response, sizeof(response));
+  EXPECT_EQ(0u, std::string(response).find("Path (48 repeaters): North Ridge "));
+  EXPECT_NE(std::string::npos, std::string(response).find("\n...truncated"));
+  EXPECT_LT(strlen(response), sizeof(response));
+  char tiny[5];
+  cache.formatPath(&packet, tiny, sizeof(tiny));
+  EXPECT_STREQ("Path", tiny);
+  packet.setPathHashSizeAndCount(3, 63);
+  cache.formatPath(&packet, response, sizeof(response));
+  EXPECT_STREQ("Path unavailable (invalid route)", response);
 }
 
 TEST(SensorStorage, RealSignaturesAndSharedSecretsAreCompatible) {

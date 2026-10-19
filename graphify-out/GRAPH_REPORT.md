@@ -1,12 +1,12 @@
 # Graph Report - MeshCore  (2026-10-19)
 
 ## Corpus Check
-- 800 files · ~404,830 words
+- 804 files · ~411,270 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6717 nodes · 12012 edges · 388 communities (346 shown, 42 thin omitted)
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 1326 edges (avg confidence: 0.8)
+- 6907 nodes · 12448 edges · 376 communities (338 shown, 38 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 1495 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -287,31 +287,21 @@
 - TechoBoard
 - LPPWriter
 - CacheHeader
-- ThinknodeM2Board
 - target.cpp
+- IkokaNrf52Board.h
 - RepeaterTraceProbe.h
-- target.cpp
-- Favourites Dial
 - GAT562MeshTrackerProBoard
 - KissModem::KissModem
-- start
-- takeFallback
-- captureLateFirst
-- target.cpp
 - HeltecE290Board
-- HeltecT190Board
 - target.h
 - Development and Testing
 - MeshCore BME680 Sensor Firmware
-- FreqRange
 - XiaoC6Board.cpp
 - KissModem.h
 - Security Policy
 - ThinkNodeM9Board
-- ThinkNodeM9Board
 - 2. Initial Setup
 - SetHardware Extensions (0x06)
-- CacheHeader
 - Building the BME680 Sensor
 - Screen Lock
 - ThinkNodeM6Board.h
@@ -320,7 +310,6 @@
 - Print
 - FakeBoard
 - target.h
-- target.cpp
 - target.cpp
 - docs.md
 - QR Codes
@@ -339,7 +328,7 @@
 - number_allocations.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `Packet` - 236 edges
+1. `Packet` - 237 edges
 2. `MyMesh` - 109 edges
 3. `MyMesh` - 109 edges
 4. `MyMesh` - 106 edges
@@ -353,35 +342,35 @@
 ## Surprising Connections (you probably didn't know these)
 - `TEST()` --calls--> `_samples`  [INFERRED]
   test/test_sensor_policy/test_sensor_policy.cpp → examples/bme680_sensor/BME680AirQuality.h
-- `TEST()` --calls--> `_ready`  [INFERRED]
-  test/test_sensor_policy/test_sensor_policy.cpp → examples/bme680_sensor/Bme680Telemetry.h
-- `TEST()` --calls--> `_channel`  [INFERRED]
-  test/test_sensor_policy/test_sensor_policy.cpp → examples/bme680_sensor/Bme680Telemetry.h
 - `open` --calls--> `strncpy`  [INFERRED]
   arch/stm32/Adafruit_LittleFS_stm32/src/Adafruit_LittleFS_File.h → src/helpers/TxtDataHelpers.h
 - `_getLfsUsedBlockCount()` --calls--> `lfs_traverse()`  [INFERRED]
   examples/companion_radio/DataStore.cpp → arch/stm32/Adafruit_LittleFS_stm32/src/littlefs/lfs.c
+- `TEST()` --calls--> `update`  [INFERRED]
+  test/test_sensor_policy/test_sensor_policy.cpp → examples/bme680_sensor/BME680AirQuality.h
+- `TEST()` --calls--> `_ready`  [INFERRED]
+  test/test_sensor_policy/test_sensor_policy.cpp → examples/bme680_sensor/Bme680Telemetry.h
 
 ## Import Cycles
 - None detected.
 
-## Communities (388 total, 42 thin omitted)
+## Communities (376 total, 38 thin omitted)
 
 ### Community 0 - "MyMesh"
-Cohesion: 0.04
-Nodes (80): AckTableEntry, NodePrefs, Radio, RNG, Frame, NodePrefs, MyMesh, _active_ble_pin (+72 more)
+Cohesion: 0.03
+Nodes (99): AckTableEntry, AdvertPath, name, path, path_len, pubkey_prefix, recv_timestamp, NodePrefs (+91 more)
 
 ### Community 1 - "NodePrefs"
 Cohesion: 0.05
 Nodes (39): CompanionPrefs, GPSPrefs, RadioPrefs, RepeatPrefs, NodePrefs, advert_loc_policy, airtime_factor, autoadd_config (+31 more)
 
 ### Community 2 - "BaseChatMesh"
-Cohesion: 0.12
-Nodes (16): Entry, Identity, FILESYSTEM, RepeaterNameCache, _count, _dirty, _dirty_at, _entries (+8 more)
+Cohesion: 0.14
+Nodes (14): AmbiguousHashesUseHexAndLabelsPreserveUtf8, CacheCapacityAndFailedReplacementKeepPreviousFile, DisplayCleanupPreservesUtf8AndTinyBufferBoundaries, DisplayNamesRemoveWholeRepeaterWordsBeforeTruncation, FormattingNeverChangesStoredAdvertNamesOrWritesFlash, GuestPressureDoesNotEvictAdministrators, PathFormatterBoundsLongRoutesAndPreservesWholeShortLabels, RealSignaturesAndSharedSecretsAreCompatible (+6 more)
 
 ### Community 3 - "Packet"
-Cohesion: 0.07
-Nodes (58): begin, onContactPathRecv, BaseChatMesh, addChannel, allocateContactSlot, bootstrapRTCfromContacts, calcDirectTimeoutMillisFor, calcFloodTimeoutMillisFor (+50 more)
+Cohesion: 0.04
+Nodes (102): begin, handleCmdFrame, onContactPathRecv, onContactRequest, onContactResponse, processAck, updateContactFromFrame, save_filter() (+94 more)
 
 ### Community 4 - "UITask"
 Cohesion: 0.09
@@ -392,59 +381,59 @@ Cohesion: 0.05
 Nodes (138): Adafruit_LittleFS, begin, end, exists, format, _lfs, _lfs_cfg, mkdir (+130 more)
 
 ### Community 6 - "MyMesh"
-Cohesion: 0.03
-Nodes (90): applyGpsPrefs(), File, FILESYSTEM, Identity, LocalIdentity, FILESYSTEM, Identity, NodePrefs (+82 more)
+Cohesion: 0.04
+Nodes (60): Identity, FILESYSTEM, NodePrefs, isShare(), MyMesh, acl, allowPacketForward, anon_limiter (+52 more)
 
 ### Community 7 - "SensorMesh"
 Cohesion: 0.03
-Nodes (86): AlertPriority, saveFilter, File, FILESYSTEM, Identity, LocalIdentity, Trigger, getDataSize() (+78 more)
+Nodes (78): AlertPriority, onContactPathUpdated, applyTempRadioParams, applyGpsPrefs(), File, FILESYSTEM, Identity, LocalIdentity (+70 more)
 
 ### Community 8 - "TrailScreen"
-Cohesion: 0.06
-Nodes (33): DelayedFirstLoopRemainsUsefulAfterTheRetryHasStarted, Delivery, OneDroppedProbeIsRecoveredByOneSilentRetry, RetryUsesAlternateFloodPathWhenTheOriginalReverseLinkFails, SlowAirtimeUsesTheCalculatedBudgetInsteadOfRetryingTooSoon, string, testing::Test, vector (+25 more)
+Cohesion: 0.04
+Nodes (53): BusyChannelDefersInitialProbeWithoutConsumingItsRttBudget, CorrelatedLossAcrossBothAttemptsStillProducesOneBoundedFailure, DelayedFirstLoopRemainsUsefulAfterTheRetryHasStarted, Delivery, deque, HalfDuplexTransmittingNodeCannotReceiveAnOverlappingFrame, HashWidthControlsWhetherCompetingRepeatersForwardTheProbe, HiddenTerminalsCollideAndTheCaptureModelSelectsTheStrongerSignal (+45 more)
 
 ### Community 9 - "MyMesh"
 Cohesion: 0.03
-Nodes (83): applyGpsPrefs(), File, FILESYSTEM, Identity, LocalIdentity, FILESYSTEM, Identity, NodePrefs (+75 more)
+Nodes (76): formatStatsReply, applyGpsPrefs(), FILESYSTEM, Identity, LocalIdentity, FILESYSTEM, Identity, NodePrefs (+68 more)
 
 ### Community 10 - "MessagesScreen"
-Cohesion: 0.09
-Nodes (29): clear, displayOff, displayOn, drawCircle, drawCircleQuads, drawHorizontalLine, drawLine, drawProgressBar (+21 more)
+Cohesion: 0.67
+Nodes (3): OLEDDISPLAY_TEXT_ALIGNMENT, drawLogBuffer, setTextAlignment
 
 ### Community 11 - "UITask.cpp"
-Cohesion: 0.07
-Nodes (24): RepeaterStats, batt_milli_volts, curr_tx_queue_len, err_events, last_rssi, last_snr, n_direct_dups, n_flood_dups (+16 more)
+Cohesion: 0.11
+Nodes (19): RepeaterStats, batt_milli_volts, curr_tx_queue_len, err_events, last_rssi, last_snr, n_direct_dups, n_flood_dups (+11 more)
 
 ### Community 12 - "MicroNMEALocationProvider.h"
 Cohesion: 0.08
-Nodes (13): MicroNMEALocationProvider, _claims, _clock, _gps_serial, _last_time_sync, next_check, nmea, _nmeaBuffer (+5 more)
+Nodes (14): MicroNMEA, MicroNMEALocationProvider, _claims, _clock, _gps_serial, _last_time_sync, next_check, nmea (+6 more)
 
 ### Community 13 - "NRF52Board"
-Cohesion: 0.19
+Cohesion: 0.16
 Nodes (16): LocalIdentity, SensorManager, radio_new_identity(), ThinkNodeM1SensorManager, begin, getNumSettings, getSettingName, getSettingValue (+8 more)
 
 ### Community 14 - "Dispatcher"
-Cohesion: 0.08
-Nodes (39): Dispatcher, begin, cad_busy_start, calcRxDelay, cancelQueuedPacket, checkRecv, checkSend, duty_cycle_window_ms (+31 more)
+Cohesion: 0.07
+Nodes (37): Dispatcher, begin, cad_busy_start, calcRxDelay, cancelQueuedPacket, checkRecv, checkSend, duty_cycle_window_ms (+29 more)
 
 ### Community 15 - "DisplayDriver"
 Cohesion: 0.09
 Nodes (17): DisplayDriver, clear, drawRect, drawXbm, endFrame, fillRect, getTextWidth, _h (+9 more)
 
 ### Community 16 - "WaypointsView"
-Cohesion: 0.10
-Nodes (18): Bme680SensorManager, _raw, snapshot, Bme680Telemetry, air_quality, _air_ready, altitude, _altitude_offset (+10 more)
+Cohesion: 0.07
+Nodes (32): AdminPasswordAndKnownBlankPasswordRetainAdminAccess, BeforeFirstSampleOnlyValidCachedVoltageIsReturned, BlankAndWrongPasswordGetReadOnlyTelemetryRole, CachedEncodingNeverAdvancesCalibration, DiscoversChannelAndAppliesAltitudeOffset, DuplicateTrackingDistinguishesChannelsButSharesRateLimit, Bme680Telemetry, air_quality (+24 more)
 
 ### Community 17 - "ArduinoHelpers.h"
-Cohesion: 0.04
-Nodes (24): ArduinoMillis, LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity (+16 more)
+Cohesion: 0.02
+Nodes (52): ActiveSensor, EnvironmentSensorManager, _active_sensor_count, _active_sensors, getNumSettings, getSettingName, getSettingValue, gps_active (+44 more)
 
 ### Community 18 - "screenshot.py"
-Cohesion: 0.11
-Nodes (15): string, testing::Test, vector, SensorIntegration, bot, channel, clock, fs (+7 more)
+Cohesion: 0.10
+Nodes (17): string, testing::Test, vector, SensorIntegration, bot, channel, clock, fs (+9 more)
 
 ### Community 19 - "AdminScreen"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (21): BusyTraceDoesNotUseCommandRateSlots, PublicChannelSensorBot, accept, _channel, channelIndex, equalsIgnoreCase, findChannel, MAX_REPLIES_PER_WINDOW (+13 more)
 
 ### Community 20 - "NodePrefs"
@@ -456,16 +445,16 @@ Cohesion: 0.22
 Nodes (11): OLEDDISPLAY_COLOR, clearPixel, drawFastImage, drawIco16x16, drawInternal, drawStringInternal, drawStringMaxWidth, getColor (+3 more)
 
 ### Community 22 - "STM32Board"
-Cohesion: 0.05
-Nodes (19): BME280I2C, MainBoard, STM32Board, startup_reason, RAK3x72Board, LocalIdentity, radio_new_identity(), TinyRelayBoard (+11 more)
+Cohesion: 0.04
+Nodes (21): BME280I2C, MainBoard, STM32Board, startup_reason, LocalIdentity, radio_new_identity(), RAK3x72Board, LocalIdentity (+13 more)
 
 ### Community 23 - "RadioLibWrapper"
 Cohesion: 0.06
 Nodes (31): Radio, RadioLibWrapper, _board, _cad_enabled, doResetAGC, _floor_sample_sum, getCurrentRSSI, getEstAirtimeFor (+23 more)
 
 ### Community 24 - "CustomSX1262Wrapper.h"
-Cohesion: 0.48
-Nodes (5): _ftoa(), StrHelper, fromHex, ftoa, ftoa3
+Cohesion: 0.36
+Nodes (8): handleGetCmd, _ftoa(), StrHelper, fromHex, ftoa, ftoa3, isBlank, strzcpy
 
 ### Community 25 - "LGFXDisplay"
 Cohesion: 0.07
@@ -476,20 +465,20 @@ Cohesion: 0.09
 Nodes (47): BlobRec, data, key, len, timestamp, _countLfsBlock(), File, FILESYSTEM (+39 more)
 
 ### Community 27 - "T1000SensorManager"
-Cohesion: 0.06
-Nodes (64): SPISettings, ColorVal, GxEPDDisplay, begin, clear, _curr_color, display_crc, drawRect (+56 more)
+Cohesion: 0.10
+Nodes (42): SPISettings, ColorVal, SPIClass, NV3001BDisplay, begin, clear, color, cursor_x (+34 more)
 
 ### Community 28 - "SerialBLEInterface"
 Cohesion: 0.06
-Nodes (46): BLECharacteristicCallbacks, BLESecurityCallbacks, BLEServerCallbacks, BLEService, esp_ble_auth_cmpl_t, esp_ble_gatts_cb_param_t, QueueHandle_t, BLECharacteristic (+38 more)
+Nodes (45): BLECharacteristicCallbacks, BLESecurityCallbacks, BLEServerCallbacks, BLEService, esp_ble_auth_cmpl_t, esp_ble_gatts_cb_param_t, QueueHandle_t, BLECharacteristic (+37 more)
 
 ### Community 29 - "SensorManager"
 Cohesion: 0.19
 Nodes (9): getAltitude, getLatitude, getLongitude, isValid, satellitesCount, LPPReader, _buf, _len (+1 more)
 
 ### Community 30 - "PacketManager"
-Cohesion: 0.18
-Nodes (3): HeltecV2Board, LocalIdentity, radio_new_identity()
+Cohesion: 0.12
+Nodes (6): LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity()
 
 ### Community 31 - "Companion Protocol"
 Cohesion: 0.18
@@ -497,7 +486,7 @@ Nodes (11): 1. App Start, 2. Device Query, 3. Get Channel Info, 4. Set Channel, 
 
 ### Community 32 - "ClockToolsScreen"
 Cohesion: 0.11
-Nodes (23): findCut(), PublicResponseQueue, MAX_PART_LENGTH, MAX_PENDING, onFirstFailed, onFirstSent, _pending, schedule (+15 more)
+Nodes (26): findCut(), PublicResponseQueue, MAX_PART_LENGTH, MAX_PENDING, onFirstFailed, onFirstSent, _pending, schedule (+18 more)
 
 ### Community 33 - "LocationProvider"
 Cohesion: 0.10
@@ -508,8 +497,8 @@ Cohesion: 0.22
 Nodes (3): XiaoNrf52Board, begin, getBattMilliVolts
 
 ### Community 35 - "UIScreen"
-Cohesion: 0.67
-Nodes (3): File, restoreFrom(), saveTo()
+Cohesion: 0.06
+Nodes (15): _atoi(), FILESYSTEM, halt(), MyMesh, command, curr_recipient, expected_ack_crc, _fs (+7 more)
 
 ### Community 36 - "KissModem"
 Cohesion: 0.05
@@ -517,15 +506,15 @@ Nodes (41): LocalIdentity, MainBoard, Radio, RNG, SensorManager, KissModem, _con
 
 ### Community 37 - "ESP32Board"
 Cohesion: 0.05
-Nodes (14): portMUX_TYPE, ESP32Board, inhibit_sleep, sleepMux, startup_reason, MainBoard, LilygoT3S3SX1276Board, LilyGoTLoraBoard (+6 more)
+Nodes (16): portMUX_TYPE, ESP32Board, inhibit_sleep, sleepMux, startup_reason, MainBoard, LilygoT3S3SX1276Board, LilyGoTLoraBoard (+8 more)
 
 ### Community 38 - "NRF52BoardDCDC"
-Cohesion: 0.18
-Nodes (3): CustomSTM32WLxWrapper, sx126xResetAGC(), SX126x
+Cohesion: 0.17
+Nodes (3): CustomLLCC68Wrapper, sx126xResetAGC(), SX126x
 
 ### Community 39 - "EnvironmentSensorManager.cpp"
-Cohesion: 0.08
-Nodes (31): onCommandDataRecv, onContactPathUpdated, onContactRequest, onContactResponse, onMessageRecv, onSignedMessageRecv, processAck, queueMessage (+23 more)
+Cohesion: 0.06
+Nodes (16): Bme680SensorMesh, _battery, _bot, _cached_reply, _critical_batt, _low_batt, _trace_radio_at, _trace_radio_generation (+8 more)
 
 ### Community 40 - "UITask"
 Cohesion: 0.08
@@ -552,48 +541,48 @@ Cohesion: 0.18
 Nodes (12): LoRaFEMControl, HeltecV4R8Board, adc_mult, begin, enterDeepSleep, getBattMilliVolts, getManufacturerName, loRaFEMControl (+4 more)
 
 ### Community 46 - "GxEPDDisplay"
-Cohesion: 0.05
-Nodes (12): NRF52BoardDCDC, begin, GAT56230SMeshKitBoard, begin, GAT562MeshTrackerProBoard, begin, MeshSolarBoard, begin (+4 more)
+Cohesion: 0.04
+Nodes (16): NRF52BoardDCDC, begin, GAT562EVBProBoard, begin, GAT56MeshWatch13Board, begin, TechoBoard, begin (+8 more)
 
 ### Community 47 - "ConfigSerializer"
 Cohesion: 0.15
 Nodes (14): Context, ConfigSerializer, _context, ConfigSerializer::Context::readNext(), def, _depth, _first, loadSerial (+6 more)
 
 ### Community 48 - "GxEPD2_BW.h"
-Cohesion: 0.12
-Nodes (35): airQualityLabel(), appendResponseLine(), FILESYSTEM, Identity, Result, formatAirQuality(), SensorBotService, begin (+27 more)
+Cohesion: 0.07
+Nodes (51): airQualityLabel(), appendResponseLine(), FILESYSTEM, Identity, Result, formatAirQuality(), SensorBotService, admitTrace (+43 more)
 
 ### Community 49 - "MyMeshBot.h"
 Cohesion: 0.16
 Nodes (11): LoRaFEMType, LoRaFEMControl, fem_type, init, lna_can_control, lna_enabled, setLNAEnable, setRxModeEnable (+3 more)
 
 ### Community 50 - ".render"
-Cohesion: 0.18
+Cohesion: 0.13
 Nodes (15): LocalIdentity, SensorManager, NanoG2UltraSensorManager, begin, getNumSettings, getSettingName, getSettingValue, gps_active (+7 more)
 
 ### Community 51 - "IdentityStore"
-Cohesion: 0.26
-Nodes (12): halt(), loop(), setup(), halt(), loop(), setup(), ethernet_check_client(), ethernet_handle_command() (+4 more)
+Cohesion: 0.05
+Nodes (31): AllDirectionsAndProgressGeometryForEverySupportedSize, AllocationRetriesDoNotLoseTextOrMoveTheDeadline, BoundedAirtimeSettlingBackoffAndReportAllowance, ExactContextExpiryLateSuccessAndCapacityAreBounded, Outcome, State, TraceReportDelivery, _began (+23 more)
 
 ### Community 52 - "File"
-Cohesion: 0.07
-Nodes (31): FontTableLookupFunction, OLEDDISPLAY_GEOMETRY, FontTableLookupFunction, OLEDDISPLAY_COLOR, OLEDDISPLAY_GEOMETRY, OLEDDISPLAY_TEXT_ALIGNMENT, OLEDDisplay, allocateBuffer (+23 more)
+Cohesion: 0.06
+Nodes (60): FontTableLookupFunction, OLEDDISPLAY_GEOMETRY, FontTableLookupFunction, OLEDDISPLAY_COLOR, OLEDDISPLAY_GEOMETRY, OLEDDISPLAY_TEXT_ALIGNMENT, OLEDDisplay, allocateBuffer (+52 more)
 
 ### Community 53 - "SettingsScreen"
-Cohesion: 0.05
-Nodes (22): _atoi(), halt(), MyMesh, command, curr_recipient, expected_ack_crc, _fs, hex_buf (+14 more)
+Cohesion: 0.14
+Nodes (23): ColorVal, ST7789Display, begin, clear, _color, display, drawRect, drawXbm (+15 more)
 
 ### Community 54 - "RegionMap"
 Cohesion: 0.10
-Nodes (32): onDefaultRegionChanged, onDefaultRegionChanged, RegionEntry, flags, id, name, parent, RegionMap (+24 more)
+Nodes (31): onDefaultRegionChanged, onDefaultRegionChanged, RegionEntry, flags, id, name, parent, RegionMap (+23 more)
 
 ### Community 55 - "SerialBLEInterface"
 Cohesion: 0.09
 Nodes (36): ble_evt_t, BLEDfu, BLEUart, Frame, SerialBLEInterface, begin, bledfu, bleuart (+28 more)
 
 ### Community 56 - "KeyboardWidget"
-Cohesion: 0.07
-Nodes (11): Bme680SensorMesh, _battery, _bot, _cached_reply, _critical_batt, _low_batt, ClientSaveFilter, FILESYSTEM (+3 more)
+Cohesion: 0.14
+Nodes (15): WiFiClient, WiFiServer, CH390EthernetInterface, available, begin, client, _isConnected, loop (+7 more)
 
 ### Community 57 - "keyIsNext"
 Cohesion: 0.12
@@ -644,20 +633,20 @@ Cohesion: 0.09
 Nodes (23): EventCallback, Button, _activeState, _analogThreshold, begin, _clickCount, _currentState, handleStateChange (+15 more)
 
 ### Community 70 - "Stream"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (14): ed25519_derive_pub(), Identity, printTo, pub_key, readFrom, writeTo, LocalIdentity, printTo (+6 more)
 
 ### Community 71 - "OLEDDisplay"
-Cohesion: 0.11
-Nodes (9): LLCC68, CustomLLCC68, _activityAt, _headerSeen, _maxPayloadMillis, _preambleMillis, Module, CustomLLCC68Wrapper (+1 more)
+Cohesion: 0.12
+Nodes (16): Entry, Identity, FILESYSTEM, RepeaterNameCache, _count, _dirty, _dirty_at, _entries (+8 more)
 
 ### Community 72 - "OLEDDisplay.cpp"
 Cohesion: 0.13
 Nodes (17): NodePrefs, MainBoard, NodePrefs, UITask, _auto_off, begin, _board, _display (+9 more)
 
 ### Community 73 - "BlockingStream"
-Cohesion: 0.14
-Nodes (10): MaxPacketWorstCaseEscapingFitsQueuedFrame, PacketAndMetaAreQueuedTogetherUnderBackpressure, PingResponseKeepsFramingWithPartialBulkWrites, PingResponseKeepsStandardKissFraming, PingResponseShouldNotStallLoopUnderTxBackpressure, QueuedEncoderEscapesKissSpecialBytes, QueueFullReportsBusyWithoutDroppingQueuedFrames, RadioTxCompletionAdvancesWhileHostOutputIsBackedUp (+2 more)
+Cohesion: 0.09
+Nodes (17): MaxPacketWorstCaseEscapingFitsQueuedFrame, PacketAndMetaAreQueuedTogetherUnderBackpressure, PingResponseKeepsFramingWithPartialBulkWrites, PingResponseKeepsStandardKissFraming, PingResponseShouldNotStallLoopUnderTxBackpressure, QueuedEncoderEscapesKissSpecialBytes, QueueFullReportsBusyWithoutDroppingQueuedFrames, RadioTxCompletionAdvancesWhileHostOutputIsBackedUp (+9 more)
 
 ### Community 74 - "ed25519_add_scalar"
 Cohesion: 0.13
@@ -672,16 +661,16 @@ Cohesion: 0.09
 Nodes (19): esp_now_send_status_t, ESPNOWRadio, getEstAirtimeFor, getLastRSSI, getLastSNR, getRngSeed, init, intID (+11 more)
 
 ### Community 77 - "RefCountedDigitalPin"
-Cohesion: 0.18
-Nodes (11): ColorVal, UIColor, corp_blue, popup_bkg, popup_txt, primary_txt, secondary_txt, title_bkg (+3 more)
+Cohesion: 0.12
+Nodes (14): Outcome, Result, TraceDiagnostics, allocations_failed, delivery, has_result, local_failures, probe_submissions (+6 more)
 
 ### Community 79 - "TransportKeyStore"
-Cohesion: 0.18
-Nodes (16): sendFloodScoped, RegionMap::RegionMap(), TransportKey, calcTransportCode, isNull, key, TransportKeyStore, cache_ids (+8 more)
+Cohesion: 0.23
+Nodes (14): TransportKey, calcTransportCode, isNull, key, TransportKeyStore, cache_ids, cache_keys, clear (+6 more)
 
 ### Community 80 - "MicroNMEALocationProvider"
 Cohesion: 0.07
-Nodes (31): Attempt, Failure, ReceiveResult, Result, Failure, Result, State, RepeaterTraceProbe (+23 more)
+Nodes (32): Attempt, Failure, ReceiveResult, Result, Failure, Result, State, RepeaterTraceProbe (+24 more)
 
 ### Community 81 - "StaticPoolPacketManager.cpp"
 Cohesion: 0.10
@@ -692,8 +681,8 @@ Cohesion: 0.10
 Nodes (28): BaseDisplay, ColorVal, E213Display, begin, clear, _color, detectEInk, display (+20 more)
 
 ### Community 83 - "E290Display"
-Cohesion: 0.15
-Nodes (3): MeshtinyBoard, begin, btn_prev_state
+Cohesion: 0.08
+Nodes (38): createSelfAdvert, handleCommand, loop, onPeerDataRecv, sendFloodReply, sendFloodScoped, sendSelfAdvertisement, updateAdvertTimer (+30 more)
 
 ### Community 84 - "KissModem.cpp"
 Cohesion: 0.23
@@ -708,12 +697,12 @@ Cohesion: 0.14
 Nodes (29): ColorVal, TwoWire, displayInit(), sendCommand(), set_CS(), setAddrWindow(), setRotation(), SPI_WRITE32() (+21 more)
 
 ### Community 87 - "icons.h"
-Cohesion: 0.13
-Nodes (17): BridgeBase, BRIDGE_CHECKSUM_SIZE, BRIDGE_LENGTH_SIZE, BRIDGE_MAGIC_SIZE, BRIDGE_PACKET_MAGIC, fletcher16, getLogDateTime, _initialized (+9 more)
+Cohesion: 0.07
+Nodes (36): AbstractBridge, begin, end, isRunning, loop, onPacketReceived, sendPacket, BridgeBase (+28 more)
 
 ### Community 88 - "BotScreen"
-Cohesion: 0.22
-Nodes (3): KeepteenLT1Board, begin, btn_prev_state
+Cohesion: 0.13
+Nodes (22): ColorVal, GxEPDDisplay, begin, clear, _curr_color, display_crc, drawRect, drawXbm (+14 more)
 
 ### Community 89 - ".handleInput"
 Cohesion: 0.40
@@ -721,19 +710,19 @@ Nodes (4): AcceptsNextHopAndExactEnd, RejectsPartialAndOverrunHashes, TEST(), Tr
 
 ### Community 90 - "fe.c"
 Cohesion: 0.07
-Nodes (30): MainBoard, Radio, RNG, MainBoard, Radio, RNG, formatStatsReply, MyMesh::MyMesh() (+22 more)
+Nodes (31): MainBoard, Radio, RNG, MainBoard, Radio, RNG, MyMesh::MyMesh(), MainBoard (+23 more)
 
 ### Community 92 - "ChannelsView"
-Cohesion: 0.21
-Nodes (10): lfs_block_t, lfs_off_t, lfs_size_t, Adafruit_LittleFS, _internal_flash_erase(), _internal_flash_prog(), _internal_flash_read(), InternalFileSystem (+2 more)
+Cohesion: 0.19
+Nodes (9): LoRaFEMType, LoRaFEMControl, init, lna_enabled, setLNAEnable, setRxModeEnable, setRxModeEnableWhenMCUSleep, setSleepModeEnable (+1 more)
 
 ### Community 93 - "HeltecTowerV2Board"
 Cohesion: 0.18
 Nodes (4): PromicroBoard, adc_mult, begin, btn_prev_state
 
 ### Community 94 - "tools_screen.md"
-Cohesion: 0.24
-Nodes (3): ThinkNodeM1Board, begin, getBattMilliVolts
+Cohesion: 0.17
+Nodes (13): EthernetClient, EthernetServer, RAK13800EthernetInterface, available, begin, client, _isConnected, loop (+5 more)
 
 ### Community 95 - "SerialWifiInterface"
 Cohesion: 0.11
@@ -756,15 +745,15 @@ Cohesion: 0.25
 Nodes (8): Change the radio parameters for a set duration, Radio, View or change the LoRa FEM receive-path gain state on supported boards, View or change the LoRa FEM transmit-path gain state on supported boards, View or change this node's frequency, View or change this node's radio parameters, View or change this node's rx boosted gain mode (SX12xx and LR1110, v1.14.1+), View or change this node's transmit power
 
 ### Community 100 - "SimpleMeshTables"
-Cohesion: 0.11
-Nodes (16): Clear_RemovesSeenPacket, MarkSeen_DoesNotAffectOtherPackets, MarkSeen_MakesWasSeenReturnTrue, QueryThenMark_WorksCorrectly, SimpleMeshTables, _direct_dups, _flood_dups, _hashes (+8 more)
+Cohesion: 0.09
+Nodes (19): Clear_RemovesSeenPacket, MarkSeen_DoesNotAffectOtherPackets, MarkSeen_MakesWasSeenReturnTrue, QueryThenMark_WorksCorrectly, File, restoreFrom(), saveTo(), SimpleMeshTables (+11 more)
 
 ### Community 101 - "handleNewMsg"
 Cohesion: 0.23
-Nodes (26): ge_cached, ge_p1p1, ge_p2, ge_p3, ge_precomp, fe_add(), fe_sub(), cmov() (+18 more)
+Nodes (23): ge_cached, ge_p1p1, ge_p2, ge_p3, ge_precomp, cmov(), equal(), ge_add() (+15 more)
 
 ### Community 102 - "MultiSerialInterface"
-Cohesion: 0.12
+Cohesion: 0.10
 Nodes (7): MainBoard, MainBoard, MainBoard, RegisteredInterface, MultiSerialInterface, _enabled, _interfaces
 
 ### Community 103 - ".begin"
@@ -772,19 +761,19 @@ Cohesion: 0.20
 Nodes (13): LoRaFEMControl, HeltecTrackerV2Board, begin, canControlLoRaFemLna, getBattMilliVolts, getManufacturerName, isLoRaFemLnaEnabled, loRaFEMControl (+5 more)
 
 ### Community 104 - "powerOff"
-Cohesion: 0.25
-Nodes (23): fe, fe_0(), fe_1(), fe_cmov(), fe_copy(), fe_cswap(), fe_frombytes(), fe_invert() (+15 more)
+Cohesion: 0.23
+Nodes (26): fe, fe_0(), fe_1(), fe_add(), fe_cmov(), fe_copy(), fe_cswap(), fe_frombytes() (+18 more)
 
 ### Community 105 - "MomentaryButton"
 Cohesion: 0.12
 Nodes (17): MomentaryButton, begin, cancel, cancelClick, check, _click_count, down_at, isPressed (+9 more)
 
 ### Community 106 - "ST7789Display"
-Cohesion: 0.09
-Nodes (24): TraceRoute, bytes, equals, flags, fromRequest, MAX_PATH_BYTES, MAX_REPEATERS, path (+16 more)
+Cohesion: 0.06
+Nodes (38): BoundedCandidatesUseRecentSuccessBeforeLength, DiversityAndAirtimeBreakUnprovenRouteTies, TraceRouteHistory, TraceRouteHistory, novelEdges(), sameVertex(), TraceRoute, bytes (+30 more)
 
 ### Community 107 - "MeshTrackerX1SensorManager"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (9): BufStream, _buf, _max_len, _pos, File, FILESYSTEM, openWrite(), load (+1 more)
 
 ### Community 108 - "Data Formats"
@@ -792,12 +781,12 @@ Cohesion: 0.15
 Nodes (13): Airtime (Airtime response), Battery (Battery response), Data Formats, Device Name (DeviceName response), Encrypted (Encrypted response), MCU Temperature (MCUTemp response), Noise Floor (NoiseFloor response), Radio Parameters (SetRadio / Radio response) (+5 more)
 
 ### Community 109 - "ToolsScreen"
-Cohesion: 0.06
-Nodes (14): SensorManager, LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity (+6 more)
+Cohesion: 0.03
+Nodes (19): MeshadventurerBoard, LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity (+11 more)
 
 ### Community 110 - "RingtoneEditorScreen"
-Cohesion: 0.24
-Nodes (3): halt(), loadOrCreateIdentity(), setup()
+Cohesion: 0.15
+Nodes (5): RAK3112Board, adc_active_state, periph_power, LocalIdentity, radio_new_identity()
 
 ### Community 111 - "RAK12500LocationProvider"
 Cohesion: 0.11
@@ -808,16 +797,16 @@ Cohesion: 0.13
 Nodes (23): Adafruit_SSD1306, ColorVal, TwoWire, SSD1306Display, begin, clear, _color, display (+15 more)
 
 ### Community 113 - "RTCClock"
-Cohesion: 0.13
-Nodes (14): MinMaxAvg, _avg, _channel, _lpp_type, _max, _min, TimeSeriesData, calcMinMaxAvg (+6 more)
+Cohesion: 0.09
+Nodes (19): Trigger, MyMesh, battery_data, critical_batt, low_batt, MinMaxAvg, _avg, _channel (+11 more)
 
 ### Community 114 - "ge.c"
-Cohesion: 0.09
-Nodes (21): AdminPasswordAndKnownBlankPasswordRetainAdminAccess, BeforeFirstSampleOnlyValidCachedVoltageIsReturned, BlankAndWrongPasswordGetReadOnlyTelemetryRole, CachedEncodingNeverAdvancesCalibration, DiscoversChannelAndAppliesAltitudeOffset, DuplicateTrackingDistinguishesChannelsButSharesRateLimit, Identity, SensorManagementPolicy (+13 more)
+Cohesion: 0.18
+Nodes (5): MainBoard, WaveshareBoard, begin, startOTAUpdate, startup_reason
 
 ### Community 115 - "SerialEthernetInterface"
-Cohesion: 0.05
-Nodes (49): EthernetClient, EthernetServer, WiFiClient, WiFiServer, CH390EthernetInterface, available, begin, client (+41 more)
+Cohesion: 0.13
+Nodes (21): Frame, SerialEthernetInterface, available, begin, checkRecvFrame, disable, enable, _frame_len (+13 more)
 
 ### Community 116 - "target.cpp"
 Cohesion: 0.12
@@ -844,7 +833,7 @@ Cohesion: 0.12
 Nodes (10): CompanionNodePrefs, RxGainSettingsRoundTripIndependently, CaptureStream, _text, string, ReplayStream, _len, _pos (+2 more)
 
 ### Community 122 - "LiveShareScreen"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (11): AdvertDataBuilder, encodeTo, _extra1, _extra2, _has_loc, _lat, _lon, _name (+3 more)
 
 ### Community 123 - ".handleInput"
@@ -852,8 +841,8 @@ Cohesion: 0.29
 Nodes (7): BLE Connection, BLE Write Type, Command Queue Management, Command Sequencing, Connection Steps, MTU (Maximum Transmission Unit), Service and Characteristics
 
 ### Community 124 - "CustomSTM32WLx"
-Cohesion: 0.13
-Nodes (8): CustomSTM32WLx, _activityAt, _headerSeen, _maxPayloadMillis, _preambleMillis, MainBoard, STM32WLx, STM32WLx_Module
+Cohesion: 0.10
+Nodes (9): CustomSTM32WLx, _activityAt, _headerSeen, _maxPayloadMillis, _preambleMillis, CustomSTM32WLxWrapper, MainBoard, STM32WLx (+1 more)
 
 ### Community 125 - "GpioScreen"
 Cohesion: 0.29
@@ -861,14 +850,18 @@ Nodes (7): Error Codes, Frame Handling, Packet Types, Parsing Responses, Respons
 
 ### Community 126 - "Backlog (not yet prioritised)"
 Cohesion: 0.07
-Nodes (22): begin, powerOff, LoRaFEMControl, T096Board, begin, canControlLoRaFemLna, getBattMilliVolts, getManufacturerName (+14 more)
+Nodes (27): begin, LoRaFEMControl, init, lna_can_control, lna_enabled, setLNAEnable, setRxModeEnable, setRxModeEnableWhenMCUSleep (+19 more)
 
 ### Community 127 - "CustomLR1110"
 Cohesion: 0.11
 Nodes (8): LR1110, CustomLR1110, _activityAt, _headerSeen, _maxPayloadMillis, _preambleMillis, _rx_boosted, Module
 
+### Community 128 - "CommonCLI.cpp"
+Cohesion: 0.18
+Nodes (5): MainBoard, XiaoRP2040Board, begin, startOTAUpdate, startup_reason
+
 ### Community 130 - "RAK13800EthernetInterface"
-Cohesion: 0.23
+Cohesion: 0.21
 Nodes (12): LoRaFEMControl, applyPAGain, canControlLNA, canControlPAGain, init, lna_enabled, pa_gain_enabled, setLNAEnable (+4 more)
 
 ### Community 131 - "ScrollingStatusBar"
@@ -876,20 +869,20 @@ Cohesion: 0.11
 Nodes (19): SensorStats, batt_milli_volts, curr_tx_queue_len, err_events, last_rssi, last_snr, n_direct_dups, n_flood_dups (+11 more)
 
 ### Community 132 - "RepeaterStats"
-Cohesion: 0.16
-Nodes (15): LocalIdentity, SensorManager, HWTSensorManager, begin, getNumSettings, getSettingName, getSettingValue, gps_active (+7 more)
+Cohesion: 0.05
+Nodes (32): getLocationProvider(), LocationProvider, begin, getTimestamp, loop, reset, sendSentence, stop (+24 more)
 
 ### Community 133 - "UITask"
 Cohesion: 0.10
-Nodes (9): std_init(), std_init(), CustomSX1276, Module, std_init(), MainBoard, begin, setFlag() (+1 more)
+Nodes (12): LLCC68, CustomLLCC68, _activityAt, _headerSeen, _maxPayloadMillis, _preambleMillis, Module, std_init() (+4 more)
 
 ### Community 134 - "ServerStats"
 Cohesion: 0.33
 Nodes (6): Error Codes, Frame Format, Request Sub-commands (Host to TNC), Response Sub-commands (TNC to Host), SetHardware Extensions (0x06), Unsolicited Events
 
 ### Community 135 - "AdvertDataParser"
-Cohesion: 0.06
-Nodes (32): Adafruit_SPA06_003, getLocationProvider(), LocationProvider, begin, getTimestamp, loop, reset, sendSentence (+24 more)
+Cohesion: 0.13
+Nodes (19): Adafruit_SPA06_003, LocalIdentity, SensorManager, MeshTrackerX1SensorManager, baro_ok, begin, getNumSettings, getSettingName (+11 more)
 
 ### Community 136 - "ClientACL"
 Cohesion: 0.13
@@ -900,12 +893,12 @@ Cohesion: 0.24
 Nodes (3): ThinkNodeM6Board, begin, getBattMilliVolts
 
 ### Community 138 - "HWTSensorManager"
-Cohesion: 0.04
-Nodes (68): DispatcherAction, onControlDataRecv, onRecvPacket, DispatcherAction, onRecvPacket, DispatcherAction, onControlDataRecv, onRecvPacket (+60 more)
+Cohesion: 0.03
+Nodes (85): DateTime, getDirectRetransmitDelay, getRetransmitDelay, DispatcherAction, File, getDirectRetransmitDelay, getLogDateTime, getRetransmitDelay (+77 more)
 
 ### Community 139 - "HeltecV4Board"
-Cohesion: 0.06
-Nodes (37): ColorVal, ST7789Display, begin, clear, _color, display, drawRect, drawXbm (+29 more)
+Cohesion: 0.05
+Nodes (19): OLEDDISPLAY_GEOMETRY, SPIClass, ST7789Spi, _buffheight, _clk, _cs, _dc, _ledA (+11 more)
 
 ### Community 140 - "Routing"
 Cohesion: 0.11
@@ -940,24 +933,24 @@ Cohesion: 0.11
 Nodes (13): ScrollingStatusBar, _display_width, _last_batt_mv, _last_ble_on, _last_buzzer_quiet, _last_gps_on, _last_name, _needs_redraw (+5 more)
 
 ### Community 148 - "ArduinoSerialInterface"
-Cohesion: 0.12
+Cohesion: 0.17
 Nodes (13): ArduinoSerialInterface, checkRecvFrame, disable, enable, _frame_len, isConnected, _isEnabled, isWriteBusy (+5 more)
 
 ### Community 149 - "ESPNowBridge"
 Cohesion: 0.19
-Nodes (16): esp_now_send_status_t, ESPNowBridge, begin, end, _instance, loop, MAX_ESPNOW_PACKET_SIZE, MAX_PAYLOAD_SIZE (+8 more)
+Nodes (15): esp_now_send_status_t, ESPNowBridge, begin, end, _instance, loop, MAX_ESPNOW_PACKET_SIZE, MAX_PAYLOAD_SIZE (+7 more)
 
 ### Community 150 - "DualSerialInterface"
 Cohesion: 0.22
 Nodes (5): NativeFileSystem, TestStruct, age, flags, name
 
 ### Community 151 - "KissModemFixture"
-Cohesion: 0.11
-Nodes (14): LocalIdentity, RNG, SensorManager, testing::Test, FakeRNG, FakeSensors, KissModemFixture, board (+6 more)
+Cohesion: 0.13
+Nodes (12): LocalIdentity, RNG, testing::Test, FakeRNG, KissModemFixture, board, identity, modem (+4 more)
 
 ### Community 152 - "LoRaFEMControl"
 Cohesion: 0.08
-Nodes (13): deque, Radio, vector, TestRadio, airtime, complete, fail, incoming (+5 more)
+Nodes (14): Radio, vector, TestRadio, airtime, complete, fail, incoming, sent (+6 more)
 
 ### Community 153 - "MASensorManager"
 Cohesion: 0.18
@@ -984,20 +977,20 @@ Cohesion: 0.40
 Nodes (5): Channel Message Format, Contact Message Format, Message Handling, Receiving Messages, Sending Messages
 
 ### Community 159 - "PopupMenu"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (41): bsec_load_state(), TwoWire, begin, querySensors, init_ahtx0(), init_bme280(), init_bme680(), init_bme680_bsec() (+33 more)
 
 ### Community 160 - "HomeScreen"
-Cohesion: 0.10
-Nodes (9): VolatileRTCClock, accumulator, base_time, prev_millis, ESP32RTCClock, RTCClock, getCurrentTime, last_unique (+1 more)
+Cohesion: 0.33
+Nodes (3): Radio, RNG, StdRNG
 
 ### Community 161 - "MeshCore Solo Companion Firmware v1.23"
 Cohesion: 0.40
 Nodes (5): Creating a Private Channel, Example Implementation Flow, Initialization, Receiving Messages, Sending a Message
 
 ### Community 162 - "CH390EthernetInterface"
-Cohesion: 0.08
-Nodes (26): CannotStartAThirdProbeOrANewTransactionBeforeClosing, ChangedRouteDoesNotCorruptFirstAttemptFallback, EitherAttemptCanReplaceAnUncommittedFailure, EitherAttemptCanSucceedDuringFinalGrace, FailureReportHasABoundedDeadlineThatDoesNotMove, FinalGraceAndReportDeadlineWorkAcrossRollover, FirstResultAfterDeadlineBeforeTimeoutTransitionIsAccepted, FirstResultCanCancelAQueuedRetry (+18 more)
+Cohesion: 0.05
+Nodes (39): CannotStartAThirdProbeOrANewTransactionBeforeClosing, ChangedRouteDoesNotCorruptFirstAttemptFallback, EitherAttemptCanReplaceAnUncommittedFailure, EitherAttemptCanSucceedDuringFinalGrace, FailureReportHasABoundedDeadlineThatDoesNotMove, FinalGraceAndReportDeadlineWorkAcrossRollover, FirstResultAfterDeadlineBeforeTimeoutTransitionIsAccepted, FirstResultCanCancelAQueuedRetry (+31 more)
 
 ### Community 164 - "HeltecV4R8Board"
 Cohesion: 0.14
@@ -1024,19 +1017,19 @@ Cohesion: 0.20
 Nodes (10): Acknowledgement, Control data, Custom packet, DISCOVER_REQ (sub_type), DISCOVER_RESP (sub_type), Group datagram, Group text message, Important concepts: (+2 more)
 
 ### Community 170 - "BaseSerialInterface"
-Cohesion: 0.15
+Cohesion: 0.11
 Nodes (11): startInterface, InterfaceType, BaseSerialInterface, checkRecvFrame, disable, enable, isConnected, isEnabled (+3 more)
 
 ### Community 171 - "WaypointStore"
-Cohesion: 0.15
-Nodes (9): ExternalWatchdogManager, last_feed_watchdog, LocalIdentity, radio_new_identity(), TowerV2ExternalWatchdog, begin, feed, getIntervalMs (+1 more)
+Cohesion: 0.26
+Nodes (7): AutoDiscoverRTCClock, begin, _fallback, getCurrentTime, i2c_probe, setCurrentTime, TwoWire
 
 ### Community 172 - "UITask"
 Cohesion: 0.16
 Nodes (13): NodePrefs, NodePrefs, UITask, _auto_off, begin, _display, loop, _next_read (+5 more)
 
 ### Community 173 - "UITask"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (6): HeltecV3Board, adc_active_state, periph_power, LocalIdentity, HeltecWirelessPaperBoard, radio_new_identity()
 
 ### Community 174 - "BridgeBase"
@@ -1060,23 +1053,35 @@ Cohesion: 0.20
 Nodes (9): LoRaFEMControl, init, lna_can_control, lna_enabled, setLNAEnable, setRxModeEnable, setRxModeEnableWhenMCUSleep, setSleepModeEnable (+1 more)
 
 ### Community 179 - "EnvironmentSensorManager"
-Cohesion: 0.13
-Nodes (12): ReceiveResult, Result, testing::Test, TraceProbeTest, alternate, first, original, probe (+4 more)
+Cohesion: 0.18
+Nodes (6): RotaryInput, begin, isReady, poll, LocalIdentity, radio_new_identity()
+
+### Community 180 - "2. Co konkretnie jest nieuporządkowane"
+Cohesion: 0.15
+Nodes (9): ExternalWatchdogManager, last_feed_watchdog, LocalIdentity, radio_new_identity(), TowerV2ExternalWatchdog, begin, feed, getIntervalMs (+1 more)
 
 ### Community 181 - "4. T-Deck Related"
 Cohesion: 0.13
 Nodes (15): 4.10. Q: How to decipher the diagnostics screen on T-Deck?, 4.11. Q: The T-Deck sound is too loud?, 4.12. Q: Can you customize the sound?, 4.13. Q: What is the 'Import from Clipboard' feature on the t-deck and is there a way to manually add nodes without having to receive adverts?, 4.14. Q: How to capture a screenshot on T-Deck?, 4.1. Q: Is there a user guide for T-Deck, T-Pager, T-Watch, or T-Display Pro?, 4.2. Q: What are the steps to get a T-Deck into DFU (Device Firmware Update) mode?, 4.3. Q: Why is my T-Deck Plus not getting any satellite lock? (+7 more)
 
 ### Community 182 - "DashboardConfigScreen"
+Cohesion: 0.10
+Nodes (17): applyGpsPrefs(), FILESYSTEM, Identity, begin, removeNeighbor, NeighbourInfo, advert_timestamp, heard_timestamp (+9 more)
+
+### Community 184 - "ChildUnlockScreen"
 Cohesion: 0.18
-Nodes (5): MainBoard, XiaoRP2040Board, begin, startOTAUpdate, startup_reason
+Nodes (5): MainBoard, RAK11310Board, begin, startOTAUpdate, startup_reason
+
+### Community 185 - "InternalFileSystem.cpp"
+Cohesion: 0.26
+Nodes (12): halt(), loop(), setup(), halt(), loop(), setup(), ethernet_check_client(), ethernet_handle_command() (+4 more)
 
 ### Community 186 - "CustomSX1262.h"
-Cohesion: 0.14
-Nodes (11): halt(), setup(), FILESYSTEM, applyGpsPrefs(), LocalIdentity, FILESYSTEM, IdentityStore, _dir (+3 more)
+Cohesion: 0.10
+Nodes (16): halt(), setup(), halt(), loadOrCreateIdentity(), setup(), LocalIdentity, saveIdentity, halt() (+8 more)
 
 ### Community 187 - "SensorManager"
-Cohesion: 0.18
+Cohesion: 0.15
 Nodes (4): SensorManager, node_altitude, node_lat, node_lon
 
 ### Community 188 - "String"
@@ -1092,16 +1097,16 @@ Cohesion: 0.22
 Nodes (10): HeltecRC32Board, adc_mult, begin, getBattMilliVolts, getManufacturerName, onAfterTransmit, onBeforeTransmit, periph_power (+2 more)
 
 ### Community 193 - "MeshnologyW12Board"
-Cohesion: 0.19
-Nodes (9): LoRaFEMType, LoRaFEMControl, init, lna_enabled, setLNAEnable, setRxModeEnable, setRxModeEnableWhenMCUSleep, setSleepModeEnable (+1 more)
+Cohesion: 0.21
+Nodes (10): lfs_block_t, lfs_off_t, lfs_size_t, Adafruit_LittleFS, _internal_flash_erase(), _internal_flash_prog(), _internal_flash_read(), InternalFileSystem (+2 more)
 
 ### Community 194 - "PicoWBoard"
-Cohesion: 0.05
-Nodes (15): MainBoard, RAK11310Board, begin, startOTAUpdate, startup_reason, MainBoard, PicoWBoard, begin (+7 more)
+Cohesion: 0.22
+Nodes (15): checksumBytes(), cleanDisplayName(), File, FILESYSTEM, isNameWord(), isRepeaterWord(), openRead(), openWrite() (+7 more)
 
 ### Community 195 - "DRV2605Vibration"
-Cohesion: 0.21
-Nodes (10): Adafruit_DRV2605, DRV2605Vibration, begin, drv, isVibrating, _last_trigger, loop, _ready (+2 more)
+Cohesion: 0.09
+Nodes (15): Adafruit_DRV2605, DRV2605Vibration, begin, drv, isVibrating, _last_trigger, loop, _ready (+7 more)
 
 ### Community 196 - "CLI Commands"
 Cohesion: 0.12
@@ -1112,24 +1117,24 @@ Cohesion: 0.29
 Nodes (5): PhysicalLayer, MainBoard, RNG, RadioNoiseListener, _radio
 
 ### Community 198 - "Trail (Tools › Trail) — analiza i propozycja uporządkowania"
-Cohesion: 0.06
-Nodes (32): AdvertTxTimeoutReleasesPacketAndRadioContinues, AlternateRetryKeepsOriginalFallbackLabels, BothChannelsShareOneRollingCommandLimit, BusyNoticeUsesNewRequestChannelNotActiveTraceChannel, CombinedReadingsUseCachedValuesAndExistingFormatting, CommittedFailureCannotBecomeASecondTerminalReply, DuplicateOriginalCommandDoesNotPostBusyNotice, FailureAllocationExhaustionClosesWithinTheReportBudget (+24 more)
+Cohesion: 0.04
+Nodes (50): ActiveReportKeepsTraceBusyWithoutOverwritingSelectedResult, AdvertTxTimeoutReleasesPacketAndRadioContinues, AlternateRetryKeepsOriginalFallbackLabels, BothChannelsShareOneRollingCommandLimit, BusyNoticeUsesNewRequestChannelNotActiveTraceChannel, CombinedReadingsUseCachedValuesAndExistingFormatting, CommittedFailureCannotBecomeASecondTerminalReply, CompletedResultExpiresWithoutReprobingOrLosingDiagnostics (+42 more)
 
 ### Community 199 - "CustomLR1110Wrapper"
 Cohesion: 0.15
 Nodes (4): LR11x0, CustomLR1110Wrapper, MainBoard, lr11x0ResetAGC()
 
 ### Community 200 - "NodePrefs"
-Cohesion: 0.26
-Nodes (12): checksumBytes(), File, FILESYSTEM, openRead(), openWrite(), begin, findName, formatLabel (+4 more)
+Cohesion: 0.38
+Nodes (11): _atoi(), handleCommand, handleRegionCmd, handleSetCmd, isValidName(), processRegionDefSegment(), rtrimSpaces(), skipSpaces() (+3 more)
 
 ### Community 201 - "TxtDataHelpers.cpp"
-Cohesion: 0.14
-Nodes (10): ConnectionInfo, expected_ack, keep_alive_millis, last_activity, next_ping, server_id, ContactsIterator, hasNext (+2 more)
+Cohesion: 0.29
+Nodes (7): ConnectionInfo, expected_ack, keep_alive_millis, last_activity, next_ping, server_id, Identity
 
 ### Community 202 - "target.cpp"
-Cohesion: 0.14
-Nodes (14): getDirectRetransmitDelay, getRetransmitDelay, getDirectRetransmitDelay, getRetransmitDelay, onPeerDataRecv, getDirectRetransmitDelay, getRetransmitDelay, onAnonDataRecv (+6 more)
+Cohesion: 0.18
+Nodes (11): ColorVal, UIColor, corp_blue, popup_bkg, popup_txt, primary_txt, secondary_txt, title_bkg (+3 more)
 
 ### Community 203 - "target.cpp"
 Cohesion: 0.25
@@ -1140,7 +1145,7 @@ Cohesion: 0.36
 Nodes (4): ThinknodeM5Board, begin, getBattMilliVolts, getManufacturerName
 
 ### Community 205 - "Adafruit_GFX"
-Cohesion: 0.15
+Cohesion: 0.13
 Nodes (12): SensorBotTransport, cancelQueuedPacket, createGroupDatagram, createTrace, estimateAirtime, isQueuedPacket, nodeName, now (+4 more)
 
 ### Community 206 - "Bridge (When bridge support is compiled in)"
@@ -1156,47 +1161,47 @@ Cohesion: 0.15
 Nodes (13): Change this node's admin password, Fine-tune the battery reading, System, View or change this node's guest password, View or change this node's identity (Private Key), View or change this node's latitude, View or change this node's longitude, View or change this node's name (+5 more)
 
 ### Community 209 - "TechoBoard"
-Cohesion: 0.18
-Nodes (9): DetectsFallingGasResistanceAndBoundsScore, BME680AirQuality, _gas_baseline, _samples, update, WARMUP_SAMPLES, InvalidSamplesDoNotAdvanceWarmup, RequiresTenValidSamplesAndResetsAtBoot (+1 more)
+Cohesion: 0.12
+Nodes (12): DetectsFallingGasResistanceAndBoundsScore, BME680AirQuality, _gas_baseline, _samples, update, WARMUP_SAMPLES, Bme680SensorManager, _raw (+4 more)
 
 ### Community 211 - "loop"
 Cohesion: 0.18
 Nodes (13): appendEscapedByte, encodeFrame, loop, onPacketReceived, popTxFrame, processFrame, processTx, queueFrame (+5 more)
 
-### Community 212 - "TechoBoard"
-Cohesion: 0.19
-Nodes (11): handleReceivedPacket, onPacketReceived, RS232Bridge, begin, end, MAX_SERIAL_PACKET_SIZE, onPacketReceived, _rx_buffer (+3 more)
-
 ### Community 213 - "StdRNG"
-Cohesion: 0.33
-Nodes (3): Radio, RNG, StdRNG
+Cohesion: 0.18
+Nodes (3): HeltecV2Board, LocalIdentity, radio_new_identity()
 
 ### Community 214 - "target.cpp"
-Cohesion: 0.03
-Nodes (20): LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity() (+12 more)
+Cohesion: 0.20
+Nodes (3): T1000eBoard, begin, btn_prev_state
 
 ### Community 216 - "Identity"
-Cohesion: 0.17
-Nodes (5): Identity, pub_key, LocalIdentity, RNG, random
+Cohesion: 0.13
+Nodes (6): Identity, pub_key, LocalIdentity, RNG, random, Utils
 
 ### Community 217 - "T1Board"
-Cohesion: 0.18
-Nodes (4): LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity()
+Cohesion: 0.20
+Nodes (5): CustomSX1276, Module, std_init(), MainBoard, SX1276
 
 ### Community 218 - "TBeam1WBoard"
 Cohesion: 0.26
 Nodes (10): TBeam1WBoard, begin, getBattMilliVolts, getManufacturerName, isFanEnabled, onAfterTransmit, onBeforeTransmit, powerOff (+2 more)
 
 ### Community 219 - "target.cpp"
-Cohesion: 0.40
-Nodes (3): LocalIdentity, radio_init(), radio_new_identity()
+Cohesion: 0.22
+Nodes (3): KeepteenLT1Board, begin, btn_prev_state
+
+### Community 220 - "target.cpp"
+Cohesion: 0.22
+Nodes (3): TImpulsePlusBoard, begin, btn_prev_state
 
 ### Community 222 - "WaveshareBoard"
-Cohesion: 0.15
-Nodes (5): RAK3112Board, adc_active_state, periph_power, LocalIdentity, radio_new_identity()
+Cohesion: 0.48
+Nodes (5): ThinkNodeM9Board, begin, getIRQGpio, getManufacturerName, powerOff
 
 ### Community 223 - "CustomSX1276.h"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (22): NodePrefs, SensorManager, UITask, HomeScreen, next_sensors_refresh, _node_prefs, _page, recent (+14 more)
 
 ### Community 224 - "Request"
@@ -1204,16 +1209,12 @@ Cohesion: 0.17
 Nodes (12): Get Access List, Get Min/Max/Ave  (Sensor nodes), Get Neighbors, Get Owner Info, Get stats, Get Telemetry, Get telemetry data, Plain text message (+4 more)
 
 ### Community 226 - "TEST"
-Cohesion: 0.11
-Nodes (14): RefCountedDigitalPin, _active, _claims, _pin, HeltecE213Board, begin, getBattMilliVolts, getManufacturerName (+6 more)
+Cohesion: 0.08
+Nodes (19): RefCountedDigitalPin, _active, _claims, _pin, HeltecE213Board, begin, getBattMilliVolts, getManufacturerName (+11 more)
 
 ### Community 227 - "target.cpp"
-Cohesion: 0.21
-Nodes (10): AmbiguousHashesUseHexAndLabelsPreserveUtf8, CacheCapacityAndFailedReplacementKeepPreviousFile, GuestPressureDoesNotEvictAdministrators, RealSignaturesAndSharedSecretsAreCompatible, RejectsNonRepeatersAndRecoversFromCorruptCache, RepeaterNamesPersistWithoutWritingUnchangedAdverts, SensorStorage, advert() (+2 more)
-
-### Community 228 - "target.cpp"
-Cohesion: 0.23
-Nodes (9): addToOfflineQueue, onChannelDataRecv, onChannelMessageRecv, findChannelIdx, getChannel, setChannel, ChannelDetails, channel (+1 more)
+Cohesion: 0.33
+Nodes (6): CacheHeader, checksum, count, magic, next_replace, reserved
 
 ### Community 229 - "ThinkNodeM3Board"
 Cohesion: 0.50
@@ -1224,8 +1225,8 @@ Cohesion: 0.24
 Nodes (5): ThinkNodeM7Board, begin, enterDeepSleep, getManufacturerName, powerOff
 
 ### Community 231 - "RAKWismeshTagBoard.h"
-Cohesion: 0.17
-Nodes (6): NetworkRelay, channels, direct_delay, flood_delay, forwards, messages
+Cohesion: 0.18
+Nodes (7): NetworkRelay, channels, direct_delay, flood_delay, forwards, messages, standard_delay
 
 ### Community 232 - "How Can I Contribute?"
 Cohesion: 0.18
@@ -1241,26 +1242,26 @@ Nodes (8): Header Format, Packet Format, Packet Format, Path Length Encoding, Pa
 
 ### Community 235 - "target.cpp"
 Cohesion: 0.17
-Nodes (5): SPI, CRC32, HeltecMeshPocket, begin, Wire
+Nodes (5): SPI, CRC32, MeshSolarBoard, begin, Wire
 
 ### Community 236 - "target.cpp"
 Cohesion: 0.11
 Nodes (6): constrain(), T, Print, constrain(), T, ltoa()
 
 ### Community 237 - "Settings Screen"
-Cohesion: 0.14
-Nodes (21): DateTime, RTC_I2C, AutoDiscoverRTCClock, begin, _fallback, getCurrentTime, i2c_probe, setCurrentTime (+13 more)
+Cohesion: 0.29
+Nodes (13): RTC_I2C, TwoWire, RTC_RX8130CE, _addr, adjust, begin, getTime, now (+5 more)
 
 ### Community 238 - ".render"
 Cohesion: 0.33
 Nodes (4): PacketMillis, payloadMillis, preambleMillis, calcMaxPacketMillis
 
 ### Community 239 - "gpioModeField"
-Cohesion: 0.20
-Nodes (7): Trigger, halt(), MyMesh, battery_data, critical_batt, low_batt, setup()
+Cohesion: 0.32
+Nodes (4): Identity, SensorManagementPolicy, login, ownerInfo
 
 ### Community 240 - "target.cpp"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (5): RNG, TestClock, TestRandom, _value, TestRTC
 
 ### Community 241 - "CustomLR2021"
@@ -1269,27 +1270,19 @@ Nodes (9): LR2021, CustomLR2021, _activityAt, _headerSeen, _maxPayloadMillis, _p
 
 ### Community 242 - "CustomSX1262Wrapper"
 Cohesion: 0.05
-Nodes (21): MainBoard, NRF52Board, NRF52Board::checkBootVoltage(), getBootloaderVersion, getMCUTemperature, isExternalPowered, ota_name, shutdownPeripherals (+13 more)
-
-### Community 244 - "main.cpp"
-Cohesion: 0.22
-Nodes (3): NanoG2Ultra, begin, getBattMilliVolts
+Nodes (22): MainBoard, NRF52Board, NRF52Board::checkBootVoltage(), getBootloaderVersion, getMCUTemperature, isExternalPowered, ota_name, powerOff (+14 more)
 
 ### Community 247 - "target.cpp"
 Cohesion: 0.18
 Nodes (3): LocalIdentity, radio_new_identity(), TETHEliteBoard
 
 ### Community 248 - "MeshTrackerX1Board"
-Cohesion: 0.22
-Nodes (3): MeshTrackerX1Board, begin, btn_prev_state
-
-### Community 249 - "R1NeoBoard.h"
-Cohesion: 0.22
-Nodes (7): AbstractBridge, begin, end, isRunning, loop, onPacketReceived, sendPacket
+Cohesion: 0.25
+Nodes (8): NodePrefs, airtime_factor, freq, node_lat, node_lon, node_name, tx_power_dbm, unused
 
 ### Community 251 - "WioTrackerL1Board"
-Cohesion: 0.12
-Nodes (28): _atoi(), CommonCLI, _acl, _board, buildAdvertData, _callbacks, handleCommand, handleGetCmd (+20 more)
+Cohesion: 0.14
+Nodes (15): CommonCLI, _acl, _board, _callbacks, loadPrefs, loadPrefsInt, _prefs, _region_map (+7 more)
 
 ### Community 252 - "XiaoNrf52Board.h"
 Cohesion: 0.21
@@ -1299,29 +1292,29 @@ Nodes (10): MeshnologyW12Board, adc_mult, begin, enterDeepSleep, getBattMilliVol
 Cohesion: 0.20
 Nodes (8): Example, License, Other notes, Reference material, Related projects, Testing, The little filesystem, Usage
 
+### Community 254 - "target.cpp"
+Cohesion: 0.40
+Nodes (3): LocalIdentity, radio_init(), radio_new_identity()
+
 ### Community 255 - "7. Other Questions:"
 Cohesion: 0.20
 Nodes (10): 7.1.1 Q: Can I update Seeed Studio Wio Tracker L1 Pro using OTA?, 7.1. Q: How to update nRF (RAK, T114, Seeed XIAO) companion, repeater and room server firmware over the air using the new simpler DFU app?, 7.2. Q: How to update ESP32-based devices over the air?, 7.3. Q: Is there a way to lower the chance of a failed OTA device firmware update (DFU)?, 7.4. Q: Are the MeshCore logo and font available?, 7.5. Q: What is the format of a contact or channel QR code?, 7.6. Q: How do I connect to the companion via Wi-Fi, e.g. using a Heltec V3?, 7.7. Q: I have a Station G2, or a Heltec V4, or an Ikoka Stick, or a radio with an EByte E22-900M30S or an EByte E22-900M33S module, what should their transmit power be set to? (+2 more)
 
 ### Community 256 - "target.cpp"
-Cohesion: 0.18
-Nodes (4): LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity()
-
-### Community 257 - "NodePrefs"
-Cohesion: 0.25
-Nodes (8): NodePrefs, airtime_factor, freq, node_lat, node_lon, node_name, tx_power_dbm, unused
+Cohesion: 0.20
+Nodes (3): MinewsemiME25LS01Board, begin, btn_prev_state
 
 ### Community 258 - "TEST"
-Cohesion: 0.29
+Cohesion: 0.22
 Nodes (6): KeepsCompleteNameWithinLimit, RejectsMalformedAndTruncatedSequences, RejectsUnexpectedContinuationByte, StopsBeforeCodePointCrossingLimit, TEST(), UTF8Helpers
 
 ### Community 260 - "target.cpp"
-Cohesion: 0.14
-Nodes (11): atomic, condition_variable, queue, BlockingStream, _block_writes, _cv, _entered_block, _max_write_chunk (+3 more)
+Cohesion: 0.18
+Nodes (7): atomic, condition_variable, queue, BLEServer, _mutex, SensorManager, FakeSensors
 
 ### Community 261 - "SPI"
-Cohesion: 0.25
-Nodes (6): SPI, radio_init(), radio_init(), LocalIdentity, radio_init(), radio_new_identity()
+Cohesion: 0.05
+Nodes (15): SensorManager, LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity (+7 more)
 
 ### Community 262 - "Neighbors (Repeater Only)"
 Cohesion: 0.50
@@ -1348,68 +1341,40 @@ Cohesion: 0.11
 Nodes (18): Architecture, Board Implementation, Boot Voltage Protection, CLI Commands, Debug Output, Early Boot Capture, Early Boot Register Capture, Features (+10 more)
 
 ### Community 268 - "trail_export.py"
-Cohesion: 0.29
-Nodes (7): AdvertPath, name, path, path_len, pubkey_prefix, recv_timestamp, getRecentlyHeard
+Cohesion: 0.25
+Nodes (4): VolatileRTCClock, accumulator, base_time, prev_millis
 
 ### Community 269 - "SplashScreen"
 Cohesion: 0.13
 Nodes (8): TwoWire, TBeamBoard, begin, PMU, power_init, TBeamBoard::scanDevices(), LilygoTBeamSX1276Board, XPowersLibInterface
 
-### Community 270 - "TechoBoard"
-Cohesion: 0.38
-Nodes (3): TechoBoard, begin, getBattMilliVolts
-
 ### Community 271 - "LPPWriter"
 Cohesion: 0.25
 Nodes (4): LPPWriter, _buf, _len, _max_len
 
-### Community 272 - "CacheHeader"
-Cohesion: 0.33
-Nodes (6): CacheHeader, checksum, count, magic, next_replace, reserved
-
-### Community 273 - "ThinknodeM2Board"
-Cohesion: 0.53
-Nodes (4): ThinknodeM2Board, begin, getBattMilliVolts, getManufacturerName
-
 ### Community 276 - "RepeaterTraceProbe.h"
-Cohesion: 0.20
+Cohesion: 0.17
 Nodes (6): AccountsForSlowRadioAndSaturatesSafely, TraceTimingPolicy, FINAL_GRACE_MILLIS, QUEUE_TIMEOUT_MILLIS, REPORT_TIMEOUT_MILLIS, TEST()
 
-### Community 278 - "Favourites Dial"
-Cohesion: 0.18
-Nodes (9): LoRaFEMControl, init, lna_can_control, lna_enabled, setLNAEnable, setRxModeEnable, setRxModeEnableWhenMCUSleep, setSleepModeEnable (+1 more)
-
 ### Community 279 - "GAT562MeshTrackerProBoard"
-Cohesion: 0.13
+Cohesion: 0.11
 Nodes (13): enterDeepSleep, powerOff, startOTAUpdate, LoRaFEMControl, StationG3Board, canControlLoRaFemLna, canControlLoRaFemPaGain, isLoRaFemLnaEnabled (+5 more)
 
 ### Community 280 - "KissModem::KissModem"
 Cohesion: 0.25
 Nodes (8): LocalIdentity, MainBoard, Radio, RNG, SensorManager, begin, KissModem::KissModem(), resetOutputQueue
 
-### Community 282 - "takeFallback"
-Cohesion: 0.20
-Nodes (3): StationG2Board, LocalIdentity, radio_new_identity()
-
-### Community 286 - "HeltecT190Board"
-Cohesion: 0.36
-Nodes (5): HeltecT190Board, begin, getBattMilliVolts, getManufacturerName, periph_power
-
 ### Community 287 - "target.h"
 Cohesion: 0.25
 Nodes (4): LocalIdentity, RNG, ESP_RNG, radio_new_identity()
 
 ### Community 288 - "Development and Testing"
-Cohesion: 0.22
-Nodes (9): Application modules, Automated validation, Baseline, Baseline integration ledger, Development and Testing, Hardware acceptance, Implementation validation, Storage and firmware updates (+1 more)
+Cohesion: 0.20
+Nodes (10): Application modules, Automated validation, Baseline, Baseline integration ledger, Development and Testing, Hardware acceptance, Implementation validation, Storage and firmware updates (+2 more)
 
 ### Community 289 - "MeshCore BME680 Sensor Firmware"
 Cohesion: 0.29
 Nodes (7): Development, First setup, Flashing, Guides, MeshCore BME680 Sensor Firmware, Software features, Supported hardware
-
-### Community 290 - "FreqRange"
-Cohesion: 0.67
-Nodes (3): FreqRange, lower_freq, upper_freq
 
 ### Community 292 - "KissModem.h"
 Cohesion: 0.29
@@ -1420,8 +1385,8 @@ Cohesion: 0.29
 Nodes (6): Reporting a Vulnerability, Scope, Security Policy, Supported Versions, What to expect, What to include
 
 ### Community 294 - "ThinkNodeM9Board"
-Cohesion: 0.10
-Nodes (8): Heltec_CT62_Board, gpio_state, ThinkNodeM9Board, begin, getIRQGpio, getManufacturerName, powerOff, XiaoC3Board
+Cohesion: 0.09
+Nodes (9): Heltec_CT62_Board, gpio_state, StationG2Board, ThinknodeM2Board, begin, getBattMilliVolts, getManufacturerName, onBeforeTransmit() (+1 more)
 
 ### Community 296 - "2. Initial Setup"
 Cohesion: 0.25
@@ -1430,10 +1395,6 @@ Nodes (7): 2.1. Q: How many devices do I need to start using MeshCore?, 2.2. Q: 
 ### Community 297 - "SetHardware Extensions (0x06)"
 Cohesion: 0.18
 Nodes (11): Cryptographic Algorithms, CSMA Behavior, Frame Format, Host Output Backpressure, Host to TNC, MeshCore KISS Modem Protocol, Notes, Serial Configuration (+3 more)
-
-### Community 298 - "CacheHeader"
-Cohesion: 0.67
-Nodes (3): OLEDDISPLAY_TEXT_ALIGNMENT, drawLogBuffer, setTextAlignment
 
 ### Community 299 - "Building the BME680 Sensor"
 Cohesion: 0.40
@@ -1452,8 +1413,8 @@ Cohesion: 0.40
 Nodes (5): Before powering the node, Configure the node, Getting Started, Install the firmware, Test the Public-channel bot
 
 ### Community 306 - "Print"
-Cohesion: 0.02
-Nodes (51): ActiveSensor, MicroNMEA, EnvironmentSensorManager, _active_sensor_count, _active_sensors, getNumSettings, getSettingName, getSettingValue (+43 more)
+Cohesion: 0.03
+Nodes (29): SPI, LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity, radio_new_identity(), LocalIdentity (+21 more)
 
 ### Community 309 - "target.cpp"
 Cohesion: 0.26
@@ -1484,28 +1445,28 @@ Cohesion: 0.67
 Nodes (3): Commands, Mesh traffic controls, Public-channel Commands
 
 ### Community 325 - "RotaryInput"
-Cohesion: 0.10
-Nodes (21): Wire, RotaryInputEvent, RotaryInput, begin, isReady, poll, HeltecRC32RotaryInput, active_low_phase (+13 more)
+Cohesion: 0.12
+Nodes (18): Wire, RotaryInputEvent, HeltecRC32RotaryInput, active_low_phase, begin, handleTransition, initialized, input_state (+10 more)
 
 ## Knowledge Gaps
-- **1644 isolated node(s):** `begin`, `_server`, `_id`, `_username`, `_password` (+1639 more)
+- **1706 isolated node(s):** `begin`, `_server`, `_id`, `_username`, `_password` (+1701 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **38 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Mesh` connect `HWTSensorManager` to `MyMesh`, `Packet`, `MyMesh`, `SensorMesh`, `AdvertDataParser`, `MyMesh`, `TrailScreen`, `Dispatcher`, `ArduinoHelpers.h`, `IkokaNrf52Board.h`, `AdminScreen`, `HomeScreen`, `UIScreen`, `KissModem.h`, `HeltecV4R8Board`, `ThinkNodeM6Board.h`, `Print`, `IdentityStore`, `SettingsScreen`, `CustomSX1262.h`, `TxtDataHelpers.cpp`, `target.cpp`, `ESPNOWRadio`, `target.cpp`, `fe.c`, `RAKWismeshTagBoard.h`, `ToolsScreen`, `Settings Screen`, `RTCClock`, `R1NeoBoard.h`, `LiveShareScreen`, `WioTrackerL1Board`?**
-  _High betweenness centrality (0.136) - this node is a cross-community bridge._
-- **Why does `RTCClock` connect `HomeScreen` to `MyMesh`, `DataStore`, `Packet`, `HWTSensorManager`, `Screen Lock`, `Settings Screen`, `MicroNMEALocationProvider.h`, `ToolsScreen`, `target.cpp`, `RTCClock`, `target.cpp`, `StdRNG`, `icons.h`, `fe.c`, `WioTrackerL1Board`, `millis`, `CustomSX1276.h`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
-- **Why does `Packet` connect `HWTSensorManager` to `MyMesh`, `Packet`, `MyMesh`, `SensorMesh`, `MyMesh`, `Dispatcher`, `RepeaterTraceProbe.h`, `ESPNowBridge`, `EnvironmentSensorManager.cpp`, `GxEPD2_BW.h`, `EnvironmentSensorManager`, `SettingsScreen`, `RegionMap`, `KeyboardWidget`, `HomeScreen`, `Trail (Tools › Trail) — analiza i propozycja uporządkowania`, `NodePrefs`, `target.cpp`, `TransportKeyStore`, `MicroNMEALocationProvider`, `StaticPoolPacketManager.cpp`, `TechoBoard`, `icons.h`, `target.cpp`, `SimpleMeshTables`, `RAKWismeshTagBoard.h`, `ST7789Display`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Why does `Mesh` connect `HWTSensorManager` to `MyMesh`, `BaseChatMesh`, `Packet`, `RepeaterStats`, `SPI`, `MyMesh`, `SensorMesh`, `TrailScreen`, `MyMesh`, `Dispatcher`, `ArduinoHelpers.h`, `AdminScreen`, `RepeaterTraceProbe.h`, `UIScreen`, `KissModem.h`, `HeltecV4R8Board`, `WaypointStore`, `ThinkNodeM6Board.h`, `DashboardConfigScreen`, `InternalFileSystem.cpp`, `SensorManager`, `ESPNOWRadio`, `E290Display`, `icons.h`, `fe.c`, `SimpleMeshTables`, `MultiSerialInterface`, `RAKWismeshTagBoard.h`, `ToolsScreen`, `RTCClock`, `LiveShareScreen`, `WioTrackerL1Board`?**
+  _High betweenness centrality (0.142) - this node is a cross-community bridge._
+- **Why does `Stream` connect `Stream` to `MessageHistory`, `KissModem`, `lfs.c`, `BlockingStream`, `MeshTrackerX1SensorManager`, `MicroNMEALocationProvider.h`, `target.cpp`, `ConfigSerializer`, `RS232Bridge`, `ArduinoSerialInterface`, `File`, `RegionMap`, `icons.h`, `KissModem::KissModem`, `Trail.h`, `LiveTrackStore`, `Utils.cpp`, `millis`?**
+  _High betweenness centrality (0.083) - this node is a cross-community bridge._
+- **Why does `Packet` connect `HWTSensorManager` to `MyMesh`, `Packet`, `MyMesh`, `SensorMesh`, `MyMesh`, `Dispatcher`, `CH390EthernetInterface`, `UIScreen`, `EnvironmentSensorManager.cpp`, `GxEPD2_BW.h`, `IdentityStore`, `RegionMap`, `HomeScreen`, `PicoWBoard`, `Trail (Tools › Trail) — analiza i propozycja uporządkowania`, `RefCountedDigitalPin`, `TransportKeyStore`, `MicroNMEALocationProvider`, `StaticPoolPacketManager.cpp`, `E290Display`, `icons.h`, `SimpleMeshTables`, `RAKWismeshTagBoard.h`, `ST7789Display`?**
+  _High betweenness centrality (0.081) - this node is a cross-community bridge._
 - **What connects `begin`, `_server`, `_id` to the rest of the system?**
-  _1644 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1706 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `MyMesh` be split into smaller, more focused modules?**
-  _Cohesion score 0.03626149131767109 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.028992628992628992 - nodes in this community are weakly interconnected._
 - **Should `NodePrefs` be split into smaller, more focused modules?**
   _Cohesion score 0.047619047619047616 - nodes in this community are weakly interconnected._
 - **Should `BaseChatMesh` be split into smaller, more focused modules?**
-  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13970588235294118 - nodes in this community are weakly interconnected._

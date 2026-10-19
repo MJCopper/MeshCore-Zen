@@ -49,6 +49,17 @@ the first received route, not necessarily the best route or the return path.
 The sensor retains up to 48 repeater names in its internal flash filesystem;
 unchanged adverts do not cause writes. The reply appears on the requesting channel,
 not as a private message to the requester.
+Long paths use at most two messages, labelled `1/2` and `2/2`, with a three-second
+gap after the first transmission completes. Replies split between repeaters,
+preserving their order and using the same short names as trace replies. Paths
+that exceed both messages end with `...truncated`. Short paths remain one message;
+the shared four-requests-per-minute limit is unchanged.
+
+Path and trace display names omit the whole words `repeater` and `rptr`, ignoring
+case, before applying the existing 12-byte UTF-8-safe name limit. For example,
+`Hillvue Repeater` becomes `Hillvue`, and `Tamworth rptr` becomes `Tamworth`.
+Whitespace is tidied; stored advert names are unchanged. If removal leaves an
+empty name, the repeater's path hash is displayed instead.
 
 `!hillvue trace` is standalone. The sensor sends one direct MeshCore trace out
 through the repeaters in the received request path and back to itself, then
@@ -67,8 +78,19 @@ the final repeater-to-companion link, but includes the sensor-to-nearest-repeate
 link, radio airtime and forwarding delays. Time waiting in the sensor's transmit
 queue is excluded. It is not a
 one-way latency or a measurement to the companion. Only one trace runs at
-a time; paths over ten repeaters are rejected. A probe that cannot begin
-transmitting within ten seconds is cancelled. Once transmission begins, the
+a time, including bounded report delivery; paths over ten repeaters are rejected.
+Before the first probe, a short airtime-aware settling window lets the command
+flood finish. Its earliest start is twice the command airtime, clamped to
+300-2000 milliseconds, plus 0-250 milliseconds of jitter. Matching duplicates
+extend a quiet interval of 150-750 milliseconds, but cannot extend settling past
+2.5 seconds. Unrelated messages do not extend it. Settling is excluded from RTT.
+
+Temporary allocation and queue rejections are retried with 250-millisecond,
+500-millisecond, then one-second backoff and bounded jitter. Admission is limited
+to ten seconds per attempt, excluding the initial settling window. A rejected
+radio start may use the remaining probe attempt, but there are never more than
+two potentially emitting probe submissions. Local failures do not count as
+evidence against a route. Once transmission begins, the
 timeout is the larger of the existing hop allowance and an airtime estimate,
 rounded up to whole seconds:
 
@@ -84,10 +106,15 @@ that allowance; remote repeater congestion cannot be predicted exactly.
 
 After the first timeout, the sensor makes one silent retry following a random
 one-to-two-second pause. It passively watches additional copies of the exact
-same command for one alternate flood path. A distinct observed path is preferred
-for the retry; otherwise it uses the original path. Shorter alternate candidates
-are preferred, with recency breaking equal-length ties. This sends no discovery
-packets and does not treat repeater advert names as network topology.
+same command for up to three alternate flood paths. The original route is always
+tested first. Retry candidates are ranked using recent exact-route outcomes,
+directed-edge diversity per estimated airtime, freshness and last-hop SNR.
+Last-hop SNR is not an end-to-end score. Four RAM-only history records expire
+after fifteen minutes and are scoped to the channel and radio configuration;
+temporary radio configuration changes and reversion invalidate old context too.
+History only ranks routes observed for the current command: it never invents a
+route or supplies an old, unobserved path. This sends no discovery packets and
+does not treat repeater advert names as network topology.
 An observed path is a routing hint, not proof that its links work in reverse.
 
 Each attempt has fresh identifiers and retains its own path, hash width and
@@ -104,7 +131,28 @@ late results are ignored, preventing contradictory reports. Failure-report
 queueing is bounded to ten seconds, including the normal random send delay.
 The node reports `Trace: no result after retry`, not that no route exists.
 Radio-busy, transmit-failure and unsent-retry conditions have separate messages.
-Queue and transmit failures do not trigger additional probes.
+Local recovery never increases the two-probe budget.
+
+Completed results are retained while their reports are prepared and transmitted.
+Both report parts, including the node-name prefix and cleaned repeater labels,
+are frozen together. Temporary packet allocation or confirmed queue rejection
+does not discard a result. Each part has a ten-second admission allowance, and
+the overall success-report allowance is at least thirty seconds, extended for
+slow radio airtime. The second part remains eligible only three seconds after
+the first finishes transmitting. An active transmission is left to MeshCore's
+existing completion/watchdog handling, never freed by the application.
+
+An uncertain report transmission is not repeated: it may already have reached
+other users. RadioLib start errors are conservatively uncertain because its
+Boolean result cannot prove that no frame was emitted. A report problem never
+turns a successful trace into a public trace-failure message. Local transmission
+completion is not confirmation that the companion received the channel reply.
+
+Local diagnostics retain outward and return SNRs, the final received-link SNR,
+and the furthest matching trace progress overheard for each attempt. Partial
+progress never completes a trace, extends its timeout or identifies a failed
+repeater. These snapshots are available to tests/debugger inspection only;
+the public RTT/SNR format is unchanged and no extra diagnostic traffic is sent.
 
 The original command counts once toward the unchanged
 four-command-per-minute limit, although a retry sends a second trace packet.

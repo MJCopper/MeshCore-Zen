@@ -20,6 +20,7 @@ protected:
   RepeaterTraceProbe::Result result{};
   uint8_t snrs[19]{};
   void start(uint8_t count = 3, uint8_t size = 1, uint32_t now = 0) {
+    reply._snr = 0;
     reply.header = ROUTE_TYPE_DIRECT | (PAYLOAD_TYPE_TRACE << PH_TYPE_SHIFT);
     auto request = makeRequest(size, count);
     ASSERT_EQ(RepeaterTraceProbe::STARTED, probe.start(&request, 101, 202, now));

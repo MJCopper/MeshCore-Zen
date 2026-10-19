@@ -7,6 +7,9 @@
 #include "PublicResponseQueue.h"
 #include "RepeaterNameCache.h"
 #include "RepeaterTraceProbe.h"
+#include "TraceReportDelivery.h"
+#include "TraceRouteHistory.h"
+#include "TraceDiagnostics.h"
 
 // Radio ownership stays in the MeshCore adapter; service tests supply this interface.
 class SensorBotTransport {
@@ -16,6 +19,9 @@ public:
   virtual const char* nodeName() = 0;
   virtual mesh::RNG& rng() = 0;
   virtual uint32_t estimateAirtime(uint8_t length) = 0;
+  virtual uint32_t radioProfile() { return 0; }
+  // RadioLib's Boolean error cannot rule out an emitted frame after a failed SPI command.
+  virtual bool failedStartDefinitelyNotSent() const { return false; }
   virtual mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) = 0;
   virtual mesh::Packet* createGroupDatagram(uint8_t type, const mesh::GroupChannel& channel,
                                            const uint8_t* data, size_t length) = 0;
@@ -29,12 +35,15 @@ public:
 
 class SensorBotService {
 public:
-  SensorBotService(SensorBotTransport& transport, Bme680Telemetry& telemetry)
-      : _transport(transport), _telemetry(telemetry) { }
+  // Settling can be suppressed by exact-boundary characterization tests only.
+  SensorBotService(SensorBotTransport& transport, Bme680Telemetry& telemetry, bool settle = true)
+      : _transport(transport), _telemetry(telemetry), _settle_enabled(settle) { }
+  const TraceDiagnostics& diagnostics() const { return trace_diagnostics; }
 
   void begin(FILESYSTEM* fs);
 
   void loop();
+  void beforeRadioLoop();
 
   void onTxStarted(mesh::Packet* packet, uint32_t now_millis);
 
@@ -43,7 +52,8 @@ public:
   void logTxFail(mesh::Packet* packet, int);
   void observeRoute(const mesh::Packet* packet);
 
-  void sendPublicResponse(const char* response, uint8_t channel_index, uint32_t extra_delay_millis = 0);
+  void sendPublicResponse(const char* response, uint8_t channel_index, uint32_t extra_delay_millis = 0,
+                          const char* separator = NULL);
 
   void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
                     const uint8_t* app_data, size_t app_data_len);
@@ -64,12 +74,19 @@ private:
   RepeaterNameCache repeater_names;
   RepeaterTraceProbe trace_probe;
   TraceRouteCandidates trace_routes;
-  mesh::Packet* trace_failure_packet = NULL;
+  TraceReportDelivery trace_report;
+  TraceRouteHistory trace_history;
+  TraceDiagnostics trace_diagnostics;
+  uint32_t _profile = 0, _settle_at = 0, _settle_delay = 0, _quiet = 0, _next_queue_at = 0;
+  uint32_t _trace_profile = 0, _probe_not_before = 0;
+  uint8_t _local_failures = 0;
+  bool _settling = false, _settle_enabled;
   uint32_t next_trace_tag = 0;
   bool busy_trace_reported = false;
   uint8_t trace_channel = 0;
 
-  bool queueTrace(uint32_t delay_millis = 0);
+  enum QueueTraceResult { TRACE_QUEUED, TRACE_NO_PACKET, TRACE_QUEUE_REJECTED };
+  QueueTraceResult queueTrace(uint32_t delay_millis = 0);
   mesh::Packet* createPublicPart(const char* response, uint8_t channel_index);
   bool sendPublicPart(const char* response, uint8_t channel_index, uint32_t delay_millis);
   void sendTraceResult(const RepeaterTraceProbe::Result& result);
@@ -77,5 +94,7 @@ private:
   void closeTrace();
   void queueTraceFailure();
   void traceIdentifiers(uint32_t& tag, uint32_t& auth);
+  void admitTrace(uint32_t now, uint32_t delay = 0);
+  void pumpTraceReport(uint32_t now, bool queue_early = false);
 };
 
