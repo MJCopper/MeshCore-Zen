@@ -5,7 +5,7 @@
 
 This branch provides dedicated environmental-sensor firmware for a Seeed Studio
 XIAO nRF52840, an SX1262 LoRa radio and a Bosch BME680. It is based on
-**MeshCore v1.17.1** and uses the standard MeshCore sensor protocol.
+**MeshCore v1.18.0** and uses the standard MeshCore sensor protocol.
 
 ## Supported hardware
 
@@ -97,7 +97,7 @@ from an earlier installation take precedence over build defaults.
 ## Development
 
 The sensor application lives in `examples/bme680_sensor/`, selected by the
-`Xiao_nrf52_bme680_sensor` PlatformIO environment. It reuses the MeshCore v1.17.1
+`Xiao_nrf52_bme680_sensor` PlatformIO environment. It reuses the MeshCore v1.18.0
 sensor runtime through small application-policy hooks. The environmental
 driver and standard sensor entry point retain their upstream implementations.
 

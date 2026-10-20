@@ -19,3 +19,5 @@ The guides cover the hardware and software provided by the
 
 - [Building the Firmware](./building_sensor.md)
 - [Development and Testing](./sensor_features/development/development.md)
+
+[MeshCore 1.18 integration and acceptance record](upgrades/meshcore-1.18.md)

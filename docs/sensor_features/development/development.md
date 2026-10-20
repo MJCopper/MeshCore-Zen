@@ -4,10 +4,11 @@
 
 ## Baseline
 
-The integration baseline is MeshCore v1.17.1, release commit `d9296435`.
-Use this commit for comparisons: the fork's local tag named `v1.17.1` points
-to a different, Solo-related commit. The extraction started from sensor commit
-`5f1bc689`.
+The integration baseline is MeshCore v1.18.0, official release commit
+`81dbae592ffad40b4212bc0b37e82b38da08f4bc`. Use the official
+`companion-v1.18.0`, `repeater-v1.18.0` and `room-server-v1.18.0` tags;
+all three resolve to this commit. Do not infer the baseline from unrelated
+fork-local version tags.
 
 ## Application modules
 

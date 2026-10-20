@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Pin the verified upstream release commit; the fork has an unrelated release tag.
-baseline=d9296435
+baseline=81dbae592ffad40b4212bc0b37e82b38da08f4bc
 git diff --exit-code "$baseline" -- \
   examples/simple_sensor/main.cpp \
   src/helpers/sensors/EnvironmentSensorManager.cpp
@@ -15,4 +15,4 @@ if rg -n 'PUBLIC_CHANNEL_SENSOR_BOT|hillvue|BME680AirQuality|Bme680Telemetry|Sen
   echo "Custom sensor policy has leaked into baseline code" >&2
   exit 1
 fi
-echo "Sensor boundaries match the v1.17.1 integration contract"
+echo "Sensor boundaries match the v1.18.0 integration contract"

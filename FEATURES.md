@@ -1,6 +1,6 @@
 # BME680 sensor features
 
-This firmware specialises MeshCore v1.17.1 for a fixed environmental sensor
+This firmware specialises MeshCore v1.18.0 for a fixed environmental sensor
 built from a XIAO nRF52840, an SX1262 radio and a BME680.
 
 | Area | Behaviour |
