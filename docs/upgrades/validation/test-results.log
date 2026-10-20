@@ -1,0 +1,140 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 10 tests
+
+Processing test_companion_118 in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+Companion118.RadioCommandsUpdateRealPreferencesAndDirtyState	[PASSED]
+Companion118.DynamicFemKeysRemainIndependentAndRejectUnknownKeys	[PASSED]
+Companion118.InvalidRadioCommandDoesNotReplaceConfiguredRadio	[PASSED]
+------------- native:test_companion_118 [PASSED] Took 3.03 seconds -------------
+
+Processing test_public_archive in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PublicArchive.OnlyPlainNonemptyPublicTextIsAccepted	[PASSED]
+PublicArchive.RejectsMalformedLengthsAndInvalidChannelSearchInputs	[PASSED]
+------------ native:test_public_archive [PASSED] Took 1.36 seconds ------------
+
+Processing test_archive_session in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ArchiveSession.HopCountUsesEncodedCountAndHandlesUnknownReversePath	[PASSED]
+ArchiveSession.FullBufferWrapAndTwentyMessageFloor	[PASSED]
+ArchiveSession.SnapshotAndSyncSinceExcludeNewAndPreviouslyDeliveredPosts	[PASSED]
+------------ native:test_archive_session [PASSED] Took 1.33 seconds ------------
+
+Processing test_utils in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UtilsToHex.ConvertSingleByte	[PASSED]
+UtilsToHex.ConvertMultipleBytes	[PASSED]
+UtilsToHex.ConvertZeroByte	[PASSED]
+UtilsToHex.ConvertMaxByte	[PASSED]
+UtilsToHex.NullTerminatesOnEmptyInput	[PASSED]
+----------------- native:test_utils [PASSED] Took 1.41 seconds -----------------
+
+Processing test_utf8_helpers in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UTF8Helpers.KeepsCompleteNameWithinLimit	[PASSED]
+UTF8Helpers.StopsBeforeCodePointCrossingLimit	[PASSED]
+UTF8Helpers.RejectsMalformedAndTruncatedSequences	[PASSED]
+UTF8Helpers.RejectsUnexpectedContinuationByte	[PASSED]
+------------- native:test_utf8_helpers [PASSED] Took 1.53 seconds -------------
+
+Processing test_routing_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+FloodHopLimit.UnscopedFloodIsDroppedAtFirstHopWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.ScopedFloodIsForwardedWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.UnscopedFloodSurvivesUpToMaxUnscopedHops	[PASSED]
+FloodHopLimit.ScopedFloodStillHonoursFloodMaxAndAdvertMax	[PASSED]
+FloodHopLimit.UnscopedAdvertIsAlsoDroppedAtHopZero	[PASSED]
+ReplyRoute.FloodRequestGetsAPathReturn	[PASSED]
+ReplyRoute.DirectRequestWithSuppliedPathRepliesDirect	[PASSED]
+ReplyRoute.DirectRequestWithKnownOutPathRepliesDirect	[PASSED]
+ReplyRoute.SuppliedPathWinsOverStoredOutPath	[PASSED]
+ReplyRoute.DirectRequestWithNoReturnPathFallsBackToFlood	[PASSED]
+ReplyScope.MirrorsTheRequestScopeWhenKnown	[PASSED]
+ReplyScope.RepliesUnscopedToAnUnscopedFloodEvenWhenADefaultScopeExists	[PASSED]
+ReplyScope.FallsBackToDefaultScopeWhenRequestScopeUnknown	[PASSED]
+ReplyScope.SendsUnscopedOnlyWhenNoScopeIsAvailableAtAll	[PASSED]
+------------ native:test_routing_policy [PASSED] Took 1.39 seconds ------------
+
+Processing test_mesh_tables in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SimpleMeshTables.WasSeen_ReturnsFalseForUnseen	[PASSED]
+SimpleMeshTables.WasSeen_IsPureQuery_DoesNotInsert	[PASSED]
+SimpleMeshTables.MarkSeen_MakesWasSeenReturnTrue	[PASSED]
+SimpleMeshTables.MarkSeen_DoesNotAffectOtherPackets	[PASSED]
+SimpleMeshTables.QueryThenMark_WorksCorrectly	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsFloodDupStat	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsDirectDupStat	[PASSED]
+SimpleMeshTables.Clear_RemovesSeenPacket	[PASSED]
+-------------- native:test_mesh_tables [PASSED] Took 1.49 seconds --------------
+
+Processing test_config_serializer in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ConfigSerializer.SaveSerial_Basic	[PASSED]
+ConfigSerializer.SaveSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_Basic	[PASSED]
+ConfigSerializer.LoadSerial_HandleWhitespace	[PASSED]
+ConfigSerializer.LoadSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_UnmatchedBraces	[PASSED]
+ConfigSerializer.LoadSerial_MissingCommas	[PASSED]
+ConfigSerializer.LoadSerial_IgnoreUnknowns	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObject	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObjectWithWhitespace	[PASSED]
+DynamicConfigSerializer.GetSet_Basic	[PASSED]
+DynamicConfigSerializer.Set_Replaces	[PASSED]
+DynamicConfigSerializer.GetUnknown_Fail	[PASSED]
+DynamicConfigSerializer.SaveCustom_Basic	[PASSED]
+DynamicConfigSerializer.LoadCustom_Basic	[PASSED]
+----------- native:test_config_serializer [PASSED] Took 1.29 seconds -----------
+
+Processing test_companion_node_prefs in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CompanionNodePrefs.RxGainSettingsRoundTripIndependently	[PASSED]
+--------- native:test_companion_node_prefs [PASSED] Took 1.23 seconds ---------
+
+Processing test_kiss_modem in native_kiss_modem environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+KissModemFixture.PingResponseShouldNotStallLoopUnderTxBackpressure	[PASSED]
+KissModemFixture.PingResponseKeepsStandardKissFraming	[PASSED]
+KissModemFixture.PingResponseKeepsFramingWithPartialBulkWrites	[PASSED]
+KissModemFixture.PacketAndMetaAreQueuedTogetherUnderBackpressure	[PASSED]
+KissModemFixture.RadioTxCompletionAdvancesWhileHostOutputIsBackedUp	[PASSED]
+KissModemFixture.QueueFullReportsBusyWithoutDroppingQueuedFrames	[PASSED]
+KissModemFixture.QueuedEncoderEscapesKissSpecialBytes	[PASSED]
+KissModemFixture.MaxPacketWorstCaseEscapingFitsQueuedFrame	[PASSED]
+--------- native_kiss_modem:test_kiss_modem [PASSED] Took 1.06 seconds ---------
+
+=================================== SUMMARY ===================================
+Environment        Test                       Status    Duration
+-----------------  -------------------------  --------  ------------
+native             test_companion_118         PASSED    00:00:03.033
+native             test_public_archive        PASSED    00:00:01.357
+native             test_archive_session       PASSED    00:00:01.334
+native             test_utils                 PASSED    00:00:01.412
+native             test_utf8_helpers          PASSED    00:00:01.529
+native             test_routing_policy        PASSED    00:00:01.390
+native             test_mesh_tables           PASSED    00:00:01.490
+native             test_config_serializer     PASSED    00:00:01.288
+native             test_companion_node_prefs  PASSED    00:00:01.234
+native_kiss_modem  test_kiss_modem            PASSED    00:00:01.064
+================= 63 test cases: 63 succeeded in 00:00:15.131 =================

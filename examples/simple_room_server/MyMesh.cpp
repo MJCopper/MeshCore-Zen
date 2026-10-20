@@ -1,4 +1,7 @@
 #include "MyMesh.h"
+#ifdef PUBLIC_CHANNEL_ARCHIVE
+#include "ArchiveSessionPolicy.h"
+#endif
 
 #define REPLY_DELAY_MILLIS          1500
 #define PUSH_NOTIFY_DELAY_MILLIS    2000
@@ -92,24 +95,7 @@ uint32_t MyMesh::newestPostTimestamp() const {
 }
 
 uint32_t MyMesh::historyFloorForLimit(uint32_t cutoff, uint8_t limit) const {
-  uint32_t cursor = cutoff;
-  uint32_t oldest_included = 0;
-  bool include_cursor = true;
-
-  for (uint8_t n = 0; n < limit; n++) {
-    uint32_t next = 0;
-    for (int i = 0; i < MAX_UNSYNCED_POSTS; i++) {
-      uint32_t timestamp = posts[i].post_timestamp;
-      if (timestamp > next && (timestamp < cursor || (include_cursor && timestamp == cursor)))
-        next = timestamp;
-    }
-    if (next == 0) return 0;
-    oldest_included = next;
-    cursor = next;
-    include_cursor = false;
-  }
-
-  return oldest_included > 0 ? oldest_included - 1 : 0;
+  return ArchiveSessionPolicy::historyFloor(posts, cutoff, limit);
 }
 
 int MyMesh::searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches) {
@@ -425,7 +411,7 @@ void MyMesh::onAnonDataRecv(mesh::Packet *packet, const uint8_t *secret, const m
       if (perm != PERM_ACL_ADMIN) perm = PERM_ACL_GUEST;
 #endif
       client = acl.putClient(sender, 0);  // add to known clients (if not already known)
-      if (sender_timestamp <= client->last_timestamp) {
+      if (!client || sender_timestamp <= client->last_timestamp) {
         MESH_DEBUG_PRINTLN("possible replay attack!");
         return;
       }
@@ -448,9 +434,8 @@ void MyMesh::onAnonDataRecv(mesh::Packet *packet, const uint8_t *secret, const m
     int archive_client_idx = clientIndex(client);
     if (archive_client_idx >= 0) {
       uint32_t cutoff = newestPostTimestamp();
-      uint8_t hops = packet->isRouteFlood()
-          ? packet->getPathHashCount()
-          : (client->out_path_len == OUT_PATH_UNKNOWN ? 0 : client->out_path_len & 63);
+      uint8_t hops = ArchiveSessionPolicy::hops(packet->isRouteFlood(),
+          packet->getPathHashCount(), client->out_path_len);
       archive_session_cutoff[archive_client_idx] = cutoff;
       archive_session_floor[archive_client_idx] = hops >= 2
           ? historyFloorForLimit(cutoff, 20)
@@ -527,7 +512,7 @@ void MyMesh::onPeerDataRecv(mesh::Packet *packet, uint8_t type, int sender_idx, 
     memcpy(&sender_timestamp, data, 4); // timestamp (by sender's RTC clock - which could be wrong)
     uint8_t flags = (data[4] >> 2);        // message attempt number, and other flags
 
-    if (!(flags == TXT_TYPE_PLAIN || flags == TXT_TYPE_CLI_DATA)) {
+    if (!(flags == TXT_TYPE_PLAIN || flags == TXT_TYPE_CLI_DATA || flags == TXT_TYPE_CLI_COMMAND)) {
       MESH_DEBUG_PRINTLN("onPeerDataRecv: unsupported command flags received: flags=%02x", (uint32_t)flags);
     } else if (sender_timestamp >= client->last_timestamp) { // prevent replay attacks, but send Acks for retries
       bool is_retry = (sender_timestamp == client->last_timestamp);
@@ -547,7 +532,7 @@ void MyMesh::onPeerDataRecv(mesh::Packet *packet, uint8_t type, int sender_idx, 
 
       uint8_t temp[166];
       bool send_ack;
-      if (flags == TXT_TYPE_CLI_DATA) {
+      if (flags == TXT_TYPE_CLI_DATA || flags == TXT_TYPE_CLI_COMMAND) {
         if (client->isAdmin()) {
           if (is_retry) {
             temp[5] = 0; // no reply
@@ -828,8 +813,8 @@ void MyMesh::begin(FILESYSTEM *fs) {
   radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
   radio_driver.setTxPower(_prefs.tx_power_dbm);
   radio_driver.setRxBoostedGainMode(_prefs.rx_boosted_gain);
-  board.setLoRaFemLnaEnabled(_prefs.radio_fem_rxgain);
-  board.setLoRaFemPaGainEnabled(_prefs.radio_fem_txgain);
+
+  board.attachDynamicPrefs(_prefs.getCustom());
 
   updateAdvertTimer();
   updateFloodAdvertTimer();
@@ -1090,6 +1075,8 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       snprintf(reply, MAX_POST_TEXT_LEN, "OK");
     }
 #endif
+  } else if (memcmp(command, "set repeat on", 13) == 0) {
+    strcpy(reply, "ERR - repeat now deprecated");
   } else{
     _cli.handleCommand(sender_timestamp, command, reply);  // common CLI commands
   }
@@ -1133,8 +1120,8 @@ void MyMesh::loop() {
 #endif
         if (ready && p->post_timestamp > client->extra.room.sync_since // is new post for this Client?
 #ifdef PUBLIC_CHANNEL_ARCHIVE
-            && p->post_timestamp <= archive_session_cutoff[client_idx]
-            && p->post_timestamp > archive_session_floor[client_idx]
+            && ArchiveSessionPolicy::inSnapshot(p->post_timestamp, client->extra.room.sync_since,
+                archive_session_floor[client_idx], archive_session_cutoff[client_idx])
 #endif
             && !p->author.matches(client->id)) {   // don't push posts to the author
           // push this post to Client, then wait for ACK

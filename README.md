@@ -4,7 +4,7 @@
 > the archive node to the mesh.
 
 This branch provides a read-only, RAM-based Public-channel archive for a Seeed
-Studio XIAO nRF52840 and SX1262 LoRa radio. It is based on **MeshCore v1.17.1**
+Studio XIAO nRF52840 and SX1262 LoRa radio. It is based on **MeshCore v1.18.0**
 and presents archived messages through the standard MeshCore room interface.
 
 ## Supported hardware

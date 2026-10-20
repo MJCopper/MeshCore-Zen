@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - meshcore/archiver
   pull_request:
   workflow_dispatch:
 

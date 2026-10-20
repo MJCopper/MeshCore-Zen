@@ -1,6 +1,6 @@
 # Access and Management
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md)
 
 The archive uses MeshCore's encrypted room-server login and ACL protocol. Room
 access and Public-channel reception are independent.

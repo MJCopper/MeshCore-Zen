@@ -1,6 +1,6 @@
 # Building the Public Archive
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md)
 
 The firmware is built with Python 3 and
 [PlatformIO Core](https://platformio.org/install/cli). Install Git, Python 3 and
@@ -36,7 +36,7 @@ artifacts are:
 ```
 
 Flash `firmware.uf2` using the USB bootloader procedure in the
-[README](../README.md#flashing). The ZIP is intended for a compatible Nordic DFU
+[README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md#flashing). The ZIP is intended for a compatible Nordic DFU
 workflow.
 
 To rebuild from scratch:

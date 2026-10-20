@@ -1,6 +1,6 @@
 # Hardware and Wiring
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md)
 
 The archive target is built for a Seeed Studio XIAO nRF52840 and an SX1262 LoRa
 module. There is no display, keyboard or external message-storage device.

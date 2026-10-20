@@ -1,6 +1,6 @@
 # Public Channel Archive
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md)
 
 The `Xiao_nrf52_archiver` target provides a display-free, read-only archive for
 MeshCore's built-in Public channel. It stores the newest 256 text messages in

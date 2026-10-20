@@ -1,0 +1,15 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 10 tests
+
+Processing test_companion_node_prefs in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CompanionNodePrefs.RxGainSettingsRoundTripIndependently	[PASSED]
+--------- native:test_companion_node_prefs [PASSED] Took 2.99 seconds ---------
+
+=================================== SUMMARY ===================================
+Environment    Test                       Status    Duration
+-------------  -------------------------  --------  ------------
+native         test_companion_node_prefs  PASSED    00:00:02.991
+================== 1 test cases: 1 succeeded in 00:00:02.991 ==================

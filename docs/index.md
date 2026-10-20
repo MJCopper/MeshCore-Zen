@@ -11,3 +11,5 @@ history and exposes that history through a read-only room-server interface.
 - [Archive Behaviour](./archiver_features/archive/archive.md)
 - [Access and Management](./archiver_features/access/access.md)
 - [Building the Firmware](./building_archiver.md)
+
+[MeshCore 1.18 integration and acceptance record](upgrades/meshcore-1.18.md)

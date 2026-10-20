@@ -1,6 +1,6 @@
 # Archive Behaviour
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/archiver/README.md)
 
 ## Message capture
 

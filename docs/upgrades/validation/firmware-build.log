@@ -1,0 +1,1057 @@
+Processing Xiao_nrf52_room_server (board: seeed-xiao-afruitnrf52-nrf52840; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Removing NonBlockingRTTTL @ 1.4.0
+Library Manager: NonBlockingRTTTL@1.4.0 has been removed!
+Library Manager: Removing Adafruit SH110X @ 2.1.15
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit GFX Library @ 1.12.6
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit BusIO @ 1.17.4
+Library Manager: Adafruit BusIO@1.17.4 has been removed!
+Library Manager: Adafruit GFX Library@1.12.6 has been removed!
+Library Manager: Adafruit SH110X@2.1.15 has been removed!
+Library Manager: Removing base64 @ 1.4.0
+Library Manager: base64@1.4.0 has been removed!
+Library Manager: Installing Adafruit BusIO
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit BusIO@1.17.4 has been installed!
+Library Manager: Installing Adafruit GFX Library
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit GFX Library@1.12.6 has been installed!
+Library Manager: Resolving dependencies...
+Library Manager: Installing Adafruit SH110X
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit SH110X@2.1.15 has been installed!
+Library Manager: Resolving dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-xiao-afruitnrf52-nrf52840.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Studio XIAO nRF52840
+HARDWARE: NRF52840 64MHz, 230KB RAM, 792KB Flash
+DEBUG: Current (jlink) External (blackmagic, cmsis-dap, jlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit INA3221 Library @ 1.0.1
+|-- Adafruit INA219 @ 1.2.3
+|-- INA226 @ 0.6.6
+|-- Adafruit INA260 Library @ 1.5.3
+|-- Adafruit AHTX0 @ 2.0.6
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- Adafruit SHTC3 Library @ 1.0.2
+|-- Sensirion I2C SHT4x @ 1.1.2
+|-- Arduino_LPS22HB @ 1.0.3
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit_VL53L0X @ 1.2.5
+|-- MicroNMEA @ 2.0.6
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+Building in release mode
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_TinyUSB_API.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Device.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Interface.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBH_Host.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/cdc/Adafruit_USBH_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/hid/Adafruit_USBD_HID.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/midi/Adafruit_USBD_MIDI.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBD_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBH_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/ch32/Adafruit_TinyUSB_ch32.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/esp32/Adafruit_TinyUSB_esp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/nrf/Adafruit_TinyUSB_nrf.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/rp2040/Adafruit_TinyUSB_rp2040.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/samd/Adafruit_TinyUSB_samd.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/video/Adafruit_USBD_Video.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/arduino/webusb/Adafruit_USBD_WebUSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/audio/audio_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/bth/bth_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_host.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_rt_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_host.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_host.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_host.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/net/ecm_rndis_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/net/ncm_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/usbtmc/usbtmc_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/vendor/vendor_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/class/video/video_device.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/common/tusb_fifo.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/device/usbd.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/device/usbd_control.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/host/hub.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/host/usbh.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/analog/max3421/hcd_max3421.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/microchip/samd/dcd_samd.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/nordic/nrf5x/dcd_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/dcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/hcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/hcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/rp2040_usb.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/st/stm32_fsdev/dcd_stm32_fsdev.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dwc2_common.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/hcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbfs.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbhs.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/libee6/Adafruit_TinyUSB_Arduino/tusb.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/examples/simple_room_server/MyMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/examples/simple_room_server/UITask.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/examples/simple_room_server/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/variants/xiao_nrf52/XiaoNrf52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/variants/xiao_nrf52/target.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/variants/xiao_nrf52/variant.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/Dispatcher.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/Identity.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/Mesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/Packet.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/armstubs.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/AdvertDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ArduinoSerialInterface.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/AutoDiscoverRTCClock.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/BaseChatMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ClientACL.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/CommonCLI.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/CommonRadioPrefs.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/DynamicConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ESP32Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/IdentityStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/NRF52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/RTC_RX8130CE.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/RegionMap.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/StaticPoolPacketManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/TransportKeyStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/TxtDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/bridges/BridgeBase.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/radiolib/RadioLibWrappers.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/sensors/EnvironmentSensorManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/sensors/RAK12035_SoilMoisture.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ui/MomentaryButton.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/src/helpers/ui/NullDisplayDriver.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libd52/SPI/SPI.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libd52/SPI/SPI_nrf52832.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/liba54/Wire/Wire_nRF52.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/Hal.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/Module.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/hal/Arduino/ArduinoHal.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libd52/libSPI.a
+Indexing .pio/build/Xiao_nrf52_room_server/libd52/libSPI.a
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/hal/ESP-IDF/EspHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/hal/RPiPico/PicoHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/hal/Stm32duino/Stm32wlHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/CC1101/CC1101.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LLCC68/LLCC68.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR1110.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/liba54/libWire.a
+Indexing .pio/build/Xiao_nrf52_room_server/liba54/libWire.a
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR1120.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR1121.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR11x0.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR11x0_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR11x0_crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR11x0_gnss.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR11x0_wifi.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR11x0/LR_common.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_chip_control.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_flrc.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_gfsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_lora.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_misc.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_ook.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_oqpsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_radio.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_cmds_ranging.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/LR2021/LR2021_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/RF69/RF69.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX123x/SX1231.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX123x/SX1233.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/STM32WLx.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX1261.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX1262.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX1268.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX126x.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX126x_LR_FHSS.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX126x_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX126x/SX126x_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1272.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1273.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1276.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1277.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1278.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX1279.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX127x/SX127x.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX128x/SX1280.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX128x/SX1281.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX128x/SX1282.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/SX128x/SX128x.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/Si443x/Si4430.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/Si443x/Si4431.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/Si443x/Si4432.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/Si443x/Si443x.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/modules/nRF24/nRF24.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/ADSB/ADSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/AFSK/AFSK.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/APRS/APRS.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/AX25/AX25.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/BellModem/BellModem.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/ExternalRadio/ExternalRadio.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/FSK4/FSK4.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/Hellschreiber/Hellschreiber.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/LoRaWAN/LoRaWAN.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/LoRaWAN/LoRaWANBands.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/LoRaWAN/LoRaWANPacMan.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS003.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS009.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/Morse/Morse.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/Pager/Pager.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/PhysicalLayer/PhysicalLayer.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/Print/ITA2String.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/Print/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/RTTY/RTTY.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/protocols/SSTV/SSTV.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/utils/BCH.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/utils/CRC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/utils/ConvCode.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/utils/Cryptography.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdcd/RadioLib/utils/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AES128.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AES192.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AES256.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AESCommon.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AESEsp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/AuthenticatedCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/BLAKE2b.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/BLAKE2s.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/BigNumberUtil.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/BlockCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/CTR.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/ChaCha.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/ChaChaPoly.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Cipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Curve25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/EAX.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Ed25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/GCM.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/GF128.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/GHASH.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/HKDF.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/KeccakCore.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/NoiseSource.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/OMAC.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/P521.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/Poly1305.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/RNG.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHA224.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHA256.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHA3.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHA384.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHA512.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/SHAKE.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/XOF.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib521/Crypto/XTS.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib01f/Adafruit BusIO/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib01f/Adafruit BusIO/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib01f/Adafruit BusIO/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib01f/Adafruit BusIO/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_DS1307.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_DS3231.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libdcd/libRadioLib.a
+Indexing .pio/build/Xiao_nrf52_room_server/libdcd/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_Micros.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_Millis.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_PCF8523.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTC_PCF8563.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libe56/RTClib/RTClib.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib01f/libAdafruit BusIO.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib01f/libAdafruit BusIO.a
+Compiling .pio/build/Xiao_nrf52_room_server/liba11/Melopero RV3028/Melopero_RV3028.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/liba42/CayenneLPP/CayenneLPP.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/liba42/CayenneLPP/CayenneLPPPolyline.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libb8c/Adafruit_LittleFS/Adafruit_LittleFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libb8c/Adafruit_LittleFS/Adafruit_LittleFS_File.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libb8c/Adafruit_LittleFS/littlefs/lfs.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/libe56/libRTClib.a
+Indexing .pio/build/Xiao_nrf52_room_server/libe56/libRTClib.a
+Compiling .pio/build/Xiao_nrf52_room_server/libb8c/Adafruit_LittleFS/littlefs/lfs_util.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib05e/InternalFileSytem/InternalFileSystem.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/liba11/libMelopero RV3028.a
+Indexing .pio/build/Xiao_nrf52_room_server/liba11/libMelopero RV3028.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib05e/InternalFileSytem/flash/flash_cache.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib05e/InternalFileSytem/flash/flash_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib86c/CustomLFS/CustomLFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib86c/CustomLFS/CustomLFS_QSPIFlash.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib86c/CustomLFS/CustomLFS_SPIFlash.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib05e/libInternalFileSytem.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib05e/libInternalFileSytem.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib3bd/Adafruit INA3221 Library/Adafruit_INA3221.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libdff/Adafruit INA219/Adafruit_INA219.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libdff/libAdafruit INA219.a
+Indexing .pio/build/Xiao_nrf52_room_server/libdff/libAdafruit INA219.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib1d5/INA226/INA226.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib3bd/libAdafruit INA3221 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib3bd/libAdafruit INA3221 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/libf16/Adafruit INA260 Library/Adafruit_INA260.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libf40/Adafruit Unified Sensor/Adafruit_Sensor.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib86c/libCustomLFS.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib86c/libCustomLFS.a
+Compiling .pio/build/Xiao_nrf52_room_server/libcc1/Adafruit AHTX0/Adafruit_AHTX0.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libb8c/libAdafruit_LittleFS.a
+Indexing .pio/build/Xiao_nrf52_room_server/libb8c/libAdafruit_LittleFS.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib174/Adafruit BME280 Library/Adafruit_BME280.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libf16/libAdafruit INA260 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/libf16/libAdafruit INA260 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib1fe/Adafruit BMP280 Library/Adafruit_BMP280.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libf40/libAdafruit Unified Sensor.a
+Indexing .pio/build/Xiao_nrf52_room_server/libf40/libAdafruit Unified Sensor.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib1f2/Adafruit SHTC3 Library/Adafruit_SHTC3.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib1d5/libINA226.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib1d5/libINA226.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionCrc.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libcc1/libAdafruit AHTX0.a
+Indexing .pio/build/Xiao_nrf52_room_server/libcc1/libAdafruit AHTX0.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionErrors.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionI2CCommunication.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionI2CTxFrame.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib1f2/libAdafruit SHTC3 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib1f2/libAdafruit SHTC3 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionRxFrame.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib174/libAdafruit BME280 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib174/libAdafruit BME280 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionShdlcCommunication.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib201/Sensirion Core/SensirionShdlcTxFrame.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib1fe/libAdafruit BMP280 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib1fe/libAdafruit BMP280 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib296/Sensirion I2C SHT4x/SensirionI2cSht4x.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib2c1/Arduino_LPS22HB/BARO.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libb15/Adafruit MLX90614 Library/Adafruit_MLX90614.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/Adafruit_VL53L0X.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib2c1/libArduino_LPS22HB.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib2c1/libArduino_LPS22HB.a
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/core/src/vl53l0x_api.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib201/libSensirion Core.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib201/libSensirion Core.a
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/core/src/vl53l0x_api_calibration.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/core/src/vl53l0x_api_core.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib296/libSensirion I2C SHT4x.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib296/libSensirion I2C SHT4x.a
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/core/src/vl53l0x_api_ranging.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libb15/libAdafruit MLX90614 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/libb15/libAdafruit MLX90614 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/core/src/vl53l0x_api_strings.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/platform/src/vl53l0x_i2c_comms.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libc5e/Adafruit_VL53L0X/platform/src/vl53l0x_platform.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib521/libCrypto.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib521/libCrypto.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib027/MicroNMEA/MicroNMEA.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libfd6/Adafruit BME680 Library/Adafruit_BME680.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/libfd6/Adafruit BME680 Library/bme68x.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib1f6/Adafruit BMP085 Library/Adafruit_BMP085.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/Adafruit_nRFCrypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libc5e/libAdafruit_VL53L0X.a
+Indexing .pio/build/Xiao_nrf52_room_server/libc5e/libAdafruit_VL53L0X.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PrivateKey.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/liba42/libCayenneLPP.a
+Indexing .pio/build/Xiao_nrf52_room_server/liba42/libCayenneLPP.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PublicKey.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib1f6/libAdafruit BMP085 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib1f6/libAdafruit BMP085 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/nRFCrypto_Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/nRFCrypto_Hmac.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib672/Adafruit_nRFCrypto/nRFCrypto_Random.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/add_scalar.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/fe.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib027/libMicroNMEA.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib027/libMicroNMEA.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/ge.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/key_exchange.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/keypair.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/sc.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/seed.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib672/libAdafruit_nRFCrypto.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib672/libAdafruit_nRFCrypto.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/sha512.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/sign.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib805/ed25519/verify.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEAdvertising.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLECentral.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLECharacteristic.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/libfd6/libAdafruit BME680 Library.a
+Indexing .pio/build/Xiao_nrf52_room_server/libfd6/libAdafruit BME680 Library.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEClientCharacteristic.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEClientService.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEConnection.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEDiscovery.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEGatt.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEPeriph.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEScanner.cpp.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib805/libed25519.a
+Indexing .pio/build/Xiao_nrf52_room_server/lib805/libed25519.a
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLESecurity.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEService.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/BLEUuid.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/bluefruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEAncs.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientCts.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/clients/BLEClientUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEBeacon.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEDfu.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEHidGamepad.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEHidGeneric.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEMidi.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/BLEUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/services/EddyStone.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/utility/AdaMsg.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/utility/bonding.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/lib17e/Bluefruit52Lib/utility/bootloader_util.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/libFrameworkArduinoVariant.a
+Indexing .pio/build/Xiao_nrf52_room_server/libFrameworkArduinoVariant.a
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/HardwarePWM.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/RingBuffer.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/Uart.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/WInterrupts.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/WMath.cpp.o
+Indexing .pio/build/Xiao_nrf52_room_server/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/abi.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/avr/dtostrf.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/delay.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/croutine.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/event_groups.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/list.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/portable/MemMang/heap_3.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/queue.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/stream_buffer.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/tasks.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/Source/timers.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/freertos/portable/GCC/nrf52/port.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/hooks.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/itoa.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/linker/gcc_startup_nrf52.S.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/linker/gcc_startup_nrf52833.S.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/linker/gcc_startup_nrf52840.S.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/new.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_gpiote.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_power.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_pwm.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_qspi.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spim.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spis.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_temp.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_timer.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/mdk/system_nrf52.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/mdk/system_nrf52833.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/nordic/nrfx/mdk/system_nrf52840.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/pulse.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/pulse_asm.S.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/rtos.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/SEGGER/SEGGER_RTT.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_ASM_ARMv7M.S.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_printf.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/SEGGER/SEGGER_SYSVIEW.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/sysview/SEGGER_SYSVIEW_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/utility/AdaCallback.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/utility/SoftwareTimer.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/utility/adafruit_fifo.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/utility/debug.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/utility/utilities.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring_analog.cpp.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring_analog_nRF52.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring_digital.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring_private.c.o
+Compiling .pio/build/Xiao_nrf52_room_server/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/Xiao_nrf52_room_server/libFrameworkArduino.a
+Indexing .pio/build/Xiao_nrf52_room_server/libFrameworkArduino.a
+Linking .pio/build/Xiao_nrf52_room_server/firmware.elf
+Building .pio/build/Xiao_nrf52_room_server/firmware.hex
+Checking size .pio/build/Xiao_nrf52_room_server/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [==        ]  16.3% (used 38284 bytes from 235520 bytes)
+Flash: [====      ]  43.6% (used 353264 bytes from 811008 bytes)
+Building .pio/build/Xiao_nrf52_room_server/firmware.zip
+Zip created at .pio/build/Xiao_nrf52_room_server/firmware.zip
+========================= [SUCCESS] Took 61.23 seconds =========================
+
+Processing Xiao_nrf52_archiver (board: seeed-xiao-afruitnrf52-nrf52840; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Removing NonBlockingRTTTL @ 1.4.0
+Library Manager: NonBlockingRTTTL@1.4.0 has been removed!
+Library Manager: Removing Adafruit SH110X @ 2.1.15
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit GFX Library @ 1.12.6
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit BusIO @ 1.17.4
+Library Manager: Adafruit BusIO@1.17.4 has been removed!
+Library Manager: Adafruit GFX Library@1.12.6 has been removed!
+Library Manager: Adafruit SH110X@2.1.15 has been removed!
+Library Manager: Removing base64 @ 1.4.0
+Library Manager: base64@1.4.0 has been removed!
+Library Manager: Installing Adafruit BusIO
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit BusIO@1.17.4 has been installed!
+Library Manager: Installing Adafruit GFX Library
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit GFX Library@1.12.6 has been installed!
+Library Manager: Resolving dependencies...
+Library Manager: Installing Adafruit SH110X
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit SH110X@2.1.15 has been installed!
+Library Manager: Resolving dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-xiao-afruitnrf52-nrf52840.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Studio XIAO nRF52840
+HARDWARE: NRF52840 64MHz, 230KB RAM, 792KB Flash
+DEBUG: Current (jlink) External (blackmagic, cmsis-dap, jlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit INA3221 Library @ 1.0.1
+|-- Adafruit INA219 @ 1.2.3
+|-- INA226 @ 0.6.6
+|-- Adafruit INA260 Library @ 1.5.3
+|-- Adafruit AHTX0 @ 2.0.6
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- Adafruit SHTC3 Library @ 1.0.2
+|-- Sensirion I2C SHT4x @ 1.1.2
+|-- Arduino_LPS22HB @ 1.0.3
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit_VL53L0X @ 1.2.5
+|-- MicroNMEA @ 2.0.6
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+Building in release mode
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_TinyUSB_API.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Device.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Interface.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBH_Host.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/cdc/Adafruit_USBH_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/hid/Adafruit_USBD_HID.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/midi/Adafruit_USBD_MIDI.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBD_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBH_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/ch32/Adafruit_TinyUSB_ch32.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/esp32/Adafruit_TinyUSB_esp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/nrf/Adafruit_TinyUSB_nrf.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/rp2040/Adafruit_TinyUSB_rp2040.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/samd/Adafruit_TinyUSB_samd.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/video/Adafruit_USBD_Video.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/arduino/webusb/Adafruit_USBD_WebUSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/audio/audio_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/bth/bth_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_host.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_rt_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_host.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_host.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_host.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/net/ecm_rndis_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/net/ncm_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/usbtmc/usbtmc_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/vendor/vendor_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/class/video/video_device.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/common/tusb_fifo.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/device/usbd.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/device/usbd_control.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/host/hub.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/host/usbh.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/analog/max3421/hcd_max3421.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/microchip/samd/dcd_samd.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/nordic/nrf5x/dcd_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/dcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/hcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/hcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/rp2040_usb.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/st/stm32_fsdev/dcd_stm32_fsdev.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dwc2_common.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/hcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbfs.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbhs.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/libee6/Adafruit_TinyUSB_Arduino/tusb.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/examples/simple_room_server/MyMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/examples/simple_room_server/UITask.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/examples/simple_room_server/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/variants/xiao_nrf52/XiaoNrf52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/variants/xiao_nrf52/target.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/variants/xiao_nrf52/variant.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/Dispatcher.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/Identity.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/Mesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/Packet.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/armstubs.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/AdvertDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ArduinoSerialInterface.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/AutoDiscoverRTCClock.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/BaseChatMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ClientACL.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/CommonCLI.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/CommonRadioPrefs.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/DynamicConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ESP32Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/IdentityStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/NRF52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/RTC_RX8130CE.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/RegionMap.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/StaticPoolPacketManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/TransportKeyStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/TxtDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/bridges/BridgeBase.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/radiolib/RadioLibWrappers.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/sensors/EnvironmentSensorManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/sensors/RAK12035_SoilMoisture.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ui/MomentaryButton.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/src/helpers/ui/NullDisplayDriver.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libd52/SPI/SPI.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libd52/SPI/SPI_nrf52832.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/liba54/Wire/Wire_nRF52.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/Hal.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/Module.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/hal/Arduino/ArduinoHal.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libd52/libSPI.a
+Indexing .pio/build/Xiao_nrf52_archiver/libd52/libSPI.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/hal/ESP-IDF/EspHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/hal/RPiPico/PicoHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/hal/Stm32duino/Stm32wlHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/CC1101/CC1101.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LLCC68/LLCC68.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR1110.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR1120.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR1121.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR11x0.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/liba54/libWire.a
+Indexing .pio/build/Xiao_nrf52_archiver/liba54/libWire.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR11x0_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR11x0_crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR11x0_gnss.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR11x0_wifi.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR11x0/LR_common.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_chip_control.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_flrc.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_gfsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_lora.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_misc.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_ook.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_oqpsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_radio.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_cmds_ranging.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/LR2021/LR2021_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/RF69/RF69.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX123x/SX1231.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX123x/SX1233.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/STM32WLx.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX1261.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX1262.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX1268.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX126x.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX126x_LR_FHSS.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX126x_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX126x/SX126x_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1272.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1273.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1276.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1277.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1278.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX1279.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX127x/SX127x.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX128x/SX1280.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX128x/SX1281.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX128x/SX1282.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/SX128x/SX128x.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/Si443x/Si4430.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/Si443x/Si4431.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/Si443x/Si4432.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/Si443x/Si443x.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/modules/nRF24/nRF24.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/ADSB/ADSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/AFSK/AFSK.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/APRS/APRS.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/AX25/AX25.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/BellModem/BellModem.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/ExternalRadio/ExternalRadio.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/FSK4/FSK4.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/Hellschreiber/Hellschreiber.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/LoRaWAN/LoRaWAN.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/LoRaWAN/LoRaWANBands.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/LoRaWAN/LoRaWANPacMan.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS003.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS009.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/Morse/Morse.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/Pager/Pager.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/PhysicalLayer/PhysicalLayer.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/Print/ITA2String.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/Print/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/RTTY/RTTY.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/protocols/SSTV/SSTV.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/utils/BCH.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/utils/CRC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/utils/ConvCode.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/utils/Cryptography.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib9ca/RadioLib/utils/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AES128.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AES192.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AES256.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AESCommon.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AESEsp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/AuthenticatedCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/BLAKE2b.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/BLAKE2s.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/BigNumberUtil.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/BlockCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/CTR.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/ChaCha.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/ChaChaPoly.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Cipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Curve25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/EAX.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Ed25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/GCM.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/GF128.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/GHASH.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/HKDF.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/KeccakCore.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/NoiseSource.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/OMAC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/P521.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/Poly1305.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/RNG.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHA224.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHA256.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHA3.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHA384.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHA512.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/SHAKE.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/XOF.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libe21/Crypto/XTS.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb7e/Adafruit BusIO/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb7e/Adafruit BusIO/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb7e/Adafruit BusIO/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb7e/Adafruit BusIO/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_DS1307.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_DS3231.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_Micros.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib9ca/libRadioLib.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib9ca/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_Millis.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_PCF8523.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTC_PCF8563.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libfc5/RTClib/RTClib.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libabd/Melopero RV3028/Melopero_RV3028.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libb7e/libAdafruit BusIO.a
+Indexing .pio/build/Xiao_nrf52_archiver/libb7e/libAdafruit BusIO.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib1d4/CayenneLPP/CayenneLPP.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib1d4/CayenneLPP/CayenneLPPPolyline.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb8c/Adafruit_LittleFS/Adafruit_LittleFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb8c/Adafruit_LittleFS/Adafruit_LittleFS_File.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb8c/Adafruit_LittleFS/littlefs/lfs.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/libfc5/libRTClib.a
+Indexing .pio/build/Xiao_nrf52_archiver/libfc5/libRTClib.a
+Compiling .pio/build/Xiao_nrf52_archiver/libb8c/Adafruit_LittleFS/littlefs/lfs_util.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib05e/InternalFileSytem/InternalFileSystem.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib05e/InternalFileSytem/flash/flash_cache.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/libabd/libMelopero RV3028.a
+Indexing .pio/build/Xiao_nrf52_archiver/libabd/libMelopero RV3028.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib05e/InternalFileSytem/flash/flash_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7f7/CustomLFS/CustomLFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7f7/CustomLFS/CustomLFS_QSPIFlash.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7f7/CustomLFS/CustomLFS_SPIFlash.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib05e/libInternalFileSytem.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib05e/libInternalFileSytem.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib26b/Adafruit INA3221 Library/Adafruit_INA3221.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib281/Adafruit INA219/Adafruit_INA219.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib26b/libAdafruit INA3221 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib26b/libAdafruit INA3221 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/liba17/INA226/INA226.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib973/Adafruit INA260 Library/Adafruit_INA260.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib7f7/libCustomLFS.a
+Archiving .pio/build/Xiao_nrf52_archiver/lib281/libAdafruit INA219.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib7f7/libCustomLFS.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib281/libAdafruit INA219.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib071/Adafruit Unified Sensor/Adafruit_Sensor.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb77/Adafruit AHTX0/Adafruit_AHTX0.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libb8c/libAdafruit_LittleFS.a
+Indexing .pio/build/Xiao_nrf52_archiver/libb8c/libAdafruit_LittleFS.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib25e/Adafruit BME280 Library/Adafruit_BME280.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib071/libAdafruit Unified Sensor.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib071/libAdafruit Unified Sensor.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib135/Adafruit BMP280 Library/Adafruit_BMP280.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib973/libAdafruit INA260 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib973/libAdafruit INA260 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib6e7/Adafruit SHTC3 Library/Adafruit_SHTC3.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/liba17/libINA226.a
+Indexing .pio/build/Xiao_nrf52_archiver/liba17/libINA226.a
+Archiving .pio/build/Xiao_nrf52_archiver/libb77/libAdafruit AHTX0.a
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionCrc.cpp.o
+Indexing .pio/build/Xiao_nrf52_archiver/libb77/libAdafruit AHTX0.a
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionErrors.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionI2CCommunication.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionI2CTxFrame.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib25e/libAdafruit BME280 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib25e/libAdafruit BME280 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionRxFrame.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib135/libAdafruit BMP280 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib135/libAdafruit BMP280 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionShdlcCommunication.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib6e7/libAdafruit SHTC3 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib6e7/libAdafruit SHTC3 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/libd12/Sensirion Core/SensirionShdlcTxFrame.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libff9/Sensirion I2C SHT4x/SensirionI2cSht4x.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libad9/Arduino_LPS22HB/BARO.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/libb8f/Adafruit MLX90614 Library/Adafruit_MLX90614.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/Adafruit_VL53L0X.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/core/src/vl53l0x_api.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libff9/libSensirion I2C SHT4x.a
+Indexing .pio/build/Xiao_nrf52_archiver/libff9/libSensirion I2C SHT4x.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/core/src/vl53l0x_api_calibration.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libd12/libSensirion Core.a
+Indexing .pio/build/Xiao_nrf52_archiver/libd12/libSensirion Core.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/core/src/vl53l0x_api_core.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libad9/libArduino_LPS22HB.a
+Indexing .pio/build/Xiao_nrf52_archiver/libad9/libArduino_LPS22HB.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/core/src/vl53l0x_api_ranging.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libe21/libCrypto.a
+Archiving .pio/build/Xiao_nrf52_archiver/libb8f/libAdafruit MLX90614 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/libe21/libCrypto.a
+Indexing .pio/build/Xiao_nrf52_archiver/libb8f/libAdafruit MLX90614 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/core/src/vl53l0x_api_strings.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/platform/src/vl53l0x_i2c_comms.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib7a7/Adafruit_VL53L0X/platform/src/vl53l0x_platform.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib71f/MicroNMEA/MicroNMEA.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib2fc/Adafruit BME680 Library/Adafruit_BME680.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib1d4/libCayenneLPP.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib2fc/Adafruit BME680 Library/bme68x.c.o
+Indexing .pio/build/Xiao_nrf52_archiver/lib1d4/libCayenneLPP.a
+Compiling .pio/build/Xiao_nrf52_archiver/libce6/Adafruit BMP085 Library/Adafruit_BMP085.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/Adafruit_nRFCrypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PrivateKey.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib7a7/libAdafruit_VL53L0X.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib7a7/libAdafruit_VL53L0X.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PublicKey.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/nRFCrypto_Hash.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/libce6/libAdafruit BMP085 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/libce6/libAdafruit BMP085 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/nRFCrypto_Hmac.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib672/Adafruit_nRFCrypto/nRFCrypto_Random.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/add_scalar.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/fe.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/ge.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/key_exchange.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib71f/libMicroNMEA.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/keypair.c.o
+Indexing .pio/build/Xiao_nrf52_archiver/lib71f/libMicroNMEA.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/sc.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/seed.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib672/libAdafruit_nRFCrypto.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/sha512.c.o
+Indexing .pio/build/Xiao_nrf52_archiver/lib672/libAdafruit_nRFCrypto.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/sign.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib805/ed25519/verify.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEAdvertising.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLECentral.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLECharacteristic.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib2fc/libAdafruit BME680 Library.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib2fc/libAdafruit BME680 Library.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEClientCharacteristic.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEClientService.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEConnection.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEDiscovery.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEGatt.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEPeriph.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib805/libed25519.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib805/libed25519.a
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEScanner.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLESecurity.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEService.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/BLEUuid.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/bluefruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEAncs.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientCts.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/clients/BLEClientUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEBeacon.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEDfu.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEHidGamepad.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEHidGeneric.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEMidi.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/BLEUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/services/EddyStone.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/utility/AdaMsg.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/utility/bonding.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/lib17e/Bluefruit52Lib/utility/bootloader_util.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/libFrameworkArduinoVariant.a
+Indexing .pio/build/Xiao_nrf52_archiver/libFrameworkArduinoVariant.a
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/HardwarePWM.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/RingBuffer.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/Uart.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/WInterrupts.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/abi.cpp.o
+Archiving .pio/build/Xiao_nrf52_archiver/lib17e/libBluefruit52Lib.a
+Indexing .pio/build/Xiao_nrf52_archiver/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/avr/dtostrf.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/delay.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/croutine.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/event_groups.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/list.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/portable/MemMang/heap_3.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/queue.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/stream_buffer.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/tasks.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/Source/timers.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/freertos/portable/GCC/nrf52/port.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/hooks.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/itoa.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/linker/gcc_startup_nrf52.S.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/linker/gcc_startup_nrf52833.S.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/linker/gcc_startup_nrf52840.S.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/new.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_gpiote.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_power.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_pwm.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_qspi.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spim.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spis.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_temp.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_timer.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/mdk/system_nrf52.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/mdk/system_nrf52833.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/nordic/nrfx/mdk/system_nrf52840.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/pulse.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/pulse_asm.S.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/rtos.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/SEGGER/SEGGER_RTT.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_ASM_ARMv7M.S.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_printf.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/SEGGER/SEGGER_SYSVIEW.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/sysview/SEGGER_SYSVIEW_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/utility/AdaCallback.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/utility/SoftwareTimer.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/utility/adafruit_fifo.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/utility/debug.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/utility/utilities.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring_analog.cpp.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring_analog_nRF52.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring_digital.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring_private.c.o
+Compiling .pio/build/Xiao_nrf52_archiver/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/Xiao_nrf52_archiver/libFrameworkArduino.a
+Indexing .pio/build/Xiao_nrf52_archiver/libFrameworkArduino.a
+Linking .pio/build/Xiao_nrf52_archiver/firmware.elf
+Building .pio/build/Xiao_nrf52_archiver/firmware.hex
+Checking size .pio/build/Xiao_nrf52_archiver/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [===       ]  32.7% (used 76924 bytes from 235520 bytes)
+Flash: [====      ]  43.7% (used 354592 bytes from 811008 bytes)
+Building .pio/build/Xiao_nrf52_archiver/firmware.zip
+Zip created at .pio/build/Xiao_nrf52_archiver/firmware.zip
+========================= [SUCCESS] Took 55.28 seconds =========================
+
+Environment             Status    Duration
+----------------------  --------  ------------
+Xiao_nrf52_room_server  SUCCESS   00:01:01.229
+Xiao_nrf52_archiver     SUCCESS   00:00:55.281
+========================= 2 succeeded in 00:01:56.510 =========================
