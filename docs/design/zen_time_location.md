@@ -1,6 +1,6 @@
 # Time and location orchestration
 
-[Back to README](../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen keeps the GPS algorithms separate from their orchestration.
 `EnvironmentSensorManager` owns receiver hardware and the existing continuous,

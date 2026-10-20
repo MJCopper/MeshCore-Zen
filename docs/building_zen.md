@@ -1,6 +1,6 @@
 # Building Zen
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen is built with Python 3 and [PlatformIO Core](https://platformio.org/install/cli).
 Install Git, Python 3 and PlatformIO, then clone the repository:
@@ -32,7 +32,7 @@ The versioned UF2 files are written directly to:
 ```
 
 The version is taken from `FIRMWARE_VERSION` in
-`examples/companion_radio/MyMesh.h`, without its leading `v`. PlatformIO also
+`examples/companion_radio/zen-overlay/app/MyMesh.h`, without its leading `v`. PlatformIO also
 creates `firmware.zip` in each target directory for BLE DFU.
 
 To rebuild a target from scratch:
@@ -45,7 +45,7 @@ pio run -e WioTrackerL1_Zen_E-INK
 ```
 
 Flash a locally built UF2 with the same Reset-button and USB-drive procedure in
-the [README](../README.md#flashing). Always export a fresh settings backup with
+the [README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md#flashing). Always export a fresh settings backup with
 the MeshCore companion app before flashing, including development builds.
 Verify that the target name matches the physical display before copying it.
 

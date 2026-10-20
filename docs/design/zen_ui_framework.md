@@ -1,6 +1,6 @@
 # Zen UI developer guide
 
-[Back to README](../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen UI screens live in `examples/companion_radio/zen-overlay/app/ui-new/` and are included into
 `UITask.cpp` as one translation unit. Include order matters; cross-translation

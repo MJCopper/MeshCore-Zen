@@ -1,6 +1,6 @@
 # Signal Indicator
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen displays a phone-style signal indicator at the right edge of the home-page
 toolbar, immediately after the battery status. It estimates the quality of the

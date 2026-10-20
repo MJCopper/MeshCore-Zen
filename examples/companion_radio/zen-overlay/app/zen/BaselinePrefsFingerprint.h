@@ -27,6 +27,9 @@ public:
     BASE_PREF(cr); BASE_PREF(multi_acks); BASE_PREF(manual_add_contacts);
     BASE_PREF(bw); BASE_PREF(tx_power_dbm); BASE_PREF(telemetry_mode_base);
     BASE_PREF(telemetry_mode_loc); BASE_PREF(telemetry_mode_env);
+    BASE_PREF(tx_delay_factor); BASE_PREF(direct_tx_delay_factor);
+    BASE_PREF(cad_enabled); BASE_PREF(interference_threshold); BASE_PREF(agc_reset_interval);
+    BASE_PREF(tz_offset);
     BASE_PREF(rx_delay_base); BASE_PREF(ble_pin); BASE_PREF(advert_loc_policy);
     BASE_PREF(buzzer_quiet); BASE_PREF(vibe_quiet); BASE_PREF(gps_enabled);
     BASE_PREF(gps_interval); BASE_PREF(autoadd_config); BASE_PREF(rx_boosted_gain);

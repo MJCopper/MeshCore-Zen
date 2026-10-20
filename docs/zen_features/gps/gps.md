@@ -1,6 +1,6 @@
 # GPS and Course
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 ## GPS home page
 

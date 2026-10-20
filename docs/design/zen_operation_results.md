@@ -1,6 +1,6 @@
 # Operation results
 
-[Back to README](../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen represents operational outcomes as structured values rather than screen-
 specific error strings. Each result contains an operation, outcome, reason and

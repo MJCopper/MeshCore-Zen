@@ -1,6 +1,6 @@
 # Clock
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Clock is always the first home page. It shows the status bar, time, date and the
 total unread **Messages** count.

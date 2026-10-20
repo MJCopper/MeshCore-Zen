@@ -1,6 +1,6 @@
 # Favourites Dial
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 The Favourites home page is a four-slot speed dial in one column. Each pinned
 entry shows its unread DM count. Pinning is independent of MeshCore's Favourite

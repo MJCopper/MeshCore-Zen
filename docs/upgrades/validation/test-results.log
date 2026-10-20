@@ -1,0 +1,898 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 58 tests
+
+Processing test_config_serializer in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ConfigSerializer.SaveSerial_Basic	[PASSED]
+ConfigSerializer.SaveSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_Basic	[PASSED]
+ConfigSerializer.LoadSerial_HandleWhitespace	[PASSED]
+ConfigSerializer.LoadSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_UnmatchedBraces	[PASSED]
+ConfigSerializer.LoadSerial_MissingCommas	[PASSED]
+ConfigSerializer.LoadSerial_IgnoreUnknowns	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObject	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObjectWithWhitespace	[PASSED]
+DynamicConfigSerializer.GetSet_Basic	[PASSED]
+DynamicConfigSerializer.Set_Replaces	[PASSED]
+DynamicConfigSerializer.GetUnknown_Fail	[PASSED]
+DynamicConfigSerializer.SaveCustom_Basic	[PASSED]
+DynamicConfigSerializer.LoadCustom_Basic	[PASSED]
+----------- native:test_config_serializer [PASSED] Took 1.39 seconds -----------
+
+Processing test_bluetooth_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+BluetoothPolicy.ActsOnlyWhenStateDiffers	[PASSED]
+BluetoothPolicy.ReportsConnectionEdges	[PASSED]
+BluetoothPolicy.DisabledInterfaceCannotRemainConnected	[PASSED]
+----------- native:test_bluetooth_policy [PASSED] Took 1.35 seconds -----------
+
+Processing test_diagnostic_log in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+DiagnosticLog.KeepsNewestSixteenEntries	[PASSED]
+DiagnosticLog.CoalescesConsecutiveDuplicates	[PASSED]
+DiagnosticLog.KeepsSeverityDistinct	[PASSED]
+OperationResultCoordinator.SuppressesRepeatedBackgroundPopup	[PASSED]
+OperationResultCoordinator.ScreenStatusUsesSameCatalogText	[PASSED]
+------------ native:test_diagnostic_log [PASSED] Took 1.37 seconds ------------
+
+Processing test_gps_mode in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+GpsMode.ExposesRequestedModesAndIntervals	[PASSED]
+GpsMode.MapsStoredPreferencesBackToMenuModes	[PASSED]
+GpsMode.SeparatesPollingChoicesFromPower	[PASSED]
+GpsPollingPolicy.UsesHdopOrSatelliteFallback	[PASSED]
+GpsPollingPolicy.BacksOffFailuresWithoutChangingConfiguredInterval	[PASSED]
+GpsPollingPolicy.RetriesFailedTimedPollingOnUserWake	[PASSED]
+--------------- native:test_gps_mode [PASSED] Took 1.50 seconds ---------------
+
+Processing test_builtin_melodies in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+BuiltinMelodies.ProvidesEightNamedShortMelodies	[PASSED]
+BuiltinMelodies.ResolvesGlobalAndExplicitOverridesForPreview	[PASSED]
+BuiltinMelodies.RetainsTheTwoExistingDefaults	[PASSED]
+BuiltinMelodies.CheerOrbitAndAlertHaveDistinctLengths	[PASSED]
+BuiltinMelodies.MigratesLegacyGlobalSelectionsByContext	[PASSED]
+BuiltinMelodies.StoresAllChannelAndDirectMessageOverrides	[PASSED]
+BuiltinMelodies.FullDirectMessageTableRejectsInsteadOfEvicting	[PASSED]
+BuiltinMelodies.MigratesACompleteLegacyPreferenceState	[PASSED]
+----------- native:test_builtin_melodies [PASSED] Took 1.30 seconds -----------
+
+Processing test_cardkb_controller in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CardKB.SuspendsBusTrafficAndDiscardsQueuedWakeKey	[PASSED]
+CardKB.StopsPollingAfterThreeFailures	[PASSED]
+----------- native:test_cardkb_controller [PASSED] Took 1.24 seconds -----------
+
+Processing test_zen_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ZenPolicy.ChildConfigurationFailsClosedWithoutParentSession	[PASSED]
+ZenPolicy.AllowsOnlyFavouriteContactOfExpectedTypeWhileLocked	[PASSED]
+ZenPolicy.RoomsRequireBothFavouriteAndParentPermission	[PASSED]
+ZenPolicy.MatchesStoredAndReportedContactTypes	[PASSED]
+ZenPolicy.BoundsFavouriteChannelMask	[PASSED]
+ZenPolicy.ParentPinBackoffStartsAfterThreeFailures	[PASSED]
+-------------- native:test_zen_policy [PASSED] Took 1.31 seconds --------------
+
+Processing test_ringtone_model in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+RingtoneModel.PreservesLegacyNaturalNoteEncoding	[PASSED]
+RingtoneModel.RoundTripsEveryChromaticPitch	[PASSED]
+RingtoneModel.ClampsInvalidPackInputs	[PASSED]
+RingtoneModel.EmitsSharpsAndLimitsLegacyMelodiesToSixteenNotes	[PASSED]
+RingtoneModel.EmptyMelodyProducesEmptyRtttl	[PASSED]
+------------ native:test_ringtone_model [PASSED] Took 1.29 seconds ------------
+
+Processing test_channel_slots in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ChannelSlots.BlankNameDoesNotMakeAnOccupiedSlotFree	[PASSED]
+ChannelSlots.DuplicateUsesFullKeyNotNameAndExcludesEditedSlot	[PASSED]
+ChannelSlots.FailedSaveRestoresPreviousRamValue	[PASSED]
+------------- native:test_channel_slots [PASSED] Took 1.39 seconds -------------
+
+Processing test_pet_ui in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetUI.AllPortraitsHaveBalancedNeutralAnatomyAndFaithfulPreviews	[PASSED]
+PetUI.TentaclesAndFeetAreInheritedAcrossEveryBranch	[PASSED]
+PetUI.StretchPreservesSquareCellsAndPairedEyes	[PASSED]
+PetUI.EvolutionRowsReserveSquarePreviewsAndScrollOnSmallSurfaces	[PASSED]
+PetUI.SelectedEvolutionPreviewUsesTheExactInvertedNeutralPortrait	[PASSED]
+PetUI.ScheduledSleepAndWakeOverride	[PASSED]
+PetUI.WakeMenuRespectsLowPowerAndExpires	[PASSED]
+PetUI.DailyRewardsScrollIntoViewAndDetailsNavigate	[PASSED]
+PetUI.CareLabelsStayStableAndFeedbackIsVisualOnly	[PASSED]
+PetUI.ManualCancellationUsesPopupWithoutChangingTrainLabel	[PASSED]
+PetUI.HighestPendingRewardTotalsFitDetails	[PASSED]
+PetUI.RewardsDoNotApplyWhileSleeping	[PASSED]
+PetUI.BonusAlertsReportActualAmountsAndStopAtCaps	[PASSED]
+PetUI.AllTrainingGamePhasesFitOLEDAndEink	[PASSED]
+PetUI.TimingTargetsAndTurnLabelsFitBothDisplays	[PASSED]
+PetUI.FiveFoodLanesFitBothDisplays	[PASSED]
+PetUI.ChangedShapesRenderThreeSolidCoveredSquaresOnBothDisplays	[PASSED]
+PetUI.CorrectArrowInputsReplaceOnlyTheirBoxesAndRetryClearsThem	[PASSED]
+PetUI.EachGameAwardsTrainingOnceAndOnlyAfterSuccess	[PASSED]
+PetUI.EveryBoxShuffleFrameAndAnswerFitBothDisplays	[PASSED]
+PetUI.CancellingBoxAnswerRevealDoesNotAwardTraining	[PASSED]
+PetUI.CancellingOrLosingVisibilityNeverChargesTraining	[PASSED]
+PetUI.GameDisplayInstructionsIdleAndSafetyOverrides	[PASSED]
+PetUI.LossNotifiesOnceAndPopupPreservesRetry	[PASSED]
+PetUI.GameplayTimeoutReportsLostButBackCancellationDoesNot	[PASSED]
+PetUI.CardKBPreviousNextAliasesAreTrainingDirectionsNotCarouselNavigation	[PASSED]
+PetUI.AllFormsDetailsPosesAndEvolutionPreviewsFitBothDisplays	[PASSED]
+PetUI.LowBatteryDetailsScrollWithoutLosingCareValues	[PASSED]
+PetUI.ToastDismissalRetainsDetailsAndRequiresFreshEnter	[PASSED]
+PetUI.ToastBlocksNavigationAndPreservesSelectedCareAction	[PASSED]
+PetUI.EveryPersonalityPoseQuirkAndBubbleFitsAllFormsOnBothDisplays	[PASSED]
+PetUI.PortraitLayoutPreservesSizeAndReservesEveryAnimation	[PASSED]
+PetUI.ShuffleMovesWholePortraitButNotBubbleAndEinkIgnoresOffsets	[PASSED]
+PetUI.PersonalityObservesSuccessfulFeedButNotRefusalsAndDetailsShowsNature	[PASSED]
+PetUI.PersonalityDoesNotLeakIntoMenuGamesSleepOrWakeOverride	[PASSED]
+PetUI.RetirementMenuRequirementsConfirmationAndSafetyGates	[PASSED]
+---------------- native:test_pet_ui [PASSED] Took 19.63 seconds ----------------
+
+Processing test_storage_health in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+StorageHealth.ReservesReplacementAndMetadataSpace	[PASSED]
+StorageHealth.RejectsOnlyDefinitePerFileShortfall	[PASSED]
+StorageHealth.DigestRejectsShortWritesAndTracksCompleteRecord	[PASSED]
+FloodScopeView.ExplicitUnscopedThenAppOverrideThenDefault	[PASSED]
+FloodScopeView.NormalisesAndValidatesRegionNames	[PASSED]
+------------ native:test_storage_health [PASSED] Took 1.28 seconds ------------
+
+Processing test_config_maintenance in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ConfigMaintenance.ClearsRemovedFeaturesOnceAndTracksSchema	[PASSED]
+ConfigMaintenance.FreshDefaultsRemainCurrentWithoutLegacyMigration	[PASSED]
+ConfigMaintenance.RepairsActiveValuesAfterMigration	[PASSED]
+ConfigMaintenance.PreservesAlwaysScreenWake	[PASSED]
+ConfigMaintenance.DoesNotChangeMeshCoreGpsPolling	[PASSED]
+ConfigMaintenance.ClearsRetiredCardKbByteBeforeAdaptiveGpsUse	[PASSED]
+ConfigMaintenance.MigratesLegacyTimezoneWithoutChangingLocalTime	[PASSED]
+ConfigMaintenance.NormalizesZenOverlayValues	[PASSED]
+---------- native:test_config_maintenance [PASSED] Took 1.69 seconds ----------
+
+Processing test_pet_notifications in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetNotifications.HealthyStartupIsSilent	[PASSED]
+PetNotifications.TrainingDisplaysDuringQuietTimeWithoutSound	[PASSED]
+PetNotifications.QuietTrainingDeliveryDoesNotConsumeDeferredBackgroundAlerts	[PASSED]
+PetNotifications.TrainingResultsHaveExactLabelsAndPriority	[PASSED]
+PetNotifications.HungerThresholdsLatchUntilFedAboveForty	[PASSED]
+PetNotifications.SevereHungerSupersedesPendingHunger	[PASSED]
+PetNotifications.StaleHungerIsCancelledBeforePresentation	[PASSED]
+PetNotifications.RewardAmountsCombineAndZeroIsSilent	[PASSED]
+PetNotifications.ReadyCombinesWithRewardAndOnlyOccursOncePerLevel	[PASSED]
+PetNotifications.FinalStageReadinessUsesRetirementWording	[PASSED]
+PetNotifications.SleepDefersAndLowPowerSuspends	[PASSED]
+PetNotifications.DisabledClearsPendingWithoutRepeatingReadiness	[PASSED]
+PetNotifications.EvolutionCancelsObsoleteReadyAlertAndQueuesEachForm	[PASSED]
+PetNotifications.PresentationCooldownHandlesMillisWrap	[PASSED]
+PetNotifications.AllElevenEvolutionsAndLateReadinessAreRetained	[PASSED]
+PetNotifications.MelodiesAreUniqueShortAndSeparateFromSavedCatalogue	[PASSED]
+PetNotifications.UsesSharedMutePopupAndWakeRulesWithoutUnread	[PASSED]
+PetNotifications.GameEffectsFollowMuteRulesWithoutPopupOrWake	[PASSED]
+----------- native:test_pet_notifications [PASSED] Took 1.29 seconds -----------
+
+Processing test_relay_echo_timing in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+RelayEchoTiming.AllowsAirtimeScaledRepeatDelay	[PASSED]
+RelayEchoTiming.WarnsOnlyForAnActualUnheardTransmission	[PASSED]
+----------- native:test_relay_echo_timing [PASSED] Took 1.27 seconds -----------
+
+Processing test_gps_adaptive_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+GpsAdaptivePolicy.InitialFixTracksThenLostFixBacksOff	[PASSED]
+GpsAdaptivePolicy.ShortThenLongBackoff	[PASSED]
+GpsAdaptivePolicy.UserWakeResetsBackoffToFullSearch	[PASSED]
+GpsAdaptivePolicy.ForcedPowerBypassesBackoff	[PASSED]
+GpsAdaptivePolicy.ClaimReleaseRestartsFullAcquisition	[PASSED]
+GpsFreshness.ExpiresCachedFixAndHandlesWrapAndReset	[PASSED]
+---------- native:test_gps_adaptive_policy [PASSED] Took 1.44 seconds ----------
+
+Processing test_pet_training in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetTraining.AllFiveGamesCanBeCompletedOnBothDisplays	[PASSED]
+PetTraining.TimingTargetsShrinkMoveAndRetainTheirSequenceOnRetry	[PASSED]
+PetTraining.TimingUsesFiveThreeTwoPositionsAndResetsOutsideEveryTurn	[PASSED]
+PetTraining.NewGamesAndCancellationDoNotImmediatelyRepeat	[PASSED]
+PetTraining.OneRetryUsesTheSameChallengeThenCloses	[PASSED]
+PetTraining.ArrowMistakesAndTimingOutsideZoneFail	[PASSED]
+PetTraining.BoxAndChangeWrongSelectionFail	[PASSED]
+PetTraining.BoxesRevealHidePreviewEachSwapAndPauseBeforeChoosing	[PASSED]
+PetTraining.BoxRetryPreservesHidingPlaceAndSwapsAndRevealCanCancel	[PASSED]
+PetTraining.FoodMissesEventuallyFailWithoutFakeCatches	[PASSED]
+PetTraining.FoodStartsInCentreAndStopsAtFiveLaneEdges	[PASSED]
+PetTraining.FoodUsesEveryLaneAndRetainsAllFiveDropsOnRetry	[PASSED]
+PetTraining.ChangedShapesRetainThreePositionWrapping	[PASSED]
+PetTraining.ChangedSymbolIsDifferentAndBoxesOnlySwapDistinctSlots	[PASSED]
+PetTraining.ChangedShapesStayCoveredForThreeSecondsAndIgnoreSelection	[PASSED]
+PetTraining.CoveredPhaseCanCancelAndLatePreviewDoesNotSkipIt	[PASSED]
+PetTraining.TimeoutsWrapSafelyAndDoNotFastForwardUnseenFrames	[PASSED]
+PetTraining.InstructionAndFailureScreensDoNotAnimate	[PASSED]
+PetTraining.CancelledSelectionsReachEveryOtherGameWithoutRepeats	[PASSED]
+PetTraining.ArrowPreviewAndCorrectInputCuesAreConsumedOnce	[PASSED]
+PetTraining.FiveBoxSwapCuesAreOneShotAndDoNotExtendTimeout	[PASSED]
+PetTraining.ShapeCoverRevealAndTimingHitEmitDistinctCues	[PASSED]
+PetTraining.FoodCatchAndMissEmitOncePerDrop	[PASSED]
+------------- native:test_pet_training [PASSED] Took 1.33 seconds -------------
+
+Processing test_utils in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UtilsToHex.ConvertSingleByte	[PASSED]
+UtilsToHex.ConvertMultipleBytes	[PASSED]
+UtilsToHex.ConvertZeroByte	[PASSED]
+UtilsToHex.ConvertMaxByte	[PASSED]
+UtilsToHex.NullTerminatesOnEmptyInput	[PASSED]
+----------------- native:test_utils [PASSED] Took 1.38 seconds -----------------
+
+Processing test_message_ack_tracker in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+MessageAckTracker.AcceptsEarlierAndRepeatedAcknowledgements	[PASSED]
+MessageAckTracker.CoversWireAttemptWrapWithoutGrowingStorage	[PASSED]
+---------- native:test_message_ack_tracker [PASSED] Took 1.45 seconds ----------
+
+Processing test_gps_course in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+GpsCourse.RequiresFixValidValuesAndMovement	[PASSED]
+GpsCourse.RoundsCourseToEightDirections	[PASSED]
+GpsCourse.CompassTapeWrapsAroundNorth	[PASSED]
+GpsCourse.RequiresTenMetresAndRetainsLastCourseForFifteenMinutes	[PASSED]
+GpsCourse.CalculatesTravelOnlyBetweenCompletedPollingSessions	[PASSED]
+GpsCourse.HoldsLiveCourseAcrossBriefSlowSamples	[PASSED]
+GpsCourse.RejectsPoorHdopAndAccumulatesShortPollingMoves	[PASSED]
+GpsCourseTape.UsesDotsAsElevenPointTwoFiveDegreeDirections	[PASSED]
+GpsCourseTape.WrapsAndAppliesBoundaryHysteresis	[PASSED]
+-------------- native:test_gps_course [PASSED] Took 1.41 seconds --------------
+
+Processing test_companion_node_prefs in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CompanionNodePrefs.RxGainSettingsRoundTripIndependently	[PASSED]
+--------- native:test_companion_node_prefs [PASSED] Took 1.27 seconds ---------
+
+Processing test_mesh_tables in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SimpleMeshTables.WasSeen_ReturnsFalseForUnseen	[PASSED]
+SimpleMeshTables.WasSeen_IsPureQuery_DoesNotInsert	[PASSED]
+SimpleMeshTables.MarkSeen_MakesWasSeenReturnTrue	[PASSED]
+SimpleMeshTables.MarkSeen_DoesNotAffectOtherPackets	[PASSED]
+SimpleMeshTables.QueryThenMark_WorksCorrectly	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsFloodDupStat	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsDirectDupStat	[PASSED]
+SimpleMeshTables.Clear_RemovesSeenPacket	[PASSED]
+-------------- native:test_mesh_tables [PASSED] Took 1.29 seconds --------------
+
+Processing test_companion_118 in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+Companion118.RadioCommandsUpdateRealPreferencesAndDirtyState	[PASSED]
+Companion118.DynamicFemKeysRemainIndependentAndRejectUnknownKeys	[PASSED]
+Companion118.InvalidRadioCommandDoesNotReplaceConfiguredRadio	[PASSED]
+------------- native:test_companion_118 [PASSED] Took 2.86 seconds -------------
+
+Processing test_ui_controls in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UIControls.MenuSelectionWrapsInBothDirections	[PASSED]
+UIControls.FrameworkMenuMovementUsesTheSharedWrapContract	[PASSED]
+UIControls.MenuModelKeepsLabelsActionsAndAvailabilityTogether	[PASSED]
+UILayout.EmbeddedListsScrollAndRemainInsideOLED	[PASSED]
+UILayout.EmbeddedListsRemainInsideEinkGeometry	[PASSED]
+UILayout.LabelValueRowsConstrainLongValues	[PASSED]
+UINavigation.FixedHistoryRetainsMostRecentDestinations	[PASSED]
+UINavigation.TransitionRunsSymmetricLifecycleOnce	[PASSED]
+-------------- native:test_ui_controls [PASSED] Took 1.27 seconds --------------
+
+Processing test_message_text_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+MessageTextPolicy.ReservesRetryBytesAndChannelSenderPrefix	[PASSED]
+MessageTextPolicy.ExpandedTextNeverEndsInsideEmoji	[PASSED]
+MessageTextPolicy.QuickMessageUsesRetrySafeBudget	[PASSED]
+QuickReplies.HasStableBalancedBuiltinCatalogue	[PASSED]
+---------- native:test_message_text_policy [PASSED] Took 1.32 seconds ----------
+
+Processing test_zen_word_completer in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ZenMessageDraftStore.KeepsDraftsSeparateByConversation	[PASSED]
+ZenMessageDraftStore.EmptyTextClearsDraftAndReplyStateIsRestored	[PASSED]
+ZenSentenceCase.RecognisesMessageSentenceBoundaries	[PASSED]
+ZenSentenceCase.IgnoresReplyPrefixesAndDecoration	[PASSED]
+ZenContextPredictor.PromotesLikelyPrefixCompletions	[PASSED]
+ZenContextPredictor.PromotesLikelyT9Words	[PASSED]
+ZenContextPredictor.UsesSentenceRankingAtSentenceAndReplyBoundaries	[PASSED]
+ZenContextPredictor.UsesEightSuccessorsAcrossTwoThousandWords	[PASSED]
+ZenContextPredictor.TrigramsPrecedeBigramPredictions	[PASSED]
+ZenContextPredictor.UsesContractionsAsContext	[PASSED]
+ZenContextPredictor.RanksSentenceOpenings	[PASSED]
+T9Predictor.ChoosesShorterWordWhenContractionCannotFit	[PASSED]
+ZenWordCompleter.HonoursRequestedResultLimit	[PASSED]
+ZenWordCompleter.MatchesCaseInsensitivelyAndPreservesInitialCapital	[PASSED]
+ZenWordCompleter.SkipsExactWordAndReturnsLongerCompletions	[PASSED]
+ZenWordCompleter.DictionaryHasExactlyFourThousandUniqueBoundedWords	[PASSED]
+ZenWordCompleter.UsesAustralianSpellingsAndEverydayTerms	[PASSED]
+ZenWordCompleter.IncludesPinnedLocalCommands	[PASSED]
+ZenWordCompleter.FindsWholeWordAroundCursorAtPunctuation	[PASSED]
+ZenWordCompleter.EmptyPrefixDoesNotDumpDictionary	[PASSED]
+ZenT9Predictor.MapsClassicPhoneKeypadLetters	[PASSED]
+ZenT9Predictor.ProvidesCommonSingleLetterWords	[PASSED]
+ZenT9Predictor.RanksHelloForItsCompleteSequence	[PASSED]
+ZenT9Predictor.ReturnsFrequencyRankedAlternatives	[PASSED]
+ZenT9Predictor.PrefersExactWordsBeforeLongerCompletions	[PASSED]
+ZenT9Predictor.MatchesContractionsWithoutAnApostropheKey	[PASSED]
+ZenT9Predictor.FindsVisiblePrefixBeforeGhostCompletion	[PASSED]
+ZenT9Predictor.RecentlyAcceptedWordsLeadTheirSequence	[PASSED]
+---------- native:test_zen_word_completer [PASSED] Took 1.32 seconds ----------
+
+Processing test_pet in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+Pet.DisabledFrozenAndRebootCreatesStarter	[PASSED]
+Pet.SleepLowPowerCooldownAndFractionalRecovery	[PASSED]
+Pet.AllOneHundredEightyNineFormsReachableAndEvolutionIsExplicit	[PASSED]
+Pet.WrapAndFeedingLimits	[PASSED]
+Pet.ProgressionIsNonLinearAndFormsAreComplete	[PASSED]
+Pet.GoodCareWithoutBonusesReachesLevelTwelveAroundSixtyDays	[PASSED]
+Pet.BonusesAccelerateProgressAndMissedCareOrLowPowerExtendIt	[PASSED]
+Pet.MatureAssetsHaveUniquePortraitsAndNames	[PASSED]
+Pet.CareAwardsOneBondAndRefusedActionsNeverAwardBond	[PASSED]
+Pet.EveryEvolutionSpendsOnlyRequiredBondAndPreservesLifetimeXP	[PASSED]
+Pet.ExactBondIsRequiredAndNoSurplusIsLostAtEvolution	[PASSED]
+Pet.BatteryBandsHysteresisAndUnavailableReadings	[PASSED]
+Pet.HungerRateIsProspectiveAndSleepAndLowPowerPauseIt	[PASSED]
+Pet.AllBatteryRatesRemainPlayableButDelayEvolution	[PASSED]
+Pet.TrainingRestPausesAndExpiresAcrossUptimeWrap	[PASSED]
+Pet.RetirementXPOnlyAccumulatesAtFinalLevelAndHasItsOwnCap	[PASSED]
+Pet.RetirementRequiresBothIndependentXPAndBondMilestones	[PASSED]
+Pet.RetirementGoodCareTakesAboutOneDayWithoutMeshBonuses	[PASSED]
+------------------ native:test_pet [PASSED] Took 1.42 seconds ------------------
+
+Processing test_cli_completer in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CliCompleter.PrioritisesCommandsOverRecentlyUsedChat	[PASSED]
+CliCompleter.FallsBackToChatWithoutDuplicatingCommands	[PASSED]
+CliCompleter.PreservesDottedKeysAndRespectsByteCapacity	[PASSED]
+CliCompleter.TokenRangeIncludesDotsButNotNeighbouringArguments	[PASSED]
+CliCompleter.PrefixCompletionPrefersCliAndRetainsChatFallback	[PASSED]
+CliCompleter.DictionaryIsUniqueAndFitsEveryCompletionBuffer	[PASSED]
+------------- native:test_cli_completer [PASSED] Took 1.33 seconds -------------
+
+Processing test_sensor_access in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorAccess.DefersTelemetryAfterSuccessfulBlankLogin	[PASSED]
+SensorAccess.DoesNotRepeatBlankLoginAfterAccessIsConfirmed	[PASSED]
+SensorAccess.IgnoresStaleTelemetryFailureDuringLoginAndRetryDelay	[PASSED]
+SensorAccess.OffersPasswordOnlyAfterBlankLoginFails	[PASSED]
+SensorAccess.KnownPathRetriesThenFallsBackToThreeFloods	[PASSED]
+SensorAccess.UnknownPathGetsThreeFloodTriesTotal	[PASSED]
+------------- native:test_sensor_access [PASSED] Took 1.28 seconds -------------
+
+Processing test_battery_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+BatteryPolicy.FixedCutoffHonoursExternalPowerAndInvalidReading	[PASSED]
+BatteryPolicy.PercentageEndpointsAndBounds	[PASSED]
+BatteryPolicy.CurveIsMonotonicAndNonlinear	[PASSED]
+BatteryRuntime.StartsWithFiveDayModel	[PASSED]
+BatteryRuntime.LearnsOnlyAfterSixHoursAndFivePercentDischarge	[PASSED]
+BatteryRuntime.FlatVoltageFallsBackToModel	[PASSED]
+BatteryRuntime.ResetsForChargingEmergencyAndVoltageRecovery	[PASSED]
+BatteryRuntime.EndsAtThreePointThreeVoltsAndHandlesMillisWrap	[PASSED]
+LowBatteryReminder.FirstLowSampleThenHourlyIncludingThresholdChatter	[PASSED]
+LowBatteryReminder.IgnoresChargingInvalidAndShutdownSamples	[PASSED]
+LowBatteryReminder.HandlesMillisRolloverAndTwentyPercentBoundary	[PASSED]
+LowPowerLatch.LatchesUntilExternalPower	[PASSED]
+LowPowerLatch.RequiresThreeConsecutiveLowSamples	[PASSED]
+LowPowerLatch.DoesNotReplaceShutdownOrRunWithoutReading	[PASSED]
+EmergencyWindow.RunsForTenMinutesAndHandlesRollover	[PASSED]
+EmergencyWindow.CanBeCancelledWithoutPersistence	[PASSED]
+------------ native:test_battery_policy [PASSED] Took 1.36 seconds ------------
+
+Processing test_text_editor in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TextBuffer.InsertsReplacesAndMovesByUtf8Codepoint	[PASSED]
+TextBuffer.EnforcesByteCapacityAndTermination	[PASSED]
+TextEditorProfiles.KeepCredentialsLiteralAndMessagesPredictive	[PASSED]
+SuggestionModel.BoundsItemsAndReplacementRange	[PASSED]
+MessageComposeSession.KeepsDraftsScopedToSelectedConversation	[PASSED]
+KeyboardLayout.FitsFullAndCompactEditorsOnBothDisplays	[PASSED]
+KeyboardInputActions.NormalizesNavigationAndEditorCommands	[PASSED]
+-------------- native:test_text_editor [PASSED] Took 1.34 seconds --------------
+
+Processing test_pet_snapshot_filesystem in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetSnapshotFilesystem.RealReplacementRecoversAtEveryMutationAndNeverTouchesBaseline	[PASSED]
+PetSnapshotFilesystem.ShortWritesFullStorageAndRenameFailuresPreserveCheckpoint	[PASSED]
+PetSnapshotFilesystem.VerificationFailureAndUnavailableStorageAreSafe	[PASSED]
+PetSnapshotFilesystem.ExtensionSaveDoesNotClearPreferenceRecoveryFlag	[PASSED]
+-------- native:test_pet_snapshot_filesystem [PASSED] Took 1.34 seconds --------
+
+Processing test_time_location in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TimeLocationCoordinator.CachedReadsDoNotRefreshFixAge	[PASSED]
+TimeLocationCoordinator.ScheduledSessionsProduceTravelCourse	[PASSED]
+TimeLocationCoordinator.TimeSyncSessionsDoNotCreateTravelCourse	[PASSED]
+TimeLocationCoordinator.ExplicitSyncSourceSurvivesCompletion	[PASSED]
+TimeLocationCoordinator.ConsumesLifecycleEventsAndKeepsTerminalResult	[PASSED]
+TimeLocationCoordinator.DelegatesUserWakeToSensorPolicy	[PASSED]
+TimeLocationCoordinator.InfersGpsSyncFromActiveReceiver	[PASSED]
+TimeLocationCoordinator.DefersHourlyGpsRetryWhenPowerPolicyBlocksIt	[PASSED]
+LocalTimeService.UsesSameDstAwareOffsetAndMinuteOfDay	[PASSED]
+------------- native:test_time_location [PASSED] Took 1.31 seconds -------------
+
+Processing test_pet_game_display in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetGameDisplay.PlayerIdleIsBoundedAndInputExtendsIt	[PASSED]
+PetGameDisplay.WatchingDoesNotConsumePlayerAllowance	[PASSED]
+PetGameDisplay.AnimationUpdatesDoNotExtendInputTimeout	[PASSED]
+PetGameDisplay.ResultsReleaseOnceAfterExactlyFiveSeconds	[PASSED]
+PetGameDisplay.CancellationVisibilityAndSafetyOverrideLeaseAndGrace	[PASSED]
+PetGameDisplay.RetryStartsFreshAndUptimeWrapIsSafe	[PASSED]
+PetGameDisplay.IdlePagesNeverAcquireLease	[PASSED]
+----------- native:test_pet_game_display [PASSED] Took 1.24 seconds -----------
+
+Processing test_sensor_telemetry in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorTelemetry.DescendingChannelsStableWithinChannel	[PASSED]
+SensorTelemetry.SignedValuesAndComponents	[PASSED]
+SensorTelemetry.RejectsTruncatedAndUnknownRecords	[PASSED]
+SensorTelemetry.MaximumPacketAndOutputBounds	[PASSED]
+SensorTelemetry.ReadsFirstScalarForMessageExpansion	[PASSED]
+----------- native:test_sensor_telemetry [PASSED] Took 1.26 seconds -----------
+
+Processing test_repeater_signal in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+RepeaterSignal.AcceptsRelayedTrafficButNotDirectCompanions	[PASSED]
+RepeaterSignal.ClassifiesLinkMarginAndAveragesSamples	[PASSED]
+RepeaterSignal.ScansOnlyOnStaleUserWakeAndRateLimitsFailures	[PASSED]
+RepeaterSignal.DiscoveryResultIsAuthoritative	[PASSED]
+RepeaterSignal.ExpiresAndHandlesMillisRollover	[PASSED]
+------------ native:test_repeater_signal [PASSED] Took 1.26 seconds ------------
+
+Processing test_pet_rewards in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetRewards.DailyCapsAndSharedChannelRoomAllowance	[PASSED]
+PetRewards.RoomFirstSharesAllowanceButDoesNotCountAsDM	[PASSED]
+PetRewards.BondMilestonesAreOrderIndependent	[PASSED]
+PetRewards.ConversationEitherOrderAndFullKeys	[PASSED]
+PetRewards.QueuingIsNotSuccessAndRetriesDeduplicate	[PASSED]
+PetRewards.DuplicateRelayAndIncomingDoNotRequalifyNextDay	[PASSED]
+PetRewards.ChildEligibilityAtStartAndCompletion	[PASSED]
+PetRewards.QuietTimeDefersAcrossMidnightAndAppliesOnce	[PASSED]
+PetRewards.DisabledAndLowPowerCannotCreateRetroactiveRewards	[PASSED]
+PetRewards.DisabledDiscardsPendingButKeepsClaims	[PASSED]
+PetRewards.LowPowerRetainsPreviouslyEarnedPending	[PASSED]
+PetRewards.RetirementPreservesAllowancesButClearsOldConversationEvidence	[PASSED]
+PetRewards.XPAndBondSaturateWithoutAutomaticEvolution	[PASSED]
+PetRewards.UptimeRolloverHandlesMillisWrap	[PASSED]
+PetRewards.LocalMidnightAndDST	[PASSED]
+PetRewards.SynchronizationAndClockCorrectionsDoNotRenew	[PASSED]
+PetRewards.DailyResetAfterCorrectionGuardExpires	[PASSED]
+PetRewards.DailyConversationEvidenceClearsAndRebootResets	[PASSED]
+PetRewards.UnknownAndAdministrativeAcknowledgementsIgnored	[PASSED]
+PetRewards.FixedPeerEvictionNeverMatchesShortPrefix	[PASSED]
+-------------- native:test_pet_rewards [PASSED] Took 1.30 seconds --------------
+
+Processing test_boot_time_sync in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+DeviceTimePolicy.AcceptsAuthoritativeBackwardCorrections	[PASSED]
+DeviceTimePolicy.AvoidsFlashWritesForSmallCorrections	[PASSED]
+BootTimeSync.StartsTemporaryGpsAndStopsAfterAnyLiveSync	[PASSED]
+BootTimeSync.DoesNotStopGpsThatWasConfiguredOrManuallyEnabled	[PASSED]
+BootTimeSync.SyncDuringManualEnableStillReleasesTemporaryClaim	[PASSED]
+BootTimeSync.TimesOutTemporaryGpsButKeepsWaitingForAnotherSource	[PASSED]
+BootTimeSync.RetriesTemporaryGpsHourlyUntilTimeIsSet	[PASSED]
+BootTimeSync.StopsRetryingAfterFortyEightHours	[PASSED]
+BootTimeSync.HourlyRetryStopsAfterExternalSync	[PASSED]
+BootTimeSync.LowPowerBlocksRestartButStillObservesExternalSync	[PASSED]
+------------ native:test_boot_time_sync [PASSED] Took 1.28 seconds ------------
+
+Processing test_pet_persistence in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetPersistence.CodecAllFormsTemperamentsCreditsAndRewardsRoundTrip	[PASSED]
+PetPersistence.CodecRejectsEveryBitCorruptionTruncationAndInvalidState	[PASSED]
+PetPersistence.FutureSchemaInAnyCandidateLocksWithoutWriting	[PASSED]
+PetPersistence.StoreRecoversEveryInterruptedReplacementStage	[PASSED]
+PetPersistence.MissingCorruptBackupUnavailableAndVerificationFailures	[PASSED]
+PetPersistence.RestoreFreezesOfflineTimeCooldownAndFractionalCredits	[PASSED]
+PetPersistence.InitialManualDuplicateDisabledBatteryAndStorageDeferral	[PASSED]
+PetPersistence.CorruptionNeverAutoOverwritesButManualCanReplace	[PASSED]
+PetPersistence.SleepingManualSaveDoesNotWakePetAndRestoreClearsTransients	[PASSED]
+PetPersistence.PendingRewardsApplyOnceAndNewRewardsBlockedUntilSafeDay	[PASSED]
+PetPersistence.MidnightManualGateDstCorrectionsAndUnsychronizedFallback	[PASSED]
+PetPersistence.PolicyWrapRetryBackoffAndDuplicateRequests	[PASSED]
+PetPersistence.BackgroundFailuresLogWithoutPopup	[PASSED]
+PetPersistence.InitialSaveWaitsForBatteryAndRestoreDoesNotWriteOrAge	[PASSED]
+PetPersistence.ManualRequestsCoalesceAndLowPowerDoesNotPreventSafeSave	[PASSED]
+PetPersistence.PendingManualSaveWaitsForTrainingAndDisabledDropsRequest	[PASSED]
+PetPersistence.SpringDstManualNearMidnightAndRebootGuards	[PASSED]
+PetPersistence.RetirementCommitsVerifiedStarterAndPreservesDailyAllowances	[PASSED]
+PetPersistence.RetirementFailuresAndCancellationNeverResetTheActivePet	[PASSED]
+PetPersistence.RetirementProgressRoundTripsAndLegacySnapshotsStartAtZero	[PASSED]
+------------ native:test_pet_persistence [PASSED] Took 1.33 seconds ------------
+
+Processing test_zen_runtime in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ZenRuntime.OwnsParentSessionAndLockTransitions	[PASSED]
+-------------- native:test_zen_runtime [PASSED] Took 1.30 seconds --------------
+
+Processing test_path_details in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PathDetails.DecodesUnknownDirectAndMultiBytePaths	[PASSED]
+PathDetails.ResolvesOnlyUniqueKnownPrefixes	[PASSED]
+------------- native:test_path_details [PASSED] Took 1.29 seconds -------------
+
+Processing test_quiet_time in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+QuietTime.RequiresLiveSyncEvenWithPlausibleRestoredTimestamp	[PASSED]
+QuietTime.HandlesSameDayIntervalBoundaries	[PASSED]
+QuietTime.HandlesIntervalAcrossMidnight	[PASSED]
+QuietTime.RejectsDisabledAndInvalidIntervals	[PASSED]
+-------------- native:test_quiet_time [PASSED] Took 1.30 seconds --------------
+
+Processing test_message_unread in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+MessageUnreadCoordinator.RecordsClampsAndClearsConversationCounts	[PASSED]
+MessageUnreadCoordinator.KeepsRoomAndDirectStateIndependent	[PASSED]
+MessageUnreadCoordinator.ReclaimsReadSlotsAndDropsEvictedHistory	[PASSED]
+------------ native:test_message_unread [PASSED] Took 1.26 seconds ------------
+
+Processing test_pet_personality in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PetPersonality.ShuffleIntervalsPositionsAndNoCatchup	[PASSED]
+PetPersonality.RestrictedBoundsClampAndStopWithoutRedrawPolling	[PASSED]
+PetPersonality.ShuffleResetsForEverySuppressionAndWraps	[PASSED]
+PetPersonality.TemperamentsAreSeededIndependentlyAndSurviveOffOn	[PASSED]
+PetPersonality.ExpressionsHaveBoundedLifetimeAndSleepOverridesThem	[PASSED]
+PetPersonality.BubblesRespectSpacingSuppressionAndDoNotWaitBehindMenus	[PASSED]
+PetPersonality.GreetingRequiresFiveMinutesAwayAndIsNotMenuNavigation	[PASSED]
+PetPersonality.BatteryRecoveryNeedsPowerDistinctSamplesAndSustainedRise	[PASSED]
+PetPersonality.UnknownBatteryAndHiddenRecoveryCannotReplayLater	[PASSED]
+PetPersonality.QuirksOnlyAdvanceWhileVisibleAndEinkRedrawsAreBounded	[PASSED]
+PetPersonality.ReactionsAndRecoveryWorkAcrossUptimeWrap	[PASSED]
+PetPersonality.AmbientRecoveryCannotReplaceCareAndHideSuppressesRedraw	[PASSED]
+PetPersonality.BedtimeUsesLocalScheduleAndWakeOverrideIsSeparate	[PASSED]
+------------ native:test_pet_personality [PASSED] Took 1.44 seconds ------------
+
+Processing test_transport_trace in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TransportTrace.KeepsOnlyMetadataInRamRing	[PASSED]
+TransportTrace.WrapsWithoutAllocation	[PASSED]
+TransportTrace.DistinguishesRadioCompletionFromFailure	[PASSED]
+------------ native:test_transport_trace [PASSED] Took 1.30 seconds ------------
+
+Processing test_utf8_helpers in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UTF8Helpers.KeepsCompleteNameWithinLimit	[PASSED]
+UTF8Helpers.StopsBeforeCodePointCrossingLimit	[PASSED]
+UTF8Helpers.RejectsMalformedAndTruncatedSequences	[PASSED]
+UTF8Helpers.RejectsUnexpectedContinuationByte	[PASSED]
+------------- native:test_utf8_helpers [PASSED] Took 1.28 seconds -------------
+
+Processing test_time_deadline in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TimeDeadline.HandlesNormalAndWrappedDeadlines	[PASSED]
+TimeDeadline.HandlesActiveAndOrderingAcrossWrap	[PASSED]
+------------- native:test_time_deadline [PASSED] Took 1.31 seconds -------------
+
+Processing test_zen_build_boundary in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ZenBuildBoundary.PetEnableIsTheOnlyPersistedPetState	[PASSED]
+ZenBuildBoundary.ZenCodecNeverChangesBaselinePreferences	[PASSED]
+ZenBuildBoundary.ZenCodecRoundTripsEveryActiveRecordGroup	[PASSED]
+ZenBuildBoundary.NewerCodecVersionsAreDetectedAndRejected	[PASSED]
+---------- native:test_zen_build_boundary [PASSED] Took 1.34 seconds ----------
+
+Processing test_notification_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+NotificationPolicy.ModeFollowsExistingSavedBuzzerChoices	[PASSED]
+NotificationPolicy.OnWakesEvenWithClientConnected	[PASSED]
+NotificationPolicy.OffAndConnectedAutoKeepUnreadAndVisiblePopup	[PASSED]
+NotificationPolicy.ScreenWakeAndQuietTimeAreIndependent	[PASSED]
+NotificationPolicy.AdvertsAndAcknowledgementsNeverRequestWake	[PASSED]
+NotificationPolicy.ManualDndSharesQuietTimeSoundAndIconPolicy	[PASSED]
+NotificationPolicy.MutedSourceKeepsUnreadWithoutAnyLocalAlert	[PASSED]
+NotificationPolicy.LocalSourceOverridesConnectedAutoOnly	[PASSED]
+NotificationPolicy.NewContactVisualAlertFollowsWakeAndQuietRules	[PASSED]
+NotificationPolicy.AlwaysWakesDespiteModeAndQuietTime	[PASSED]
+NotificationPolicy.WakeValuePreservesExistingSettings	[PASSED]
+NotificationCoordinator.ChildEligibilityRejectsEveryOutputAndUnread	[PASSED]
+NotificationCoordinator.UrgentWarningUsesWakeSettingButRemainsSilent	[PASSED]
+NotificationCoordinator.EmergencyDoesNotOverrideSilence	[PASSED]
+NotificationCoordinator.LowPowerDoesNotRewriteNotificationPreferences	[PASSED]
+NotificationCoordinator.PopupPriorityProtectsWarningsAndErrors	[PASSED]
+NotificationProfiles.DefinesAllOutputsByEventClass	[PASSED]
+NotificationEligibility.ChildModeSuppressesAdvertPresentation	[PASSED]
+NotificationPopupState.ProtectsHigherPriorityUntilExpiry	[PASSED]
+NotificationWakeController.NotificationWakeExpiresInFiveSeconds	[PASSED]
+---------- native:test_notification_policy [PASSED] Took 1.34 seconds ----------
+
+Processing test_message_delivery in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+MessageDeliveryCoordinator.ClassifiesRoutesAndAddsAckMargin	[PASSED]
+MessageDeliveryCoordinator.AcceptsAckFromAnyRecordedAttempt	[PASSED]
+MessageDeliveryCoordinator.BeginsKnownAndFloodDeliveryPolicies	[PASSED]
+MessageDeliveryCoordinator.TracksChannelRelayOutcome	[PASSED]
+MessageDeliveryCoordinator.CompanionAttemptsShareOneDeliveryStateWithoutZenRetries	[PASSED]
+----------- native:test_message_delivery [PASSED] Took 1.35 seconds -----------
+
+Processing test_routing_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+FloodHopLimit.UnscopedFloodIsDroppedAtFirstHopWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.ScopedFloodIsForwardedWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.UnscopedFloodSurvivesUpToMaxUnscopedHops	[PASSED]
+FloodHopLimit.ScopedFloodStillHonoursFloodMaxAndAdvertMax	[PASSED]
+FloodHopLimit.UnscopedAdvertIsAlsoDroppedAtHopZero	[PASSED]
+ReplyRoute.FloodRequestGetsAPathReturn	[PASSED]
+ReplyRoute.DirectRequestWithSuppliedPathRepliesDirect	[PASSED]
+ReplyRoute.DirectRequestWithKnownOutPathRepliesDirect	[PASSED]
+ReplyRoute.SuppliedPathWinsOverStoredOutPath	[PASSED]
+ReplyRoute.DirectRequestWithNoReturnPathFallsBackToFlood	[PASSED]
+ReplyScope.MirrorsTheRequestScopeWhenKnown	[PASSED]
+ReplyScope.RepliesUnscopedToAnUnscopedFloodEvenWhenADefaultScopeExists	[PASSED]
+ReplyScope.FallsBackToDefaultScopeWhenRequestScopeUnknown	[PASSED]
+ReplyScope.SendsUnscopedOnlyWhenNoScopeIsAvailableAtAll	[PASSED]
+------------ native:test_routing_policy [PASSED] Took 1.37 seconds ------------
+
+Processing test_remote_node_operation in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+RemoteNodeOperation.KnownPathRetriesOnceThenFloodsThreeTimes	[PASSED]
+RemoteNodeOperation.UnknownPathHasThreeFloodAttemptsTotal	[PASSED]
+RemoteNodeOperation.MissingKnownPathSkipsPathRetry	[PASSED]
+RemoteNodeOperation.UnsafeCommandIsNeverRetried	[PASSED]
+RemoteNodeOperation.MatchesIdentityAndIgnoresLateCompletion	[PASSED]
+RemoteNodeOperation.DeadlineSurvivesMillisRollover	[PASSED]
+RemoteNodeCoordinator.EnforcesOneOnDeviceRequestAndOwner	[PASSED]
+RemoteNodeCoordinator.RetainsOwnerAcrossRetryAndReleasesAtTerminalResult	[PASSED]
+RemoteNodeCoordinator.CancellationRejectsLateReplyAndAllowsNextOwner	[PASSED]
+RemoteNodeAdapters.ClassifyAdminSafetyAndMatchTelemetryIdentityAndTag	[PASSED]
+RemoteNodeAdapters.RejectsMalformedLoginResponse	[PASSED]
+--------- native:test_remote_node_operation [PASSED] Took 1.31 seconds ---------
+
+Processing test_repeater_timing in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+RepeaterTiming.MatchesStandardRepeaterDefaults	[PASSED]
+RepeaterTiming.ScalesAirtimeIntoDelayWindow	[PASSED]
+------------ native:test_repeater_timing [PASSED] Took 1.35 seconds ------------
+
+Processing test_timezone_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TimezonePolicy.CompanionOffsetSelectsFixedTimeAndKeepsZenFieldsAligned	[PASSED]
+TimezonePolicy.FreshDefaultIsAutomaticSydney	[PASSED]
+TimezonePolicy.ManualOffsetsSupportPartialHours	[PASSED]
+TimezonePolicy.AustralianCitiesApplyTheirOwnRules	[PASSED]
+TimezonePolicy.SydneyChangesAtUtcTransitionInstants	[PASSED]
+TimezonePolicy.NorthernCitiesApplySeasonalRules	[PASSED]
+------------ native:test_timezone_policy [PASSED] Took 1.25 seconds ------------
+
+Processing test_admin_session in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+AdminSession.RequiresAuthorizationAndFullIdentity	[PASSED]
+AdminSession.MatchesTaggedReplyAndRejectsStaleAndAppReplies	[PASSED]
+AdminSession.LocalCancellationRemainsUsableButAppOverlapQuarantines	[PASSED]
+AdminSession.ExpiryAndDrainSurviveMillisRollover	[PASSED]
+AdminSession.BoundsWireTextAndNeverReusesRequestIds	[PASSED]
+------------- native:test_admin_session [PASSED] Took 1.37 seconds -------------
+
+Processing test_admin_commands in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+AdminCommands.DoesNotTreatErrorAsFetchedValueOrSuccess	[PASSED]
+AdminCommands.AcceptsRawAndPrefixedReadOnlyReplies	[PASSED]
+AdminCommands.FormatsNeighbourAgeAndSignalForDisplay	[PASSED]
+AdminCommands.RejectsMalformedOrOutOfRangeNumbers	[PASSED]
+AdminCommands.ValidatesRadioTupleAndPreservesOtherFields	[PASSED]
+AdminCommands.AdvertStepsRespectBaselineDisabledAndMinimumIntervals	[PASSED]
+AdminCommands.ExposesDedicatedOtaAction	[PASSED]
+AdminCommands.FiltersGroupsByRemoteNodeType	[PASSED]
+AdminCommands.ExposesSupportedRoutingAndWriteOnlyPasswordFields	[PASSED]
+AdminCommands.VerifiesReadBackUsingTheFieldType	[PASSED]
+------------ native:test_admin_commands [PASSED] Took 1.27 seconds ------------
+
+Processing test_node_login in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+NodeLogin.RejectsTruncatedAndUnrelatedResponses	[PASSED]
+NodeLogin.AppReservationExpiresAcrossMillisRollover	[PASSED]
+NodeLogin.LegacyPasswordSuccessGrantsAdminButBlankAclDoesNot	[PASSED]
+NodeLogin.ExplicitAdminRoleOverridesIncompleteAclRoleBits	[PASSED]
+NodeLogin.KeepsOwnerAndRejectsOtherContacts	[PASSED]
+NodeLogin.TracksSensorCarouselAsAnIndependentOwner	[PASSED]
+NodeLogin.RestartPreservesOwnerAndCredential	[PASSED]
+-------------- native:test_node_login [PASSED] Took 1.27 seconds --------------
+
+Processing test_peripheral_power in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PeripheralPower.ResolvesNormalRequests	[PASSED]
+PeripheralPower.LowPowerAndEmergencyResolveWithoutChangingIntent	[PASSED]
+PeripheralPower.ChildModeAlwaysBlocksBluetooth	[PASSED]
+PeripheralPower.SessionAndTimeSyncClaimsRemainIndependent	[PASSED]
+PeripheralPower.ReconciliationIsIdempotent	[PASSED]
+PeripheralPower.ShutdownOverridesEveryRequest	[PASSED]
+PeripheralPower.ChildRelockAndUnlockRestoreSavedBluetooth	[PASSED]
+PeripheralPower.EmergencyExpiryReturnsEveryPeripheralToLowPower	[PASSED]
+PeripheralPower.FailedAppliedStateRemainsPendingUntilAStateEventRetriesIt	[PASSED]
+----------- native:test_peripheral_power [PASSED] Took 1.29 seconds -----------
+
+Processing test_kiss_modem in native_kiss_modem environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+KissModemFixture.PingResponseShouldNotStallLoopUnderTxBackpressure	[PASSED]
+KissModemFixture.PingResponseKeepsStandardKissFraming	[PASSED]
+KissModemFixture.PingResponseKeepsFramingWithPartialBulkWrites	[PASSED]
+KissModemFixture.PacketAndMetaAreQueuedTogetherUnderBackpressure	[PASSED]
+KissModemFixture.RadioTxCompletionAdvancesWhileHostOutputIsBackedUp	[PASSED]
+KissModemFixture.QueueFullReportsBusyWithoutDroppingQueuedFrames	[PASSED]
+KissModemFixture.QueuedEncoderEscapesKissSpecialBytes	[PASSED]
+KissModemFixture.MaxPacketWorstCaseEscapingFitsQueuedFrame	[PASSED]
+--------- native_kiss_modem:test_kiss_modem [PASSED] Took 1.11 seconds ---------
+
+=================================== SUMMARY ===================================
+Environment        Test                          Status    Duration
+-----------------  ----------------------------  --------  ------------
+native             test_config_serializer        PASSED    00:00:01.391
+native             test_bluetooth_policy         PASSED    00:00:01.346
+native             test_diagnostic_log           PASSED    00:00:01.372
+native             test_gps_mode                 PASSED    00:00:01.504
+native             test_builtin_melodies         PASSED    00:00:01.302
+native             test_cardkb_controller        PASSED    00:00:01.241
+native             test_zen_policy               PASSED    00:00:01.309
+native             test_ringtone_model           PASSED    00:00:01.294
+native             test_channel_slots            PASSED    00:00:01.390
+native             test_pet_ui                   PASSED    00:00:19.631
+native             test_storage_health           PASSED    00:00:01.284
+native             test_config_maintenance       PASSED    00:00:01.693
+native             test_pet_notifications        PASSED    00:00:01.291
+native             test_relay_echo_timing        PASSED    00:00:01.269
+native             test_gps_adaptive_policy      PASSED    00:00:01.441
+native             test_pet_training             PASSED    00:00:01.334
+native             test_utils                    PASSED    00:00:01.378
+native             test_message_ack_tracker      PASSED    00:00:01.448
+native             test_gps_course               PASSED    00:00:01.412
+native             test_companion_node_prefs     PASSED    00:00:01.265
+native             test_mesh_tables              PASSED    00:00:01.291
+native             test_companion_118            PASSED    00:00:02.863
+native             test_ui_controls              PASSED    00:00:01.269
+native             test_message_text_policy      PASSED    00:00:01.324
+native             test_zen_word_completer       PASSED    00:00:01.322
+native             test_pet                      PASSED    00:00:01.418
+native             test_cli_completer            PASSED    00:00:01.327
+native             test_sensor_access            PASSED    00:00:01.284
+native             test_battery_policy           PASSED    00:00:01.362
+native             test_text_editor              PASSED    00:00:01.336
+native             test_pet_snapshot_filesystem  PASSED    00:00:01.336
+native             test_time_location            PASSED    00:00:01.308
+native             test_pet_game_display         PASSED    00:00:01.243
+native             test_sensor_telemetry         PASSED    00:00:01.263
+native             test_repeater_signal          PASSED    00:00:01.257
+native             test_pet_rewards              PASSED    00:00:01.302
+native             test_boot_time_sync           PASSED    00:00:01.275
+native             test_pet_persistence          PASSED    00:00:01.328
+native             test_zen_runtime              PASSED    00:00:01.297
+native             test_path_details             PASSED    00:00:01.285
+native             test_quiet_time               PASSED    00:00:01.297
+native             test_message_unread           PASSED    00:00:01.256
+native             test_pet_personality          PASSED    00:00:01.444
+native             test_transport_trace          PASSED    00:00:01.297
+native             test_utf8_helpers             PASSED    00:00:01.279
+native             test_time_deadline            PASSED    00:00:01.306
+native             test_zen_build_boundary       PASSED    00:00:01.338
+native             test_notification_policy      PASSED    00:00:01.344
+native             test_message_delivery         PASSED    00:00:01.351
+native             test_routing_policy           PASSED    00:00:01.366
+native             test_remote_node_operation    PASSED    00:00:01.314
+native             test_repeater_timing          PASSED    00:00:01.351
+native             test_timezone_policy          PASSED    00:00:01.249
+native             test_admin_session            PASSED    00:00:01.366
+native             test_admin_commands           PASSED    00:00:01.273
+native             test_node_login               PASSED    00:00:01.265
+native             test_peripheral_power         PASSED    00:00:01.287
+native_kiss_modem  test_kiss_modem               PASSED    00:00:01.111
+================ 485 test cases: 485 succeeded in 00:01:36.781 ================

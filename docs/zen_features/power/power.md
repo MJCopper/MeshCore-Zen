@@ -1,6 +1,6 @@
 # Battery and Low Power Mode
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen treats 4.12 V as full and 3.3 V as empty using a non-linear single-cell
 Li-ion/LiPo curve. The device shuts down at or below 3.3 V unless externally

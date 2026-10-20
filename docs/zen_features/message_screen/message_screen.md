@@ -1,6 +1,6 @@
 # Messages
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 The Messages home page opens directly to **Direct Message**, **Channel** and
 **Room Servers**, with unread badges. Hold Enter on a category to mark it read.

@@ -1,6 +1,6 @@
 # Child Mode
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Child Mode provides a PIN-protected interface with favourite-only messaging.
 It is a UI lock, not protection against someone who can erase or replace the

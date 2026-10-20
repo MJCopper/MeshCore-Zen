@@ -1,6 +1,6 @@
 # Quick Replies
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Hold Enter in a conversation to open Quick Replies. Zen provides ten built-in
 positive, neutral and negative responses plus five editable custom replies.

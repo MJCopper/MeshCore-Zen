@@ -4,6 +4,15 @@
 
 using zen::TimezonePolicy;
 
+TEST(TimezonePolicy, CompanionOffsetSelectsFixedTimeAndKeepsZenFieldsAligned) {
+  struct Prefs { int8_t tz_offset = 0, tz_offset_hours = 0; uint8_t timezone_mode = 1; int16_t timezone_manual_min = 660; } prefs;
+  TimezonePolicy::setCompanionOffset(prefs, -5);
+  EXPECT_EQ(TimezonePolicy::MANUAL, prefs.timezone_mode);
+  EXPECT_EQ(-300, prefs.timezone_manual_min);
+  EXPECT_EQ(-5, prefs.tz_offset);
+  EXPECT_EQ(-5, prefs.tz_offset_hours);
+}
+
 TEST(TimezonePolicy, FreshDefaultIsAutomaticSydney) {
   EXPECT_EQ(TimezonePolicy::DEFAULT_MODE, TimezonePolicy::CITY);
   EXPECT_STREQ(TimezonePolicy::cityName(TimezonePolicy::DEFAULT_CITY), "Sydney");

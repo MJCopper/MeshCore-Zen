@@ -1,0 +1,122 @@
+Processing WioTrackerL1_Zen_OLED (board: seeed-wio-tracker-l1; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-wio-tracker-l1.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Wio Tracker L1
+HARDWARE: NRF52840 64MHz, 230KB RAM, 692KB Flash
+DEBUG: Current (blackmagic) External (blackmagic, cmsis-dap, jlink, stlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 48 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit INA3221 Library @ 1.0.1
+|-- Adafruit INA219 @ 1.2.3
+|-- INA226 @ 0.6.6
+|-- Adafruit INA260 Library @ 1.5.3
+|-- Adafruit AHTX0 @ 2.0.6
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- Adafruit SHTC3 Library @ 1.0.2
+|-- Sensirion I2C SHT4x @ 1.1.2
+|-- Arduino_LPS22HB @ 1.0.3
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit_VL53L0X @ 1.2.5
+|-- MicroNMEA @ 2.0.6
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit SH110X @ 2.1.15
+|-- Adafruit GFX Library @ 1.12.6
+|-- base64 @ 1.4.0
+|-- NonBlockingRTTTL @ 1.4.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+Building in release mode
+Checking size .pio/build/WioTrackerL1_Zen_OLED/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [========  ]  84.8% (used 199696 bytes from 235520 bytes)
+Flash: [========= ]  86.9% (used 615936 bytes from 708608 bytes)
+========================= [SUCCESS] Took 16.84 seconds =========================
+
+Processing WioTrackerL1_Zen_E-INK (board: seeed-wio-tracker-l1; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-wio-tracker-l1.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Wio Tracker L1
+HARDWARE: NRF52840 64MHz, 230KB RAM, 692KB Flash
+DEBUG: Current (blackmagic) External (blackmagic, cmsis-dap, jlink, stlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 50 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit INA3221 Library @ 1.0.1
+|-- Adafruit INA219 @ 1.2.3
+|-- INA226 @ 0.6.6
+|-- Adafruit INA260 Library @ 1.5.3
+|-- Adafruit AHTX0 @ 2.0.6
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- Adafruit SHTC3 Library @ 1.0.2
+|-- Sensirion I2C SHT4x @ 1.1.2
+|-- Arduino_LPS22HB @ 1.0.3
+|-- Adafruit MLX90614 Library @ 2.1.6
+|-- Adafruit_VL53L0X @ 1.2.5
+|-- MicroNMEA @ 2.0.6
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit BMP085 Library @ 1.2.4
+|-- Adafruit GFX Library @ 1.12.6
+|-- GxEPD2 @ 1.6.2
+|-- CRC32 @ 2.0.1
+|-- base64 @ 1.4.0
+|-- NonBlockingRTTTL @ 1.4.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+Building in release mode
+Checking size .pio/build/WioTrackerL1_Zen_E-INK/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [========= ]  86.8% (used 204344 bytes from 235520 bytes)
+Flash: [========= ]  88.2% (used 624848 bytes from 708608 bytes)
+========================= [SUCCESS] Took 18.79 seconds =========================
+
+Environment             Status    Duration
+----------------------  --------  ------------
+WioTrackerL1_Zen_OLED   SUCCESS   00:00:16.844
+WioTrackerL1_Zen_E-INK  SUCCESS   00:00:18.794
+========================= 2 succeeded in 00:00:35.638 =========================

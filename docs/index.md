@@ -2,7 +2,7 @@
 
 ### Zen firmware
 
-- [Zen overview](../README.md)
+- [Zen overview](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 - [Getting Started](./getting_started.md)
 - [Messages Screen](./zen_features/message_screen/message_screen.md)
 - [Favourites Dial](./zen_features/favourites_dial/favourites_dial.md)
@@ -37,3 +37,5 @@
 - [QR Codes](./qr_codes.md)
 
 Corrections and focused additions are welcome through pull requests.
+
+[MeshCore 1.18 integration and acceptance record](upgrades/meshcore-1.18.md)

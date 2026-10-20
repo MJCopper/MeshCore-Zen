@@ -9,7 +9,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE = "d9296435"
+BASELINE = "81dbae592ffad40b4212bc0b37e82b38da08f4bc"
 PROTECTED = (
     "src",
     "include",

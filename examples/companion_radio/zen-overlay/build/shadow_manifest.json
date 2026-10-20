@@ -1,14 +1,62 @@
 {
-  "app/AbstractUITask.h": {"baseline_sha256": "6b508446a2e2f5155f02dc2734ee8afdf4fea33a08f1ff807a0b32a9c10a4af2", "overlay_sha256": "ea52c09c02158b84824bef774e8c77fa26e2e720abafd1865dd1539c003cf1fc", "reason": "Zen UI lifecycle adapter over the baseline companion application."},
-  "app/MyMesh.cpp": {"baseline_sha256": "3c746cc6cab9ca6f9c623ff861f02c14a3b3849b78559d1d5cadb019136687da", "overlay_sha256": "2aa278d6610ae13c5eae6fdaf5c9cf757e535f0411e28c1f9ac7ce7e820d0f6d", "reason": "Zen companion integration; baseline protocol, storage and radio ownership is parity-guarded."},
-  "app/MyMesh.h": {"baseline_sha256": "3d0085370d8a1303d07c60038d210e9e46bc3b9f9c3ecacd099762527e2ad45b", "overlay_sha256": "31038463062dfaea9e38a45cfba902eea32caf7fbbd405718be453bb86a83f03", "reason": "Zen companion integration API over BaseChatMesh."},
-  "app/main.cpp": {"baseline_sha256": "7f42ef11d148c48b870b1026cf0792cc1f90d5fce2fb1ec32346d097c955c74e", "overlay_sha256": "6be0234e0acf4f9a0d5608a3e42b04b1ea2190602bee52ef7a953945dec59759", "reason": "Zen boot composition using baseline MeshCore services."},
-  "app/ui-new/UITask.cpp": {"baseline_sha256": "bdc915c9eac1032a6224cecdef6f6fbaa99baa5b85641e1521144d388b3b7541", "overlay_sha256": "fb6c91859b3298c0090a11b770a9274ee5e69ca0c1da9bc004729f1f1c9ea1f0", "reason": "Zen application UI orchestration."},
-  "app/ui-new/UITask.h": {"baseline_sha256": "2750afa3fd9065c9185d7c6ef173548a4ceb5ff183a4bec465d1888b34df65a3", "overlay_sha256": "8358ad6973a7fc0fdc9aba7e10df42af42b533bb9060895c8e5b580919ac9310", "reason": "Zen application UI orchestration API."},
-  "app/ui-new/icons.h": {"baseline_sha256": "e97ec649252f518bc501e8123c548d402b46d0fae8e4983838d571442ff5e501", "overlay_sha256": "363e8438abb0b9ea96b5f754f06213283ab520ccac7a7aafc9cd952c58803a61", "reason": "Zen status and navigation presentation."},
-  "src/helpers/sensors/EnvironmentSensorManager.cpp": {"baseline_sha256": "9933cd7b713c351fb848b798e105a2ede6f7d759c6d8fd612e0b50cdbc4d34c1", "overlay_sha256": "60bd85e67220cde516023275feee6cc1bce33965a993652877cfed6307315d1b", "reason": "Wio GPS scheduling implementation behind zen::GpsService."},
-  "src/helpers/sensors/EnvironmentSensorManager.h": {"baseline_sha256": "650b8920a403dc970df5f0d514ae2fbc731588d6fdbc31dad4d27b919584e2aa", "overlay_sha256": "3591f9afe9229c7d569c1d67133881bb6d999bfc756ed434855b56f2b99a7ef6", "reason": "Wio GPS service implementation alongside baseline SensorManager."},
-  "src/helpers/sensors/MicroNMEALocationProvider.h": {"baseline_sha256": "a4c6f62fe0b255e6f7eb2c0708cf68c3a5c9e698cdb31eaf715220674610aab1", "overlay_sha256": "f77bffee421becf033ad8e9f79a29999b7c102fb9abd83740d9ec1083cabee69", "reason": "Adds stale-fix reset and optional Zen motion metrics without changing LocationProvider."},
-  "variants/wio-tracker-l1/target.cpp": {"baseline_sha256": "fe57105dd0db7533db6c4c53fca4705607edd0405951a6ed0d60d7de3d26da1f", "overlay_sha256": "45e1961847d5389c2a213e6e253a4c4ef4f94b75daa89cc72d6f2310daef1b41", "reason": "Zen display inputs and tracking RTC composition."},
-  "variants/wio-tracker-l1/target.h": {"baseline_sha256": "2963804c586359362b622d04a006c03f9de863146b44f1b333cc384c9e98f552", "overlay_sha256": "dfbe8ae093f5f6d40a2c979dffad497168d128ceba4479ab0e329f49b2236aed", "reason": "Zen Wio target declarations."}
+  "app/AbstractUITask.h": {
+    "baseline_sha256": "bfa3e0560b9276c54a629d50df3da455d5558644ea7a1d821d09df755ededd7e",
+    "overlay_sha256": "ea52c09c02158b84824bef774e8c77fa26e2e720abafd1865dd1539c003cf1fc",
+    "reason": "Zen UI lifecycle adapter over the baseline companion application."
+  },
+  "app/MyMesh.cpp": {
+    "baseline_sha256": "4c9f283f596407dd85387ef6c9ecf6802f3c5a8c2891b7420325a97731d03be9",
+    "overlay_sha256": "abf2ad314763c1d82a6031bf9de58c4ebd863948b9fae5bd8350efb90f842a0a",
+    "reason": "Zen companion integration; baseline protocol, storage and radio ownership is parity-guarded."
+  },
+  "app/MyMesh.h": {
+    "baseline_sha256": "2401a22b5fb58397da5c80b96ec437739472b3085c1669a543624c1346383478",
+    "overlay_sha256": "b8b3717349e3cc092a0c7f500133c821f9dbdb4d058063414b2dc00f2e4ee8e6",
+    "reason": "Zen companion integration API over BaseChatMesh."
+  },
+  "app/main.cpp": {
+    "baseline_sha256": "389e32564945fe87cc1047fd709e7f91c89c9888102bf56d7d2d6aa29959ee9f",
+    "overlay_sha256": "5af4a5eda30df19428f30930aa81000cac51499a4dd82957d3eb31021b11f9db",
+    "reason": "Zen boot composition using baseline MeshCore services."
+  },
+  "app/ui-new/UITask.cpp": {
+    "baseline_sha256": "fd9b629b335477fa10c957f0d34e7bc50eb645837a2d583b5d71e54483da7d8b",
+    "overlay_sha256": "fb6c91859b3298c0090a11b770a9274ee5e69ca0c1da9bc004729f1f1c9ea1f0",
+    "reason": "Zen application UI orchestration."
+  },
+  "app/ui-new/UITask.h": {
+    "baseline_sha256": "0625cd3e5529094249d2db1b3c3b2ff784e8cb7a71cf102bdce06137d5e47c6a",
+    "overlay_sha256": "8358ad6973a7fc0fdc9aba7e10df42af42b533bb9060895c8e5b580919ac9310",
+    "reason": "Zen application UI orchestration API."
+  },
+  "app/ui-new/icons.h": {
+    "baseline_sha256": "14f58dbdb997faef8683645b4f1433713a052ded40537f977bbd7f573a8304fc",
+    "overlay_sha256": "363e8438abb0b9ea96b5f754f06213283ab520ccac7a7aafc9cd952c58803a61",
+    "reason": "Zen status and navigation presentation."
+  },
+  "src/helpers/sensors/EnvironmentSensorManager.cpp": {
+    "baseline_sha256": "4344c5366e3574ad0ac0145b93e6d72a97a21344ba2578f68703c50b663876fc",
+    "overlay_sha256": "8ea7feb264abdf9e4e894a7a921253bcf187aca0f95bbfca8cf1d1e069e3f91a",
+    "reason": "Wio GPS scheduling implementation behind zen::GpsService."
+  },
+  "src/helpers/sensors/EnvironmentSensorManager.h": {
+    "baseline_sha256": "77f4836b0b98731972708a990f095850c97198f60e2e81bf4f1287bd2ba93f7d",
+    "overlay_sha256": "ade23ebb92b3344ebc4c096898dec99d6c1da1d48995fb5718752c61fa912ed4",
+    "reason": "Wio GPS service implementation alongside baseline SensorManager."
+  },
+  "src/helpers/sensors/MicroNMEALocationProvider.h": {
+    "baseline_sha256": "f34638e7b3f021edb65f40f65742d413ed19e5d90654d2673761e93270d2bae8",
+    "overlay_sha256": "bf695c08b3d09c036099db1df9698fb8b50f715d5543af8620e0473a9fb4e08c",
+    "reason": "Adds stale-fix reset and optional Zen motion metrics without changing LocationProvider."
+  },
+  "variants/wio-tracker-l1/target.cpp": {
+    "baseline_sha256": "fe57105dd0db7533db6c4c53fca4705607edd0405951a6ed0d60d7de3d26da1f",
+    "overlay_sha256": "45e1961847d5389c2a213e6e253a4c4ef4f94b75daa89cc72d6f2310daef1b41",
+    "reason": "Zen display inputs and tracking RTC composition."
+  },
+  "variants/wio-tracker-l1/target.h": {
+    "baseline_sha256": "2963804c586359362b622d04a006c03f9de863146b44f1b333cc384c9e98f552",
+    "overlay_sha256": "dfbe8ae093f5f6d40a2c979dffad497168d128ceba4479ab0e329f49b2236aed",
+    "reason": "Zen Wio target declarations."
+  }
 }

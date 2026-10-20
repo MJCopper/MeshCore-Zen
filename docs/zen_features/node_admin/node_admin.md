@@ -1,6 +1,6 @@
 # Node Administration
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Open **Tools › Node List**, select a saved repeater, room or sensor, hold Enter
 and choose **Admin**. Zen first attempts empty-password ACL login, then offers

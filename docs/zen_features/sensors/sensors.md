@@ -1,6 +1,6 @@
 # Sensors
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 The Sensors home page lists saved sensor nodes. Select one to request telemetry.
 Values appear by newest channel first and in their original order within each

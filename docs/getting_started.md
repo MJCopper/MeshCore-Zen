@@ -1,6 +1,6 @@
 # Getting Started
 
-[Back to README](../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 ## Before installing
 
@@ -9,7 +9,7 @@ Zen supports the Seeed Wio Tracker L1 with either the OLED or E-ink display.
 > [!WARNING]
 > Always export a fresh settings backup with the MeshCore companion app before
 > installing or updating firmware. Store it off the device and follow the
-> complete [flashing instructions](../README.md#flashing).
+> complete [flashing instructions](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md#flashing).
 
 Choose the UF2 matching the display. After flashing, verify the identity,
 radio settings, contacts and channels, and confirm persistence after a

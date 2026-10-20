@@ -1,6 +1,6 @@
 # Repeater Mode
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Open **Tools › Repeater Mode** to let the companion forward MeshCore traffic in
 the background. It uses the current **Settings › Radio** configuration. Press

@@ -1,6 +1,6 @@
 # Radio, GPS, Bluetooth and Adverts
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 ## Radio
 

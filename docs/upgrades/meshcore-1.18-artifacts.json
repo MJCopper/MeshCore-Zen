@@ -1,0 +1,32 @@
+[
+  {
+    "environment": "WioTrackerL1_Zen_OLED",
+    "file": ".pio/build/WioTrackerL1_Zen_OLED/WioTrackerL1_Zen_OLED.2.2.36.uf2",
+    "bytes": 1231872,
+    "blocks": 2406,
+    "sha256": "96db36102debe3e58913962aa1a1304b38a479d0686b4f3a77199995d4d975f4"
+  },
+  {
+    "environment": "WioTrackerL1_Zen_E-INK",
+    "file": ".pio/build/WioTrackerL1_Zen_E-INK/WioTrackerL1_Zen_E-INK.2.2.36.uf2",
+    "bytes": 1249792,
+    "blocks": 2441,
+    "sha256": "6c8fe9eaed964f0f0b294253e76e0b0dbe9faa6e45d55491be4f473b7c9540b1"
+  },
+  {
+    "branch": "meshcore/sensor",
+    "environment": "Xiao_nrf52_bme680_sensor",
+    "file": "/tmp/meshcore-upgrade-sensor/.pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2",
+    "bytes": 676864,
+    "blocks": 1322,
+    "sha256": "7625d4adb47cbaefa486857758ef9e1e6e93740b993b684b335380e7f2823444"
+  },
+  {
+    "branch": "meshcore/archiver",
+    "environment": "Xiao_nrf52_archiver",
+    "file": "/tmp/meshcore-upgrade-archiver/.pio/build/Xiao_nrf52_archiver/firmware.uf2",
+    "bytes": 709632,
+    "blocks": 1386,
+    "sha256": "8e12f9742f1eddb69f86c0c3fc38b411901e6078073c7266002dc782c800d906"
+  }
+]

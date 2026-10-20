@@ -1,6 +1,6 @@
 # Settings
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Settings opens a flat section list. Each section has its own screen. Changes
 are staged and saved on Back only when the final value differs from the saved
@@ -9,7 +9,7 @@ value.
 Zen tracks a separate semantic configuration schema alongside the preference
 file layout. Boot applies any outstanding ordered migrations, normalises active
 settings and compacts override tables, then saves only when stored data changed.
-On a first UF2 upgrade from MeshCore v1.17.1, Zen imports shared settings from
+On a first UF2 upgrade from MeshCore v1.18.0, Zen imports shared settings from
 `/prefs.json` before creating defaults. The original file is kept. If Zen has
 already booted without those settings, **System › Import MeshCore** offers a
 confirmed one-time recovery; it keeps Zen-only options and restarts to apply

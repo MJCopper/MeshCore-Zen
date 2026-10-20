@@ -1,6 +1,6 @@
 # Time Zone
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Zen keeps the system clock in UTC and applies a local offset only when displaying
 or evaluating local time. Changing the time zone does not rewrite the clock.

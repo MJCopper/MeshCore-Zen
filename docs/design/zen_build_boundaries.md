@@ -47,7 +47,7 @@ an upstream counterpart without review fails the boundary check.
 
 `tools/check_zen_baseline.py` verifies the complete shared core, public include
 tree, official Wio variants and complete official companion application against
-the pinned MeshCore 1.17.1 commit. It also enforces the reviewed integration
+the pinned MeshCore 1.18.0 commit. It also enforces the reviewed integration
 manifest and requires Zen to compile baseline `DataStore` directly. Run it
 whenever the overlay boundary changes. Update the pinned commit and reviewed
 hashes only as part of an intentional upstream baseline update.

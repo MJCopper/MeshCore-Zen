@@ -12,6 +12,14 @@ public:
   enum Mode : uint8_t { MANUAL = 0, CITY = 1 };
   static constexpr uint8_t DEFAULT_MODE = CITY;
   static constexpr uint8_t DEFAULT_CITY = 0; // Sydney
+  template<class Prefs>
+  static void setCompanionOffset(Prefs& prefs, int8_t hours) {
+    prefs.tz_offset = hours;
+    prefs.tz_offset_hours = hours;
+    prefs.timezone_mode = MANUAL;
+    prefs.timezone_manual_min = (int16_t)hours * 60;
+  }
+
   enum Rule : uint8_t { NONE, AU_EAST, AU_CENTRAL, NZ, EU, US };
   struct City {
     const char* name;

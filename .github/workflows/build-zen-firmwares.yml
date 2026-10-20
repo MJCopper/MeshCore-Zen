@@ -20,12 +20,17 @@ jobs:
     steps:
       - name: Clone Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Build Environment
         uses: ./.github/actions/setup-build-environment
       - name: Verify MeshCore boundary
         run: python3 tools/check_zen_baseline.py
       - name: Run native tests
-        run: pio test -e native
+        run: pio test -e native -e native_kiss_modem
+
+      - name: Build standard Wio companion boundary
+        run: pio run -e WioTrackerL1_companion_radio_ble
 
   build:
     needs: validate
@@ -41,6 +46,8 @@ jobs:
 
       - name: Clone Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Build Environment
         uses: ./.github/actions/setup-build-environment

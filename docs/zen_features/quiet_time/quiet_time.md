@@ -1,6 +1,6 @@
 # Quiet Time
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Quiet Time suppresses incoming notification sounds and vibration during a daily local-time
 period. Messages are still received, stored and counted. Eligible message and

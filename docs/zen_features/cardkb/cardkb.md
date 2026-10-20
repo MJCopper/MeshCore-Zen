@@ -1,6 +1,6 @@
 # CardKB
 
-[Back to README](../../../README.md)
+[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
 Connect an M5Stack CardKB to the Wio Tracker L1 Grove I2C port before boot. Zen
 detects it once at startup at address `0x5F`; **Settings › Keyboard › CardKB**
