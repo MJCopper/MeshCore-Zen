@@ -112,6 +112,90 @@ TEST(SensorTraceRoutes, DiversityAndAirtimeBreakUnprovenRouteTies) {
   EXPECT_EQ(400u, routes.lastSeen());
 }
 
+static mesh::PacketScope scope(uint8_t value) {
+  mesh::PacketScope result;
+  result.kind = mesh::PacketScope::RESOLVED;
+  result.key[0] = value;
+  return result;
+}
+
+TEST(SensorTraceRoutes, HistoryUsesCompleteScopeKeyAndNeverReusesUnresolvedEvidence) {
+  TraceRouteHistory history;
+  auto packet = command();
+  TraceRoute route{};
+  ASSERT_EQ(TraceRoute::VALID, TraceRoute::fromRequest(&packet, route));
+  auto a = scope(1), b = scope(1);
+  b.key[15] = 2;  // same short prefix, different complete identity
+  history.record(route, 0, 10, 100, true, 20, a);
+  EXPECT_EQ(2, history.rank(route, 0, 10, 101, a));
+  EXPECT_EQ(1, history.rank(route, 0, 10, 101, b));
+  EXPECT_EQ(1, history.rank(route, 0, 10, 101));
+  history.record(route, 0, 10, 102, false, 0, b);
+  EXPECT_EQ(0, history.rank(route, 0, 10, 103, b));
+  EXPECT_EQ(2, history.rank(route, 0, 10, 103, a));
+  auto unresolved = a;
+  unresolved.kind = mesh::PacketScope::UNRESOLVED;
+  history.record(route, 0, 10, 104, false, 0, unresolved);
+  EXPECT_EQ(1, history.rank(route, 0, 10, 105, unresolved));
+  EXPECT_EQ(2, history.rank(route, 0, 10, 105, a));
+  EXPECT_EQ(1, history.rank(route, 0, 10, 100 + TraceRouteHistory::TTL_MILLIS, a));
+}
+
+TEST(SensorTraceRoutes, ForeignScopeCopiesCannotExtendQuietTimeOrAddCandidates) {
+  TraceRouteCandidates routes;
+  auto original = command(), alternate = command(2);
+  const auto a = scope(1), b = scope(2);
+  routes.begin(&original, 100, a);
+  routes.observe(&alternate, 200, b);
+  routes.observe(&alternate, 250);  // unscoped
+  EXPECT_EQ(0, routes.count());
+  EXPECT_EQ(100u, routes.lastSeen());
+  routes.observe(&alternate, 300, a);
+  EXPECT_EQ(1, routes.count());
+  EXPECT_EQ(300u, routes.lastSeen());
+  routes.clear();
+  routes.observe(&alternate, 400, a);
+  EXPECT_EQ(0, routes.count());
+  EXPECT_EQ(300u, routes.lastSeen());
+}
+
+TEST(SensorTraceRoutes, UnresolvedCandidatesRequireExactCodeTupleAndRouteClass) {
+  TraceRouteCandidates routes;
+  auto original = command(), alternate = command(2);
+  mesh::PacketScope unknown;
+  unknown.kind = mesh::PacketScope::UNRESOLVED;
+  unknown.codes[0] = 123;
+  unknown.route_type = ROUTE_TYPE_TRANSPORT_FLOOD;
+  routes.begin(&original, 100, unknown);
+  auto other = unknown;
+  other.codes[1] = 456;
+  routes.observe(&alternate, 200, other);
+  other = unknown;
+  other.route_type = ROUTE_TYPE_TRANSPORT_DIRECT;
+  routes.observe(&alternate, 300, other);
+  EXPECT_EQ(0, routes.count());
+  EXPECT_EQ(100u, routes.lastSeen());
+  routes.observe(&alternate, 400, unknown);
+  EXPECT_EQ(1, routes.count());
+  EXPECT_EQ(400u, routes.lastSeen());
+}
+
+TEST(SensorTraceRoutes, HistoryCannotInventAnUnobservedRoute) {
+  TraceRouteCandidates routes;
+  TraceRouteHistory history;
+  auto original = command(), old = command(2);
+  TraceRoute old_route{};
+  ASSERT_EQ(TraceRoute::VALID, TraceRoute::fromRequest(&old, old_route));
+  const auto a = scope(1);
+  history.record(old_route, 0, 0, 100, true, 20, a);
+  routes.begin(&original, 200, a);
+  uint32_t airtimes[3] = {100, 100, 100};
+  EXPECT_EQ(nullptr, routes.best(history, 0, 0, 201, airtimes, a));
+  routes.observe(&old, 300, a);
+  ASSERT_NE(nullptr, routes.best(history, 0, 0, 301, airtimes, a));
+  EXPECT_TRUE(old_route.equals(*routes.best(history, 0, 0, 301, airtimes, a)));
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

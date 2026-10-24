@@ -1,65 +1,4 @@
-#include <gtest/gtest.h>
-#include "../sensor_mocks/SensorTestRig.h"
-#include <helpers/AdvertDataHelpers.h>
-
-class SensorIntegration : public ::testing::Test {
-protected:
-  TestRadio radio;
-  TestClock clock;
-  TestRTC rtc;
-  TestRandom random;
-  StaticPoolPacketManager pool{32};
-  SimpleMeshTables tables;
-  TestMesh mesh{radio, clock, random, rtc, pool, tables};
-  Bme680Telemetry snapshot;
-  SensorBotService bot{mesh, snapshot, false};  // Legacy exact-time boundary characterization.
-  MemoryFileSystem fs;
-  PublicChannelSensorBot channel;
-
-  void SetUp() override {
-    g_mock_millis = 0;
-    mesh.bot = &bot;
-    mesh.begin();
-    bot.begin(&fs);
-  }
-  void tick(uint32_t now) { g_mock_millis = now; mesh.loop(); bot.loop(); }
-  void finish(uint32_t now) { radio.complete = true; tick(now); }
-  std::vector<uint8_t> command(const char* text, uint8_t hops = 2,
-                              const mesh::GroupChannel* selected = nullptr) {
-    uint8_t data[MAX_PACKET_PAYLOAD] = {};
-    uint32_t time = mesh.uniqueTime();
-    memcpy(data, &time, 4);
-    strcpy((char*)data + 5, text);
-    auto packet = mesh.createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, selected ? *selected : channel.channel(), data,
-                                            5 + strlen(text));
-    packet->header |= ROUTE_TYPE_FLOOD;
-    packet->setPathHashSizeAndCount(1, hops);
-    for (uint8_t i = 0; i < hops; i++) packet->path[i] = 20 + i;
-    std::vector<uint8_t> bytes{packet->header, (uint8_t)packet->path_len};
-    bytes.insert(bytes.end(), packet->path, packet->path + hops);
-    bytes.insert(bytes.end(), packet->payload, packet->payload + packet->payload_len);
-    mesh.releasePacket(packet);
-    return bytes;
-  }
-  std::string publicText(size_t index, const mesh::GroupChannel* selected = nullptr) {
-    auto& bytes = radio.sent.at(index);
-    const auto& reply_channel = selected ? *selected : channel.channel();
-    EXPECT_EQ(reply_channel.hash[0], bytes[2]);
-    uint8_t data[MAX_PACKET_PAYLOAD] = {};
-    int count = mesh::Utils::MACThenDecrypt(reply_channel.secret, data,
-                                            bytes.data() + 3, bytes.size() - 3);
-    EXPECT_GT(count, 5);
-    return std::string((char*)data + 5, strnlen((char*)data + 5, count > 5 ? count - 5 : 0));
-  }
-  void traceReply(size_t index, uint32_t now) {
-    const auto trace = radio.sent.at(index);
-    uint8_t count = trace.size() - 2 - 9;
-    radio.incoming = { uint8_t((PAYLOAD_TYPE_TRACE << PH_TYPE_SHIFT) | ROUTE_TYPE_DIRECT), count };
-    for (uint8_t i = 0; i < count; i++) radio.incoming.push_back(4 * (i + 1));
-    radio.incoming.insert(radio.incoming.end(), trace.begin() + 2, trace.end());
-    tick(now);
-  }
-};
+#include "../sensor_mocks/SensorIntegrationFixture.h"
 
 TEST_F(SensorIntegration, PublicPingRoundTripsThroughRealEncryptionAndPool) {
   radio.incoming = command("Alice: !hillvue ping");
@@ -184,7 +123,7 @@ TEST_F(SensorIntegration, LateFirstIsUsedWhenRetryTimesOut) {
 TEST_F(SensorIntegration, MultipartGapStartsAtFirstTxCompletion) {
   std::string text;
   for (int i = 0; i < 8; i++) text += "Temperature: 22.4 C and more data\n";
-  bot.sendPublicResponse(text.c_str(), 0);
+  bot.sendPublicResponse(text.c_str(), SensorReplyContext{0});
   tick(2200);
   ASSERT_EQ(1u, radio.sent.size());
   finish(5000);
@@ -330,8 +269,8 @@ TEST_F(SensorIntegration, UnwatchedHashtagDoesNotGenerateAReply) {
 TEST_F(SensorIntegration, MultipartRepliesKeepTheirOwnChannelsWhenInterleaved) {
   std::string text;
   for (int i = 0; i < 8; i++) text += "Temperature: 22.4 C and more data\n";
-  bot.sendPublicResponse(text.c_str(), 0);
-  bot.sendPublicResponse(text.c_str(), 1);
+  bot.sendPublicResponse(text.c_str(), SensorReplyContext{0});
+  bot.sendPublicResponse(text.c_str(), SensorReplyContext{1});
   for (uint32_t now = 100; now <= 10000; now += 100) {
     radio.complete = true;
     tick(now);
@@ -581,7 +520,7 @@ TEST_F(SensorIntegration, RetryUsesAPassivelyObservedAlternateRequestPath) {
   traceReply(1, 14000);
   tick(18000);
   ASSERT_EQ(3u, radio.sent.size());
-  EXPECT_NE(std::string::npos, publicText(2).find("1 29 +1.0 dB"));
+  EXPECT_NE(std::string::npos, publicText(2).find("1 29 +0.5 dB"));
 }
 
 TEST_F(SensorIntegration, AlternateRetryKeepsOriginalFallbackLabels) {
@@ -601,8 +540,8 @@ TEST_F(SensorIntegration, AlternateRetryKeepsOriginalFallbackLabels) {
   tick(26000);
   ASSERT_EQ(3u, radio.sent.size());
   auto text = publicText(2);
-  EXPECT_NE(std::string::npos, text.find("1 15 +1.0 dB"));
-  EXPECT_EQ(std::string::npos, text.find("1 29 +1.0 dB"));
+  EXPECT_NE(std::string::npos, text.find("1 15 +0.5 dB"));
+  EXPECT_EQ(std::string::npos, text.find("1 29 +0.5 dB"));
 }
 
 TEST_F(SensorIntegration, FailureThatNeverStartedCanStillBeReplacedAfterRadioError) {

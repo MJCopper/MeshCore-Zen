@@ -33,8 +33,8 @@ TEST(PublicResponseQueue, MarksOverflowAfterTwoMessages) {
 
 TEST(PublicResponseQueue, SchedulesFourIndependentSecondParts) {
   PublicResponseQueue queue;
-  for (int i = 0; i < 4; i++) EXPECT_TRUE(queue.schedule("2/2\nMore", 1000 + i));
-  EXPECT_FALSE(queue.schedule("2/2\nExtra", 1005));
+  for (int i = 0; i < 4; i++) EXPECT_TRUE(queue.schedule("2/2\nMore", 1000 + i, SensorReplyContext{}));
+  EXPECT_FALSE(queue.schedule("2/2\nExtra", 1005, SensorReplyContext{}));
   char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
   EXPECT_FALSE(queue.takeDue(999, part));
   for (int i = 0; i < 4; i++) {
@@ -48,7 +48,7 @@ TEST(PublicResponseQueue, StartsGapAfterFirstTransmissionCompletes) {
   PublicResponseQueue queue;
   int first_packet = 1;
   char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
-  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet));
+  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet, SensorReplyContext{}));
   EXPECT_FALSE(queue.takeDue(60000, part));
   queue.onFirstSent(&first_packet, 60000);
   EXPECT_FALSE(queue.takeDue(62999, part));
@@ -60,11 +60,11 @@ TEST(PublicResponseQueue, FailedFirstTransmissionReleasesSecondPart) {
   PublicResponseQueue queue;
   int first_packet = 1;
   char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
-  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet));
+  EXPECT_TRUE(queue.scheduleAfterFirst("2/2\nMore", &first_packet, SensorReplyContext{}));
   queue.onFirstFailed(&first_packet);
   EXPECT_FALSE(queue.takeDue(60000, part));
   for (int i = 0; i < PublicResponseQueue::MAX_PENDING; i++)
-    EXPECT_TRUE(queue.schedule("2/2\nOther", 0));
+    EXPECT_TRUE(queue.schedule("2/2\nOther", 0, SensorReplyContext{}));
 }
 
 TEST(PublicResponseQueue, TenFullTraceLabelsFitWithDefaultSensorName) {
@@ -99,19 +99,19 @@ TEST(PublicResponseQueue, LongSensorNameMarksOverflowWithoutPartialLine) {
 TEST(PublicResponseQueue, PreservesChannelAcrossCompletionAndRescheduling) {
   PublicResponseQueue queue;
   int packet = 1;
-  ASSERT_TRUE(queue.scheduleAfterFirst("2/2\nPublic", &packet, 1));
-  ASSERT_TRUE(queue.schedule("2/2\nHillvue", 4000, 0));
+  ASSERT_TRUE(queue.scheduleAfterFirst("2/2\nPublic", &packet, SensorReplyContext{1}));
+  ASSERT_TRUE(queue.schedule("2/2\nHillvue", 4000, SensorReplyContext{0}));
   queue.onFirstSent(&packet, 1000);
   char part[PublicResponseQueue::MAX_PART_LENGTH + 1];
-  uint8_t channel = 255;
-  ASSERT_TRUE(queue.takeDue(4000, part, &channel));
-  EXPECT_EQ(1, channel);
+  SensorReplyContext context(255);
+  ASSERT_TRUE(queue.takeDue(4000, part, &context));
+  EXPECT_EQ(1, context.channel);
   EXPECT_STREQ("2/2\nPublic", part);
-  ASSERT_TRUE(queue.schedule(part, 5000, channel));
-  ASSERT_TRUE(queue.takeDue(4000, part, &channel));
-  EXPECT_EQ(0, channel);
-  ASSERT_TRUE(queue.takeDue(5000, part, &channel));
-  EXPECT_EQ(1, channel);
+  ASSERT_TRUE(queue.schedule(part, 5000, context));
+  ASSERT_TRUE(queue.takeDue(4000, part, &context));
+  EXPECT_EQ(0, context.channel);
+  ASSERT_TRUE(queue.takeDue(5000, part, &context));
+  EXPECT_EQ(1, context.channel);
   EXPECT_STREQ("2/2\nPublic", part);
 }
 

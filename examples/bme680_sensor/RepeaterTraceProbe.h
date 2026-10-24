@@ -14,9 +14,18 @@ public:
     TraceRoute route;
     uint8_t snrs[2 * TraceRoute::MAX_REPEATERS];
     uint8_t attempt;
+
+    // One entry per outward repeater: its link to the preceding node (sensor
+    // for entry zero). Samples are signed quarter-dB; the last is sensor RX.
+    float averageLinkSnrDb(uint8_t repeater) const {
+      int outward = (int8_t)snrs[repeater];
+      int returning = (int8_t)snrs[2 * route.repeaters - 1 - repeater];
+      return (outward + returning) / 8.0f;
+    }
   };
 
   StartResult start(const mesh::Packet* request, uint32_t tag, uint32_t auth, uint32_t now);
+  StartResult startRoute(const TraceRoute& route, uint32_t tag, uint32_t auth, uint32_t now);
   bool beginRetry(uint32_t tag, uint32_t auth, uint32_t now, const TraceRoute* alternate = NULL);
   bool isActive() const { return _state != IDLE; }
   bool retryPending() const { return _state == RETRY_PENDING; }

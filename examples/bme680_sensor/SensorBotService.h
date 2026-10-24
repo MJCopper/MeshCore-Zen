@@ -10,10 +10,15 @@
 #include "TraceReportDelivery.h"
 #include "TraceRouteHistory.h"
 #include "TraceDiagnostics.h"
+#include "TraceDiscovery.h"
+
+class SensorBotService;
 
 // Radio ownership stays in the MeshCore adapter; service tests supply this interface.
 class SensorBotTransport {
 public:
+  virtual void bindDiscovery(SensorBotService* service) = 0;
+  virtual mesh::Packet* queueDiscovery(const uint8_t* key, uint32_t tag, const SensorReplyContext& context) = 0;
   virtual uint32_t now() = 0;
   virtual uint32_t uniqueTime() = 0;
   virtual const char* nodeName() = 0;
@@ -25,7 +30,10 @@ public:
   virtual mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) = 0;
   virtual mesh::Packet* createGroupDatagram(uint8_t type, const mesh::GroupChannel& channel,
                                            const uint8_t* data, size_t length) = 0;
-  virtual void sendFlood(mesh::Packet* packet, uint32_t delay) = 0;
+  virtual mesh::PacketScope requestScope(const mesh::Packet& packet) = 0;
+  virtual SensorReplyContext replyContext(const mesh::Packet& packet, uint8_t channel,
+                                          const mesh::PacketScope& scope) = 0;
+  virtual void sendReply(mesh::Packet* packet, uint32_t delay, const SensorReplyContext& context) = 0;
   virtual void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length,
                           uint32_t delay = 0) = 0;
   virtual void releasePacket(mesh::Packet* packet) = 0;
@@ -37,7 +45,7 @@ class SensorBotService {
 public:
   // Settling can be suppressed by exact-boundary characterization tests only.
   SensorBotService(SensorBotTransport& transport, Bme680Telemetry& telemetry, bool settle = true)
-      : _transport(transport), _telemetry(telemetry), _settle_enabled(settle) { }
+      : _transport(transport), _telemetry(telemetry), _settle_enabled(settle) { _transport.bindDiscovery(this); }
   const TraceDiagnostics& diagnostics() const { return trace_diagnostics; }
 
   void begin(FILESYSTEM* fs);
@@ -52,7 +60,7 @@ public:
   void logTxFail(mesh::Packet* packet, int);
   void observeRoute(const mesh::Packet* packet);
 
-  void sendPublicResponse(const char* response, uint8_t channel_index, uint32_t extra_delay_millis = 0,
+  void sendPublicResponse(const char* response, const SensorReplyContext& context, uint32_t extra_delay_millis = 0,
                           const char* separator = NULL);
 
   void onAdvertRecv(mesh::Packet*, const mesh::Identity& id, uint32_t timestamp,
@@ -60,6 +68,10 @@ public:
 
   void onTraceRecv(mesh::Packet* packet, uint32_t tag, uint32_t auth_code, uint8_t flags,
                    const uint8_t* path_snrs, const uint8_t* path_hashes, uint8_t path_len);
+
+  const uint8_t* discoveryPeer(uint8_t index) const { return discovery.peer(index); }
+  bool onDiscoveryPath(const uint8_t* key, mesh::Packet* packet, const uint8_t* path,
+                       uint8_t encoded, const uint8_t* extra, uint8_t length);
 
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max_matches);
 
@@ -77,18 +89,27 @@ private:
   TraceReportDelivery trace_report;
   TraceRouteHistory trace_history;
   TraceDiagnostics trace_diagnostics;
+  TraceDiscovery discovery;
+  bool _targeted = false;
   uint32_t _profile = 0, _settle_at = 0, _settle_delay = 0, _quiet = 0, _next_queue_at = 0;
   uint32_t _trace_profile = 0, _probe_not_before = 0;
   uint8_t _local_failures = 0;
   bool _settling = false, _settle_enabled;
   uint32_t next_trace_tag = 0;
   bool busy_trace_reported = false;
-  uint8_t trace_channel = 0;
+  SensorReplyContext trace_context;
+  mesh::PacketScope trace_scope;
+
+  bool traceBusy() const { return discovery.active() || trace_probe.isActive() || trace_report.active(); }
+  const uint8_t* historyTarget() const { return _targeted ? discovery.key() : NULL; }
+  void pumpDiscovery(uint32_t now);
+  void discoveryFailure(const char* text);
+  void startDiscovered(const TraceRoute& route, uint32_t now);
 
   enum QueueTraceResult { TRACE_QUEUED, TRACE_NO_PACKET, TRACE_QUEUE_REJECTED };
   QueueTraceResult queueTrace(uint32_t delay_millis = 0);
-  mesh::Packet* createPublicPart(const char* response, uint8_t channel_index);
-  bool sendPublicPart(const char* response, uint8_t channel_index, uint32_t delay_millis);
+  mesh::Packet* createPublicPart(const char* response, const SensorReplyContext& context);
+  bool sendPublicPart(const char* response, const SensorReplyContext& context, uint32_t delay_millis);
   void sendTraceResult(const RepeaterTraceProbe::Result& result);
   void finishTrace(const RepeaterTraceProbe::Result& result);
   void closeTrace();

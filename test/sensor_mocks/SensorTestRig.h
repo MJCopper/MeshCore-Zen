@@ -6,7 +6,9 @@
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/StaticPoolPacketManager.h>
 #include <helpers/AdvertDataHelpers.h>
-#include "SensorBotService.h"
+#include "SensorScopeBinding.h"
+#include <helpers/RegionScope.h>
+#include <helpers/ClientACL.h>
 
 class TestRadio : public mesh::Radio {
 public:
@@ -14,8 +16,10 @@ public:
   std::vector<std::vector<uint8_t>> sent;
   bool complete = false;
   bool fail = false;
+  bool busy = false;
   unsigned start_calls = 0;
   uint32_t airtime = 100;
+  float last_snr = 0;
   int recvRaw(uint8_t* bytes, int size) override {
     int count = std::min((int)incoming.size(), size);
     memcpy(bytes, incoming.data(), count);
@@ -24,6 +28,7 @@ public:
   }
   uint32_t getEstAirtimeFor(int) override { return airtime; }
   float packetScore(float, int) override { return 1; }
+  float getLastSNR() const override { return last_snr; }
   bool startSendRaw(const uint8_t* bytes, int length) override {
     start_calls++;
     if (fail) return false;
@@ -33,6 +38,7 @@ public:
   }
   bool isSendComplete() override { return complete; }
   void onSendFinished() override { complete = false; }
+  bool isReceiving() override { return busy; }
   bool isInRecvMode() const override { return true; }
 };
 
@@ -55,8 +61,49 @@ private:
   }
 };
 
+// Native runtime uses real region/key resolution and the production scope binding.
+class ScopeTestRuntime : public mesh::Mesh {
+public:
+  using mesh::Mesh::Mesh;
+  TransportKeyStore scope_store;
+  RegionMap regions{scope_store};
+  TransportKey default_scope{};
+  ClientACL management_acl;
+  unsigned management_path_updates = 0, management_data_calls = 0;
+  int matched_clients[MAX_CLIENTS]{};
+protected:
+  int searchPeersByHash(const uint8_t* hash) override {
+    int count = 0;
+    for (int i = 0; i < management_acl.getNumClients() && count < 24; i++)
+      if (management_acl.getClientByIdx(i)->id.isHashMatch(hash)) matched_clients[count++] = i;
+    return count;
+  }
+  void getPeerSharedSecret(uint8_t* secret, int index) override {
+    memcpy(secret, management_acl.getClientByIdx(matched_clients[index])->shared_secret, 32);
+  }
+  void onPeerDataRecv(mesh::Packet*, uint8_t, int, const uint8_t*, uint8_t*, size_t) override {
+    management_data_calls++;
+  }
+  bool onPeerPathRecv(mesh::Packet*, int index, const uint8_t*, uint8_t* path,
+                       uint8_t length, uint8_t, uint8_t*, uint8_t) override {
+    auto client = management_acl.getClientByIdx(matched_clients[index]);
+    client->out_path_len = mesh::Packet::copyPath(client->out_path, path, length);
+    management_path_updates++;
+    return false;
+  }
+  mesh::PacketScope captureRequestScope(const mesh::Packet& packet) {
+    return mesh::resolvePacketScope(packet, regions);
+  }
+  TransportKey captureReplyScope(const mesh::Packet& packet, const mesh::PacketScope& scope) {
+    return mesh::captureReplyTransportScope(packet, scope, default_scope);
+  }
+  void sendCapturedReply(const TransportKey& scope, mesh::Packet* packet, uint32_t delay, uint8_t width) {
+    mesh::sendCapturedFlood(static_cast<mesh::Mesh&>(*this), scope, packet, delay, width);
+  }
+};
+
 // The integration adapter uses real MeshCore encryption, parsing, dispatcher and pool.
-class TestMesh : public mesh::Mesh, public SensorBotTransport {
+class TestMesh : public SensorScopeBinding<ScopeTestRuntime> {
 public:
   SensorBotService* bot = nullptr;
   void loop() { if (bot) bot->beforeRadioLoop(); Mesh::loop(); }
@@ -65,7 +112,7 @@ public:
   bool definite_start_failure = true;
   TestMesh(TestRadio& radio, TestClock& clock, TestRandom& rng, TestRTC& rtc,
             StaticPoolPacketManager& pool, SimpleMeshTables& tables)
-      : Mesh(radio, clock, rng, rtc, pool, tables) { }
+      : SensorScopeBinding<ScopeTestRuntime>(radio, clock, rng, rtc, pool, tables) { }
   uint32_t now() override { return g_mock_millis; }
   uint32_t uniqueTime() override { return getRTCClock()->getCurrentTimeUnique(); }
   const char* nodeName() override { return "BME680 Sensor"; }
@@ -80,9 +127,9 @@ public:
                                    const uint8_t* data, size_t length) override {
     return Mesh::createGroupDatagram(type, channel, data, length);
   }
-  void sendFlood(mesh::Packet* packet, uint32_t delay) override {
+  void sendReply(mesh::Packet* packet, uint32_t delay, const SensorReplyContext& context) override {
     if (reject_group) { reject_group--; releasePacket(packet); }
-    else Mesh::sendFlood(packet, delay);
+    else SensorScopeBinding<ScopeTestRuntime>::sendReply(packet, delay, context);
   }
   void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length, uint32_t delay) override {
     if (reject_direct) { reject_direct--; releasePacket(packet); }

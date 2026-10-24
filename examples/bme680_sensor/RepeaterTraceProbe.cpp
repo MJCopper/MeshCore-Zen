@@ -11,6 +11,14 @@ RepeaterTraceProbe::StartResult RepeaterTraceProbe::start(const mesh::Packet* re
     case TraceRoute::INVALID: return INVALID_PATH;
     case TraceRoute::VALID: break;
   }
+  return startRoute(route, tag, auth, now);
+}
+
+RepeaterTraceProbe::StartResult RepeaterTraceProbe::startRoute(const TraceRoute& route,
+                                        uint32_t tag, uint32_t auth, uint32_t now) {
+  if (isActive()) return BUSY;
+  if (!route.repeaters || route.repeaters > TraceRoute::MAX_REPEATERS || route.flags > 1 ||
+      route.bytes != (2 * route.repeaters - 1) * (1 << route.flags)) return INVALID_PATH;
   memset(_attempts, 0, sizeof(_attempts));
   _attempts[0].route = route;
   _attempts[0].tag = tag;

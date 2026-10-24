@@ -254,3 +254,15 @@ void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_
     used += snprintf(&dest[used], size - used, "%s%s", i ? " > " : "", label);
   }
 }
+
+RepeaterNameCache::Lookup RepeaterNameCache::resolvePrefix(const uint8_t prefix[2],
+                                                         uint8_t key[PUB_KEY_SIZE]) const {
+  bool found = false;
+  for (uint8_t i = 0; i < _count; i++) {
+    if (memcmp(_entries[i].pub_key, prefix, 2)) continue;
+    if (found) { memset(key, 0, PUB_KEY_SIZE); return AMBIGUOUS; }
+    memcpy(key, _entries[i].pub_key, PUB_KEY_SIZE);
+    found = true;
+  }
+  return found ? UNIQUE : UNKNOWN;
+}

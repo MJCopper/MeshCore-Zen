@@ -1,13 +1,15 @@
 #include <gtest/gtest.h>
 #include <deque>
 #include <memory>
+#include <tuple>
 #include "../sensor_mocks/SensorTestRig.h"
 
 // Deterministic packet medium: real MeshCore forwarding, simulated links and airtime.
 // Optional overlap/capture/half-duplex model is deliberately approximate, not RF acceptance.
 class NetworkRadio : public TestRadio {
 public:
-  std::deque<std::vector<uint8_t>> received;
+  struct Reception { std::vector<uint8_t> bytes; int8_t snr; };
+  std::deque<Reception> received;
   uint32_t started_at = 0;
   bool active = false;
   uint32_t busy_until = 0;
@@ -16,8 +18,9 @@ public:
     if (received.empty()) return 0;
     auto packet = received.front();
     received.pop_front();
-    int length = std::min(size, (int)packet.size());
-    memcpy(bytes, packet.data(), length);
+    int length = std::min(size, (int)packet.bytes.size());
+    memcpy(bytes, packet.bytes.data(), length);
+    last_snr = packet.snr / 4.0f;
     return length;
   }
   bool startSendRaw(const uint8_t* bytes, int length) override {
@@ -33,6 +36,13 @@ public:
 class NetworkRelay : public mesh::Mesh {
 public:
   bool forwards;
+  bool scoped_only = false;
+  TransportKey required_scope{};
+  unsigned scope_drops = 0;
+  ClientACL discovery_clients;
+  int discovery_matches[24]{};
+  unsigned discovery_requests = 0;
+  bool discovery_enabled = false;
   PublicChannelSensorBot channels;
   std::vector<std::string> messages;
   uint32_t direct_delay = 0, flood_delay = 0;
@@ -41,6 +51,37 @@ public:
                StaticPoolPacketManager& pool, SimpleMeshTables& tables, bool forward)
       : Mesh(radio, clock, random, rtc, pool, tables), forwards(forward) { }
 protected:
+  mesh::DispatcherAction onRecvPacket(mesh::Packet* packet) override {
+    if (scoped_only && packet->isRouteFlood() &&
+        (packet->getRouteType() != ROUTE_TYPE_TRANSPORT_FLOOD ||
+         packet->transport_codes[0] != required_scope.calcTransportCode(packet))) {
+      scope_drops++;
+      return ACTION_RELEASE;
+    }
+    return Mesh::onRecvPacket(packet);
+  }
+  int searchPeersByHash(const uint8_t* hash) override {
+    int count = 0;
+    if (discovery_enabled) for (int i = 0; i < discovery_clients.getNumClients() && count < 24; i++)
+      if (discovery_clients.getClientByIdx(i)->id.isHashMatch(hash)) discovery_matches[count++] = i;
+    return count;
+  }
+  void getPeerSharedSecret(uint8_t* secret, int index) override {
+    memcpy(secret, discovery_clients.getClientByIdx(discovery_matches[index])->shared_secret, 32);
+  }
+  void onPeerDataRecv(mesh::Packet* packet, uint8_t type, int index, const uint8_t* secret,
+                       uint8_t* data, size_t length) override {
+    if (!discovery_enabled || type != PAYLOAD_TYPE_REQ || length < 9 || data[4] != 3) return;
+    auto client = discovery_clients.getClientByIdx(discovery_matches[index]);
+    uint32_t tag; memcpy(&tag, data, 4);
+    if (tag <= client->last_timestamp) return;  // real repeater replay protection
+    client->last_timestamp = tag; discovery_requests++;
+    uint8_t extra[5]{}; memcpy(extra, &tag, 4); extra[4] = 0xaa;
+    auto reply = createPathReturn(client->id, secret, packet->path, packet->path_len,
+                                  PAYLOAD_TYPE_RESPONSE, extra, sizeof(extra));
+    if (reply) mesh::sendCapturedFlood(static_cast<mesh::Mesh&>(*this),
+              scoped_only ? required_scope : TransportKey{}, reply, 100, packet->getPathHashSize());
+  }
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel dest[], int capacity) override {
     return channels.findChannel(hash, dest, capacity);
   }
@@ -82,8 +123,9 @@ protected:
   uint32_t tx_until[COUNT]{}, loss_seed = 1;
   uint8_t loss_percent = 0;
   int power[COUNT][COUNT]{};
+  int8_t link_snrs[COUNT][COUNT]{};
   struct Delivery { uint32_t due; int target; std::vector<uint8_t> bytes;
-                    uint32_t start; int power; bool lost; };
+                    uint32_t start; int power; bool lost; int8_t snr; };
   std::vector<Delivery> pending;
 
   void emit(int source, const std::vector<uint8_t>& bytes, uint32_t now, uint32_t duration) {
@@ -95,7 +137,7 @@ protected:
       }
     for (int target = 0; target < COUNT; target++) {
       if (!links[source][target]) continue;
-      Delivery delivery{end, target, bytes, now, power[source][target], false};
+      Delivery delivery{end, target, bytes, now, power[source][target], false, link_snrs[source][target]};
       if (rf_model) {
         radios[target].busy_until = std::max(radios[target].busy_until, end);
         if (tx_until[target] > now) { delivery.lost = true; half_duplex_drops++; }
@@ -149,7 +191,7 @@ protected:
         if (pending[i].due > now) { i++; continue; }
         loss_seed = loss_seed * 1664525UL + 1013904223UL;
         if (!pending[i].lost && (loss_seed >> 16) % 100 >= loss_percent) {
-          radios[pending[i].target].received.push_back(pending[i].bytes);
+          radios[pending[i].target].received.push_back({pending[i].bytes, pending[i].snr});
           received_signals++;
         }
         pending.erase(pending.begin() + i);
@@ -170,16 +212,16 @@ protected:
       }
     }
   }
-  void request(uint8_t width = 1, uint8_t channel_index = 0) {
+  void request(uint8_t width = 1, uint8_t channel_index = 0, const TransportKey* scope = nullptr) {
     uint8_t payload[64]{};
-    uint32_t time = 1800000000;
+    uint32_t time = 1800000000 + g_mock_millis / 1000;
     memcpy(payload, &time, 4);
     const char* text = "Alice: !hillvue trace";
     strcpy((char*)payload + 5, text);
     auto packet = meshes[0]->createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel.channel(channel_index),
                                                 payload, 5 + strlen(text));
     ASSERT_NE(nullptr, packet);
-    meshes[0]->sendFlood(packet, 0, width);
+    mesh::sendCapturedFlood(*meshes[0], scope ? *scope : TransportKey{}, packet, 0, width);
   }
   int transmitted(int node, uint8_t type) {
     int count = 0;
@@ -192,9 +234,11 @@ protected:
     for (const auto& bytes : radios[SENSOR].sent) {
       if (((bytes[0] >> PH_TYPE_SHIFT) & PH_TYPE_MASK) != PAYLOAD_TYPE_GRP_TXT) continue;
       uint8_t data[MAX_PACKET_PAYLOAD]{};
-      EXPECT_EQ(channel.channel(channel_index).hash[0], bytes[2]);
+      mesh::Packet packet{};
+      EXPECT_TRUE(sensor_mesh->tryParsePacket(&packet, bytes.data(), bytes.size()));
+      EXPECT_EQ(channel.channel(channel_index).hash[0], packet.payload[0]);
       int length = mesh::Utils::MACThenDecrypt(channel.channel(channel_index).secret, data,
-                                              bytes.data() + 3, bytes.size() - 3);
+                                              packet.payload + 1, packet.payload_len - 1);
       EXPECT_GT(length, 5);
       result.emplace_back((char*)data + 5, strnlen((char*)data + 5, length > 5 ? length - 5 : 0));
     }
@@ -231,6 +275,29 @@ TEST_F(SensorNetwork, TwoRepeatersAndTwoByteHashesUseThePublicChannel) {
   EXPECT_NE(std::string::npos, messages[0].find(" ms RTT"));
   EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
   expectCleanPools();
+}
+
+TEST_F(SensorNetwork, AsymmetricLinkAveragesFollowActualForwardingOnBothHashWidths) {
+  link_snrs[SENSOR][3] = -24; link_snrs[3][SENSOR] = -8;
+  link_snrs[3][2] = 8; link_snrs[2][3] = 0;
+  link_snrs[2][1] = -40; link_snrs[1][2] = 8;
+  // The requester link is not traversed by the trace and must not enter the report.
+  link_snrs[0][1] = -128; link_snrs[1][0] = 127;
+  for (uint8_t width : {1, 2}) {
+    request(width);
+    runUntil(width * 15000);
+    auto messages = reports();
+    ASSERT_EQ(width, messages.size());
+    EXPECT_NE(std::string::npos, messages.back().find(" ms RTT (avg SNR)"));
+    if (width == 1) {
+      EXPECT_NE(std::string::npos, messages.back().find("1 16 -4.0 dB\n2 15 +1.0 dB\n3 14 -4.0 dB"));
+    } else {
+      EXPECT_NE(std::string::npos, messages.back().find("1 1667 -4.0 dB\n2 1566 +1.0 dB\n3 1465 -4.0 dB"));
+    }
+    const uint8_t expected[] = {uint8_t(-24), 8, uint8_t(-40), 8, 0, uint8_t(-8)};
+    EXPECT_EQ(0, memcmp(expected, bot->diagnostics().selected.snrs, sizeof(expected)));
+    expectCleanPools();
+  }
 }
 
 TEST_F(SensorNetwork, OneDroppedProbeIsRecoveredByOneSilentRetry) {
@@ -386,6 +453,166 @@ TEST_P(SensorContention, SeededLossAndStandardRepeaterDelaysRemainBounded) {
   expectCleanPools();
 }
 INSTANTIATE_TEST_SUITE_P(DeterministicSeeds, SensorContention, ::testing::Range(1, 9));
+
+class ScopedSensorNetwork : public SensorNetwork {
+protected:
+  TransportKey scope{};
+  void SetUp() override {
+    SensorNetwork::SetUp();
+    auto region = sensor_mesh->regions.putRegion("#test-region", 0);
+    ASSERT_NE(nullptr, region);
+    region->flags = 0;
+    ASSERT_EQ(1, sensor_mesh->regions.getTransportKeysFor(*region, &scope, 1));
+    for (auto& relay : relays) if (relay) {
+      relay->scoped_only = true;
+      relay->required_scope = scope;
+    }
+  }
+  void expectReportCodes() {
+    for (const auto& bytes : radios[SENSOR].sent) {
+      mesh::Packet packet{};
+      ASSERT_TRUE(sensor_mesh->tryParsePacket(&packet, bytes.data(), bytes.size()));
+      if (packet.getPayloadType() != PAYLOAD_TYPE_GRP_TXT) continue;
+      EXPECT_EQ(ROUTE_TYPE_TRANSPORT_FLOOD, packet.getRouteType());
+      EXPECT_EQ(scope.calcTransportCode(&packet), packet.transport_codes[0]);
+    }
+  }
+};
+
+TEST_F(ScopedSensorNetwork, ScopedReportsCrossRelaysRejectingUnscopedFloodsOnBothChannels) {
+  for (uint8_t ch = 0; ch < 2; ch++) {
+    request(ch + 1, ch, &scope);
+    runUntil(10000 + ch * 15000);
+    ASSERT_EQ(ch + 1u, relay(0).messages.size());
+    EXPECT_NE(std::string::npos, relay(0).messages.back().find(" ms RTT"));
+  }
+  expectReportCodes();
+  expectCleanPools();
+}
+
+TEST_F(ScopedSensorNetwork, WrongScopeAndUnscopedCommandsAreRejectedByTheSameRelayFilter) {
+  request();
+  runUntil(3000);
+  EXPECT_EQ(0, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  TransportKey wrong{}; wrong.key[0] = 73;
+  request(1, 0, &wrong);
+  runUntil(6000);
+  EXPECT_EQ(0, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  EXPECT_GE(relay(1).scope_drops, 2u);
+  EXPECT_TRUE(relay(0).messages.empty());
+  // Exercise the same negative controls in the report direction as well.
+  SensorReplyContext wrong_context(1);
+  memcpy(wrong_context.scope_key, wrong.key, sizeof(wrong.key));
+  bot->sendPublicResponse("Wrong scoped report", wrong_context);
+  bot->sendPublicResponse("Unscoped report", SensorReplyContext{0});
+  runUntil(11000);
+  EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_GRP_TXT));
+  EXPECT_GE(relay(3).scope_drops, 2u);
+  EXPECT_TRUE(relay(0).messages.empty());
+  expectCleanPools();
+}
+
+TEST_F(ScopedSensorNetwork, RetryFailureReportCrossesScopedRelays) {
+  drop_sensor_traces = 2;
+  request(1, 1, &scope);
+  runUntil(60000);
+  ASSERT_EQ(1u, relay(0).messages.size());
+  EXPECT_NE(std::string::npos, relay(0).messages[0].find("no result after retry"));
+  EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  expectReportCodes();
+  expectCleanPools();
+}
+
+TEST_F(ScopedSensorNetwork, DelayedMultipartRepliesCrossScopedRelaysAfterDefaultChanges) {
+  mesh::Packet request{};
+  request.header = ROUTE_TYPE_TRANSPORT_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+  request.payload_len = 10;
+  memset(request.payload, 42, request.payload_len);
+  request.setPathHashSizeAndCount(2, 2);
+  request.transport_codes[0] = scope.calcTransportCode(&request);
+  const auto context = sensor_mesh->replyContext(request, 1, sensor_mesh->requestScope(request));
+  std::string text;
+  for (int i = 0; i < 10; i++) text += "Scoped multipart report line\n";
+  bot->sendPublicResponse(text.c_str(), context);
+  sensor_mesh->default_scope.key[0] = 99;
+  runUntil(12000);
+  ASSERT_EQ(2u, relay(0).messages.size());
+  EXPECT_NE(std::string::npos, relay(0).messages[0].find("1/2"));
+  EXPECT_NE(std::string::npos, relay(0).messages[1].find("2/2"));
+  expectReportCodes();
+  expectCleanPools();
+}
+
+class TargetedSensorNetwork : public ScopedSensorNetwork {
+protected:
+  void SetUp() override {
+    ScopedSensorNetwork::SetUp();
+    for (int node = 0; node < COUNT; node++) {
+      bool unique;
+      do {
+        meshes[node]->self_id = mesh::LocalIdentity(&random); unique = true;
+        for (int earlier = 0; earlier < node; earlier++)
+          if (meshes[earlier]->self_id.pub_key[0] == meshes[node]->self_id.pub_key[0]) unique = false;
+      } while (!unique);
+    }
+    relay(1).discovery_enabled = true;
+    auto client = relay(1).discovery_clients.putClient(sensor_mesh->self_id, PERM_ACL_GUEST);
+    relay(1).self_id.calcSharedSecret(client->shared_secret, sensor_mesh->self_id);
+    uint8_t app[MAX_ADVERT_DATA_SIZE];
+    auto length = AdvertDataBuilder(ADV_TYPE_REPEATER, "Target").encodeTo(app);
+    bot->onAdvertRecv(nullptr, relay(1).self_id, 1, app, length);
+  }
+  void targetedRequest(uint8_t width, uint8_t ch) {
+    uint8_t payload[80]{};
+    uint32_t time = 1800000000 + g_mock_millis / 1000;
+    memcpy(payload, &time, 4);
+    int length = snprintf((char*)payload + 5, sizeof(payload) - 5, "Alice: !hillvue trace %02x%02x",
+                relay(1).self_id.pub_key[0], relay(1).self_id.pub_key[1]);
+    auto packet = meshes[0]->createGroupDatagram(PAYLOAD_TYPE_GRP_TXT, channel.channel(ch), payload, 5 + length);
+    ASSERT_NE(nullptr, packet);
+    mesh::sendCapturedFlood(*meshes[0], scope, packet, 0, width);
+  }
+};
+
+class TargetedNetworkRoutes : public TargetedSensorNetwork,
+                             public ::testing::WithParamInterface<std::tuple<int, int>> {};
+TEST_P(TargetedNetworkRoutes, AuthenticatedScopedDiscoveryAndLoopReachSelectedRepeater) {
+  auto width = std::get<0>(GetParam()), ch = std::get<1>(GetParam());
+  targetedRequest(width, ch); runUntil(15000);
+  ASSERT_EQ(1u, relay(0).messages.size());
+  EXPECT_NE(std::string::npos, relay(0).messages[0].find("avg SNR"));
+  EXPECT_NE(std::string::npos, relay(0).messages[0].find("3 Target"));
+  EXPECT_EQ(1u, relay(1).discovery_requests);
+  EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_REQ));
+  EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  EXPECT_EQ(0, sensor_mesh->management_acl.getNumClients());
+  EXPECT_EQ(PERM_ACL_GUEST, relay(1).discovery_clients.getClientByIdx(0)->permissions);
+  expectReportCodes(); expectCleanPools();
+}
+INSTANTIATE_TEST_SUITE_P(BothChannelsAndWidths, TargetedNetworkRoutes,
+    ::testing::Combine(::testing::Values(1, 2), ::testing::Values(0, 1)));
+
+TEST_F(TargetedSensorNetwork, UnknownRemoteClientTimesOutWithoutAutomaticLogin) {
+  relay(1).discovery_clients.load(&fs, relay(1).self_id);
+  targetedRequest(1, 0); runUntil(90000);
+  ASSERT_EQ(1u, relay(0).messages.size());
+  EXPECT_NE(std::string::npos, relay(0).messages[0].find("discovery timed out"));
+  EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_REQ));
+  EXPECT_EQ(0, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  EXPECT_EQ(0, relay(1).discovery_clients.getNumClients());
+  EXPECT_EQ(0, sensor_mesh->management_acl.getNumClients());
+  for (auto& pool : pools) EXPECT_EQ(32, pool->getFreeCount());
+}
+
+TEST_F(TargetedSensorNetwork, ReplayProtectionUsesMonotonicRtcTagsRatherThanTraceRandomIds) {
+  relay(1).discovery_clients.getClientByIdx(0)->last_timestamp = 1799999999;
+  targetedRequest(2, 1); runUntil(15000);
+  ASSERT_EQ(1u, relay(0).messages.size());
+  EXPECT_GE(relay(1).discovery_clients.getClientByIdx(0)->last_timestamp, 1800000000u);
+  EXPECT_EQ(1u, relay(1).discovery_requests);
+  EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+  expectCleanPools();
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -9,7 +9,7 @@
 class TraceReportDelivery {
 public:
   enum Outcome { NONE, DELIVERED, EXPIRED, UNCERTAIN, INVALID };
-  bool begin(const char* text, const char* name, uint8_t channel, uint32_t now,
+  bool begin(const char* text, const char* name, const SensorReplyContext& context, uint32_t now,
              uint32_t delay, uint32_t budget, bool failure = false) {
     reset();
     size_t prefix = strlen(name) + 2;
@@ -18,7 +18,7 @@ public:
     _count = PublicResponseQueue::split(text, PublicResponseQueue::MAX_PART_LENGTH - prefix, first, second) ? 2 : 1;
     snprintf(_parts[0], sizeof(_parts[0]), "%s: %s", name, first);
     if (_count == 2) snprintf(_parts[1], sizeof(_parts[1]), "%s: %s", name, second);
-    _channel = channel;
+    _context = context;
     _began = _part_at = now;
     _due = now + delay;
     _budget = budget;
@@ -38,7 +38,8 @@ public:
         (int32_t)(now - _part_at) >= (int32_t)TraceTimingPolicy::QUEUE_TIMEOUT_MILLIS);
   }
   const char* text() const { return _parts[_part < 2 ? _part : 1]; }
-  uint8_t channel() const { return _channel; }
+  uint8_t channel() const { return _context.channel; }
+  const SensorReplyContext& context() const { return _context; }
   const void* queuedPacket() const { return _state == QUEUED ? _packet : NULL; }
   void queued(const void* packet) { _packet = packet; _state = QUEUED; }
   void retry(uint32_t now, uint32_t jitter = 0) {
@@ -78,7 +79,8 @@ private:
   char _parts[2][PublicResponseQueue::MAX_PART_LENGTH + 1]{};
   const void* _packet = NULL;
   uint32_t _began = 0, _part_at = 0, _due = 0, _budget = 0;
-  uint8_t _part = 0, _count = 0, _channel = 0, _failures = 0;
+  SensorReplyContext _context;
+  uint8_t _part = 0, _count = 0, _failures = 0;
   bool _failure = false;
   State _state = IDLE;
   Outcome _outcome = NONE;

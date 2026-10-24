@@ -1,0 +1,53 @@
+Regular tests
+=================================== SUMMARY ===================================
+Environment        Test                            Status    Duration
+-----------------  ------------------------------  --------  ------------
+native             test_config_serializer          PASSED    00:00:01.759
+native             test_repeater_trace_probe       PASSED    00:00:03.591
+native             test_public_response_queue      PASSED    00:00:01.531
+native             test_trace_path_bounds          PASSED    00:00:01.347
+native             test_utils                      PASSED    00:00:01.513
+native             test_public_channel_sensor_bot  PASSED    00:00:03.543
+native             test_companion_node_prefs       PASSED    00:00:01.774
+native             test_mesh_tables                PASSED    00:00:01.698
+native             test_companion_118              PASSED    00:00:01.663
+native             test_bme680_air_quality         PASSED    00:00:01.903
+native             test_utf8_helpers               PASSED    00:00:01.789
+native             test_routing_policy             PASSED    00:00:01.571
+native_sensor      test_sensor_integration         PASSED    00:00:05.736
+native_sensor      test_sensor_policy              PASSED    00:00:03.967
+native_sensor      test_sensor_storage             PASSED    00:00:04.200
+native_sensor      test_sensor_routes              PASSED    00:00:04.018
+native_sensor      test_sensor_trace_snr           PASSED    00:00:05.361
+native_sensor      test_sensor_network             PASSED    00:00:02.269
+native_sensor      test_sensor_trace_reliability   PASSED    00:00:04.475
+native_sensor      test_sensor_scope               PASSED    00:00:04.378
+native_sensor      test_sensor_subscriptions       PASSED    00:00:02.208
+native_sensor      test_sensor_target_trace        PASSED    00:00:05.333
+native_sensor      test_sensor_dispatcher          PASSED    00:00:02.080
+native_kiss_modem  test_kiss_modem                 PASSED    00:00:01.231
+================ 329 test cases: 329 succeeded in 00:01:08.939 ================
+
+ASan
+=================================== SUMMARY ===================================
+Environment         Test                           Status    Duration
+------------------  -----------------------------  --------  ------------
+native_sensor_asan  test_sensor_integration        PASSED    00:00:05.828
+native_sensor_asan  test_sensor_policy             PASSED    00:00:04.110
+native_sensor_asan  test_sensor_storage            PASSED    00:00:04.598
+native_sensor_asan  test_sensor_routes             PASSED    00:00:04.285
+native_sensor_asan  test_sensor_trace_snr          PASSED    00:00:05.837
+native_sensor_asan  test_sensor_network            PASSED    00:00:07.164
+native_sensor_asan  test_sensor_trace_reliability  PASSED    00:00:04.477
+native_sensor_asan  test_sensor_scope              PASSED    00:00:05.182
+native_sensor_asan  test_sensor_subscriptions      PASSED    00:00:02.214
+native_sensor_asan  test_sensor_target_trace       PASSED    00:00:07.029
+native_sensor_asan  test_sensor_dispatcher         PASSED    00:00:02.073
+================ 223 test cases: 223 succeeded in 00:00:52.795 ================
+
+Firmware
+| `Xiao_nrf52_bme680_sensor` | Passed / Passed | 37,156 | 353,876 |
+| `Xiao_nrf52_sensor_baseline` | Passed / Passed | 31,116 | 315,700 |
+| `Xiao_nrf52_companion_radio_usb` | Passed / Passed | 143,408 | 372,464 |
+| `Xiao_nrf52_repeater` | Passed / Passed | 34,596 | 360,880 |
+| `Xiao_nrf52_room_server` | Passed / Passed | 38,284 | 353,312 |

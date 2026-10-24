@@ -907,14 +907,7 @@ void SensorMesh::applyTempRadioParams(float freq, float bw, uint8_t sf, uint8_t 
 }
 
 void SensorMesh::sendFloodScoped(const TransportKey& scope, mesh::Packet* pkt, uint32_t delay_millis, uint8_t path_hash_size) {
-  if (scope.isNull()) {
-    sendFlood(pkt, delay_millis, path_hash_size);
-  } else {
-    uint16_t codes[2];
-    codes[0] = scope.calcTransportCode(pkt);
-    codes[1] = 0;  // REVISIT: set to 'home' Region, for sender/return region?
-    sendFlood(pkt, codes, delay_millis, path_hash_size);
-  }
+  mesh::sendCapturedFlood(static_cast<mesh::Mesh&>(*this), scope, pkt, delay_millis, path_hash_size);
 }
 
 void SensorMesh::sendFloodReply(mesh::Packet* packet, unsigned long delay_millis, uint8_t path_hash_size) {
@@ -923,19 +916,9 @@ void SensorMesh::sendFloodReply(mesh::Packet* packet, unsigned long delay_millis
   bool req_scope_known = recv_pkt_region != NULL && !is_wildcard
                       && region_map.getTransportKeysFor(*recv_pkt_region, &req_scope, 1) > 0;
 
-  switch (mesh::chooseReplyScope(req_scope_known, is_wildcard, !default_scope.isNull())) {
-    case mesh::REPLY_SCOPE_REQUEST:
-      sendFloodScoped(req_scope, packet, delay_millis, path_hash_size);   // reply with same scope as request
-      break;
-    case mesh::REPLY_SCOPE_DEFAULT:
-      // requester's scope is unknown: DIRECT request (no transport codes), or code matched no Region.
-      // un-scoped would be dropped at hop 0 by repeaters running flood.max.unscoped=0
-      sendFloodScoped(default_scope, packet, delay_millis, path_hash_size);
-      break;
-    case mesh::REPLY_SCOPE_NONE:
-      sendFlood(packet, delay_millis, path_hash_size);   // send un-scoped
-      break;
-  }
+  auto selected = mesh::selectReplyTransportScope(req_scope_known ? req_scope : TransportKey{},
+                                                 req_scope_known, is_wildcard, default_scope);
+  sendFloodScoped(selected, packet, delay_millis, path_hash_size);
 }
 
 void SensorMesh::sendSelfAdvertisement(int delay_millis, bool flood) {

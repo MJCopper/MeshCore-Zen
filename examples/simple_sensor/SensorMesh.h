@@ -23,6 +23,7 @@
 #include <helpers/StatsFormatHelper.h>
 #include <helpers/ClientACL.h>
 #include <helpers/RegionMap.h>
+#include <helpers/RegionScope.h>
 #include <RTClib.h>
 #include <target.h>
 
@@ -88,6 +89,16 @@ public:
   void sendFloodReply(mesh::Packet* packet, unsigned long delay_millis, uint8_t path_hash_size);
 
 protected:
+  mesh::PacketScope captureRequestScope(const mesh::Packet& packet) {
+    return mesh::resolvePacketScope(packet, region_map);
+  }
+  TransportKey captureReplyScope(const mesh::Packet& packet, const mesh::PacketScope& scope) {
+    return mesh::captureReplyTransportScope(packet, scope, default_scope);
+  }
+  void sendCapturedReply(const TransportKey& scope, mesh::Packet* packet,
+                         uint32_t delay, uint8_t width) {
+    sendFloodScoped(scope, packet, delay, width);
+  }
   // current telemetry data queries
   float getVoltage(uint8_t channel) { return getTelemValue(channel, LPP_VOLTAGE); }
   float getCurrent(uint8_t channel) { return getTelemValue(channel, LPP_CURRENT); }

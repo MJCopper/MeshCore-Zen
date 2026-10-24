@@ -20,13 +20,31 @@ TraceRoute::Validation TraceRoute::fromRequest(const mesh::Packet* packet, Trace
   return VALID;
 }
 
+TraceRoute::Validation TraceRoute::fromOutbound(const uint8_t* via, uint8_t encoded,
+                                               const uint8_t* target, TraceRoute& route) {
+  if (!target || !mesh::Packet::isValidPathLen(encoded)) return INVALID;
+  uint8_t count = encoded & 63, width = (encoded >> 6) + 1;
+  if (width > 2 || (count && !via)) return INVALID;
+  if (count + 1 > MAX_REPEATERS) return TOO_LONG;
+  route = TraceRoute{};
+  route.repeaters = count + 1;
+  route.flags = width - 1;
+  route.bytes = (2 * route.repeaters - 1) * width;
+  for (uint8_t i = 0; i < count; i++) memcpy(route.path + i * width, via + i * width, width);
+  memcpy(route.path + count * width, target, width);
+  for (uint8_t i = 0; i < count; i++)
+    memcpy(route.path + (count + 1 + i) * width, via + (count - 1 - i) * width, width);
+  return VALID;
+}
+
 bool TraceRoute::equals(const TraceRoute& other) const {
   return flags == other.flags && bytes == other.bytes && memcmp(path, other.path, bytes) == 0;
 }
 
-void TraceRouteCandidates::begin(const mesh::Packet* request, uint32_t now) {
+void TraceRouteCandidates::begin(const mesh::Packet* request, uint32_t now, const mesh::PacketScope& scope) {
   // Called after channel MAC validation; later copies must match that ciphertext.
   clear();
+  _scope = scope;
   if (TraceRoute::fromRequest(request, _original) != TraceRoute::VALID ||
       request->payload_len < 3 || request->payload_len > MAX_PACKET_PAYLOAD) return;
   _payload_length = request->payload_len;
@@ -36,14 +54,23 @@ void TraceRouteCandidates::begin(const mesh::Packet* request, uint32_t now) {
   _sequence = 0;
 }
 
-void TraceRouteCandidates::observe(const mesh::Packet* packet, uint32_t now) {
-  if (!_active || !packet || !packet->isRouteFlood() ||
+void TraceRouteCandidates::observe(const mesh::Packet* packet, uint32_t now, const mesh::PacketScope& scope) {
+  if (!_active || !_scope.equals(scope) || !packet || !packet->isRouteFlood() ||
       packet->getPayloadType() != PAYLOAD_TYPE_GRP_TXT || packet->payload_len != _payload_length) return;
   uint8_t fingerprint[sizeof(_fingerprint)];
   mesh::Utils::sha256(fingerprint, sizeof(fingerprint), packet->payload, packet->payload_len);
   if (memcmp(fingerprint, _fingerprint, sizeof(fingerprint)) != 0) return;
   TraceRoute route{};
   if (TraceRoute::fromRequest(packet, route) != TraceRoute::VALID) return;
+  observeDiscovered(route, now, (int8_t)(packet->getSNR() * 4));
+}
+
+void TraceRouteCandidates::beginDiscovered(const TraceRoute& route, uint32_t now,
+                                          const mesh::PacketScope& scope) {
+  clear(); _original = route; _scope = scope; _last_seen = now; _sequence = 0;
+}
+
+void TraceRouteCandidates::observeDiscovered(const TraceRoute& route, uint32_t now, int8_t snr) {
   _last_seen = now;
   if (route.equals(_original)) return;
   Candidate* target = NULL;
@@ -61,7 +88,7 @@ void TraceRouteCandidates::observe(const mesh::Packet* packet, uint32_t now) {
   }
   target->seen = now;
   target->sequence = ++_sequence;
-  target->snr = (int8_t)(packet->getSNR() * 4);
+  target->snr = snr;
   if (target->observations != 255) target->observations++;
 }
 
@@ -87,13 +114,13 @@ static uint8_t novelEdges(const TraceRoute& route, const TraceRoute& original) {
 }
 
 const TraceRoute* TraceRouteCandidates::best(const TraceRouteHistory& history, uint8_t channel,
-                      uint32_t profile, uint32_t now, const uint32_t airtimes[3]) const {
+                      uint32_t profile, uint32_t now, const uint32_t airtimes[3], const mesh::PacketScope& scope, const uint8_t* target_key) const {
   int chosen = -1;
   for (uint8_t i = 0; i < _count; i++) {
     if (chosen < 0) { chosen = i; continue; }
     const auto& a = _candidates[i];
     const auto& b = _candidates[chosen];
-    uint8_t ar = history.rank(a.route, channel, profile, now), br = history.rank(b.route, channel, profile, now);
+    uint8_t ar = history.rank(a.route, channel, profile, now, scope, target_key), br = history.rank(b.route, channel, profile, now, scope, target_key);
     uint64_t ad = (uint64_t)novelEdges(a.route, _original) * b.route.repeaters * (airtimes[chosen] + 1ULL);
     uint64_t bd = (uint64_t)novelEdges(b.route, _original) * a.route.repeaters * (airtimes[i] + 1ULL);
     bool better = ar > br;

@@ -8,6 +8,16 @@ case-insensitive. Each response stays on the requesting channel, including
 delayed message parts, trace results, fallback results and error notices.
 Both channels share the same four-command-per-minute limit and active trace.
 
+Replies retain the request's transport scope through delayed and multipart
+messages, trace results, fallback results and error notices. A recognised scope
+is mirrored; an explicitly unscoped request receives an unscoped reply. If a
+transport scope cannot be resolved, the sensor uses its configured default
+scope, or replies unscoped if no usable default exists. The selection is captured
+when the command is accepted, so later traffic or default-scope changes do not
+redirect a pending reply. A busy notice follows the new request's scope while
+the running trace keeps its original scope.
+
+
 Hashtag channels are not private: anyone who knows the name can derive the key.
 
 ## Commands
@@ -23,7 +33,8 @@ Hashtag channels are not private: anyone who knows the name can derive the key.
 | `!hillvue v` | XIAO battery voltage |
 | `!hillvue ping` | `Pong` reachability reply |
 | `!hillvue path` | Repeater path taken by this request |
-| `!hillvue trace` | Route round-trip time and each repeater's SNR |
+| `!hillvue trace` | Incoming command route RTT and average bidirectional link SNR |
+| `!hillvue trace 4df5` | Discover and trace to the known repeater with public-key prefix `4df5` |
 
 An option is selected by its first letter, so forms such as `temp`,
 `Temperature` and `T` all select temperature. Likewise, `v`, `volt` and
@@ -61,16 +72,70 @@ case, before applying the existing 12-byte UTF-8-safe name limit. For example,
 Whitespace is tidied; stored advert names are unchanged. If removal leaves an
 empty name, the repeater's path hash is displayed instead.
 
-`!hillvue trace` is standalone. The sensor sends one direct MeshCore trace out
+`!hillvue trace` without a destination sends one direct MeshCore trace out
 through the repeaters in the received request path and back to itself, then
-reports the elapsed milliseconds as a **round-trip** measurement and the receive
-SNR at each repeater on the outward leg. For example:
+reports the elapsed milliseconds as a **round-trip** measurement and the average
+of both directional SNR readings for each link. Nodes are listed once, starting
+with the nearest repeater to the sensor and proceeding towards the requester.
+Each node's displayed SNR describes its link to the preceding node (the sensor
+for the first entry). For example:
 
 ```text
-Trace: 1540 ms RTT
-1 Ridge +3.5 dB
-2 Valley -8.0 dB
+Trace: 1540 ms RTT (avg SNR)
+1 Ridge -4.0 dB
+2 Valley +1.0 dB
 ```
+
+For the first entry, sensor-to-repeater -6 dB and repeater-to-sensor -2 dB
+produce -4.0 dB. This is the arithmetic mean of the two dB readings from the
+selected trace attempt, not an average over time. Values are averaged before
+rounding to one decimal place. Retry and late fallback reports use their own
+route's samples; the first link includes the sensor's final received SNR.
+An average can hide a weaker direction, so it is not a weakest-link score.
+The final repeater-to-requester link is outside the trace measurement.
+
+To choose a destination instead of using the command's incoming route, send
+`!hillvue trace 4df5`. The four hexadecimal characters select the first two bytes
+of a full public key in the sensor's verified repeater-advert cache (up to 48
+named repeaters, including persisted adverts). Uppercase hexadecimal is accepted.
+The sensor must already know the full identity; four characters alone cannot
+identify an unknown node. An absent prefix reports `Trace: unknown repeater
+4df5`; multiple cached matches report `Trace: ambiguous repeater 4df5`. Neither
+case starts discovery. Malformed prefixes or combined trace/measurement commands
+are ignored. Both trace forms are standalone commands.
+
+For a selected destination, the sensor sends a standard authenticated, flooded
+base-telemetry request and uses the returned PATH to build a loop through the
+selected repeater and back to the sensor. The selected repeater is included as
+the final outward entry, even for a direct neighbour. The output format and
+average-SNR rules are the same as bare trace. The ten-repeater limit includes
+the target; one- and two-byte path hashes are supported. Unsupported request
+hash widths are rejected before discovery; unsupported returned paths are not
+probed. Settings are never silently changed.
+
+The target must recognise and permit the **sensor's identity**, not merely the
+phone or node that sent the channel command. Being present in the advert cache
+does not establish remote permissions. The bot does not log in, add ACL entries
+or change permissions automatically. `Trace: discovery timed out` can mean
+missing permissions, a replay-clock mismatch, congestion or RF loss; it does not
+prove the repeater is unreachable. Local failures instead report discovery radio
+busy or discovery transmit failed.
+
+At most two discovery submissions precede the existing maximum of two trace
+submissions. Discovery tags use the unique RTC request timestamp; random trace
+identifiers are separate. Discovery queue admission is bounded to ten seconds
+per attempt with the existing local backoff. A transmitted discovery's timeout
+uses the ten-repeater airtime allowance described below (at least 30 seconds),
+starting at actual TX start. Discovery uses the captured reply scope and hash
+width; it does not silently retry in another scope. A short settling window
+uses the discovered loop's estimated maximum packet airtime. Discovery, settling
+and queue wait are all excluded from reported RTT.
+
+Transient peer contexts exist only in RAM. Discovery responses do not replace
+saved management routes or trigger reciprocal PATH traffic. Late and ownerless
+RESPONSE/PATH replies are ignored after the transaction closes. Normal management
+requests and non-response PATH handling retain their existing owners. Radio
+configuration changes cancel queued discovery/probes before further sends.
 
 MeshCore TRACE does not record timestamps at each repeater, so individual
 per-node milliseconds cannot be reported from this single probe. The RTT excludes
@@ -80,7 +145,7 @@ queue is excluded. It is not a
 one-way latency or a measurement to the companion. Only one trace runs at
 a time, including bounded report delivery; paths over ten repeaters are rejected.
 Before the first probe, a short airtime-aware settling window lets the command
-flood finish. Its earliest start is twice the command airtime, clamped to
+flood finish. For bare trace, its earliest start is twice the command airtime, clamped to
 300-2000 milliseconds, plus 0-250 milliseconds of jitter. Matching duplicates
 extend a quiet interval of 150-750 milliseconds, but cannot extend settling past
 2.5 seconds. Unrelated messages do not extend it. Settling is excluded from RTT.
@@ -104,17 +169,28 @@ accumulated during the loop. The minimum is ten seconds for two repeaters,
 13 seconds for three, and 30 seconds for ten. Slower radio settings can increase
 that allowance; remote repeater congestion cannot be predicted exactly.
 
-After the first timeout, the sensor makes one silent retry following a random
-one-to-two-second pause. It passively watches additional copies of the exact
-same command for up to three alternate flood paths. The original route is always
-tested first. Retry candidates are ranked using recent exact-route outcomes,
+After the first trace timeout, the sensor makes one silent retry following a
+random one-to-two-second pause. Bare trace passively watches additional copies
+of the exact same command for up to three alternate flood paths. Destination
+trace instead collects additional authenticated PATH responses for the current
+target and transmitted discovery tags. The original received/discovered route
+is always tested first. Retry candidates are ranked using recent exact-route outcomes,
 directed-edge diversity per estimated airtime, freshness and last-hop SNR.
 Last-hop SNR is not an end-to-end score. Four RAM-only history records expire
-after fifteen minutes and are scoped to the channel and radio configuration;
-temporary radio configuration changes and reversion invalidate old context too.
+after fifteen minutes and are scoped to the full transport key, channel and radio
+configuration. Destination trace also requires the full target public key;
+bare and destination trace histories remain separate. Temporary radio changes
+and reversion invalidate old context too. Bare traces with unresolved transport
+scopes do not reuse history between commands. Destination traces use their
+selected discovery scope. Alternate
+copies must match the original command ciphertext and scope. For unresolved
+scopes, matching also requires the same transport route type and both transport
+codes; these short codes remain potentially ambiguous and are only conservative
+hints within that command. A transport-code match to multiple configured keys is
+treated as unresolved. Region names and IDs are not route-history identities.
 History only ranks routes observed for the current command: it never invents a
-route or supplies an old, unobserved path. This sends no discovery packets and
-does not treat repeater advert names as network topology.
+route or supplies an old, unobserved path. Bare trace sends no discovery packets.
+Neither mode treats repeater advert names as network topology.
 An observed path is a routing hint, not proof that its links work in reverse.
 
 Each attempt has fresh identifiers and retains its own path, hash width and
@@ -152,7 +228,8 @@ Local diagnostics retain outward and return SNRs, the final received-link SNR,
 and the furthest matching trace progress overheard for each attempt. Partial
 progress never completes a trace, extends its timeout or identifies a failed
 repeater. These snapshots are available to tests/debugger inspection only;
-the public RTT/SNR format is unchanged and no extra diagnostic traffic is sent.
+the public report averages paired directional readings, and no extra diagnostic
+traffic is sent.
 
 The original command counts once toward the unchanged
 four-command-per-minute limit, although a retry sends a second trace packet.

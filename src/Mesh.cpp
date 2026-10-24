@@ -160,6 +160,7 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
             int len = Utils::MACThenDecrypt(secret, data, macAndData, pkt->payload_len - i);
             if (len > 0) {  // success!
               if (pkt->getPayloadType() == PAYLOAD_TYPE_PATH) {
+                if (len < 2) break;
                 int k = 0;
                 uint8_t path_len = data[k++];
                 if (!Packet::isValidPathLen(path_len)) {
@@ -168,6 +169,7 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
                 }
                 uint8_t hash_size = (path_len >> 6) + 1;
                 uint8_t hash_count = path_len & 63;
+                if (hash_size * hash_count > len - 2) break;  // path plus extra-type byte
                 uint8_t* path = &data[k]; k += hash_size*hash_count;
                 uint8_t extra_type = data[k++] & 0x0F;   // upper 4 bits reserved for future use
                 uint8_t* extra = &data[k];

@@ -8,8 +8,9 @@ git diff --exit-code "$baseline" -- \
   examples/simple_sensor/main.cpp \
   src/helpers/sensors/EnvironmentSensorManager.cpp
 
-if rg -n 'PUBLIC_CHANNEL_SENSOR_BOT|hillvue|BME680AirQuality|Bme680Telemetry|SensorBotService|SensorManagementPolicy|Bme680SensorMesh|TraceRouteCandidates|TraceTimingPolicy|TraceReportDelivery|TraceRouteHistory|TraceDiagnostics' \
+if rg -n 'PUBLIC_CHANNEL_SENSOR_BOT|hillvue|BME680AirQuality|Bme680Telemetry|SensorBotService|SensorManagementPolicy|Bme680SensorMesh|TraceRouteCandidates|TraceTimingPolicy|TraceReportDelivery|TraceRouteHistory|TraceDiagnostics|SensorReplyContext|SensorScopeBinding|TraceDiscovery' \
     examples/simple_sensor src/Dispatcher.cpp src/Dispatcher.h src/Mesh.cpp \
+    src/helpers/PacketScope.h src/helpers/RegionScope.h \
     src/helpers/ClientACL.cpp src/helpers/ClientACL.h \
     src/helpers/sensors/EnvironmentSensorManager.cpp; then
   echo "Custom sensor policy has leaked into baseline code" >&2

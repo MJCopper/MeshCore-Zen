@@ -53,9 +53,12 @@ int PublicChannelSensorBot::channelIndex(const mesh::GroupChannel& source) const
 bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
                                     uint32_t now_millis, bool trace_busy,
                                     uint8_t& metric_mask, bool& busy_trace,
-                                    uint8_t channel_index) {
+                                    uint8_t channel_index, uint8_t* trace_prefix, bool* targeted) {
   metric_mask = 0;
   busy_trace = false;
+  if (targeted) *targeted = false;
+  uint8_t prefix[2]{};
+  bool has_target = false;
   if (type != PAYLOAD_TYPE_GRP_TXT || !data || len < 6 || len >= MAX_PACKET_PAYLOAD) return false;
   if ((data[4] >> 2) != 0) return false;
 
@@ -80,7 +83,19 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
     metric_mask = REQUEST_PING;
   } else if (equalsIgnoreCase(argument, "path")) {
     metric_mask = REQUEST_PATH;
-  } else if (equalsIgnoreCase(argument, "trace")) {
+  } else if (strncasecmp(argument, "trace", 5) == 0 &&
+             (argument[5] == 0 || isspace((unsigned char)argument[5]))) {
+    char* destination = argument + 5;
+    while (isspace((unsigned char)*destination)) destination++;
+    if (*destination) {
+      if (strlen(destination) != 4) return false;
+      for (uint8_t i = 0; i < 4; i++) {
+        unsigned char c = tolower((unsigned char)destination[i]);
+        if (!isxdigit(c)) return false;
+        prefix[i / 2] = (prefix[i / 2] << 4) | (c <= '9' ? c - '0' : c - 'a' + 10);
+      }
+      has_target = true;
+    }
     metric_mask = REQUEST_TRACE;
   } else {
     char* token = argument;
@@ -89,6 +104,7 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
       while (*separator && !isspace((unsigned char)*separator)) separator++;
       if (*separator) *separator++ = 0;
 
+      if (strncasecmp(token, "trace", 5) == 0) return false;
       if (equalsIgnoreCase(token, "ping") || equalsIgnoreCase(token, "path") ||
           equalsIgnoreCase(token, "trace")) {
         return false;  // Standalone requests cannot be combined with measurements.
@@ -110,6 +126,8 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
     }
   }
 
+  if (targeted) *targeted = has_target;
+  if (trace_prefix && has_target) memcpy(trace_prefix, prefix, sizeof(prefix));
   if (metric_mask == REQUEST_TRACE && trace_busy) {
     busy_trace = true;
     return true;

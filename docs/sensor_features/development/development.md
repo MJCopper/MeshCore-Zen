@@ -238,6 +238,74 @@ bounded; normal request processing does not allocate new application objects.
 The custom target keeps the established `Xiao_nrf52_bme680_sensor.uf2` and
 `Xiao_nrf52_bme680_sensor.zip` artifact names.
 
+## Trace scope regression coverage
+
+The scope adapter is shared between the production sensor and native test
+runtime. Native tests use real RegionMap resolution, transport-key HMACs,
+MeshCore encryption, Dispatcher and packet pools. Each delayed reply owns its
+channel, scope key and path-hash width. Scope selection helpers also serve the
+upstream synchronous sensor reply path; the baseline firmware build checks that
+this generic API remains compatible.
+
+`test_sensor_dispatcher` isolates actual TX-start timing, scheduled and busy-channel
+waiting, failed-start ownership, selective cancellation and ordinary consumer
+completion. `test_sensor_scope` covers both watched channels, interleaved
+multipart messages, busy notices, trace retry/fallback, allocation and queue
+recovery, scope removal and key rotation. Route tests isolate history by the
+complete scope key and prevent foreign-scope command copies extending settling.
+Network tests validate transport codes on relays that reject unscoped floods,
+including wrong-scope controls, multipart delivery and trace failure reports.
+
+These tests run in the regular and sanitizer sensor environments. Firmware
+resource measurements, validation commands and separate physical acceptance
+status are recorded in the [scope implementation validation report](../../upgrades/validation/sensor-trace-scope.md).
+
+## Average bidirectional trace SNR
+
+Trace reports display one node per outward link, beginning at the sensor. For
+zero-based repeater index `i` and `N` repeaters, the paired samples are `i` and
+`2*N - 1 - i`. Raw signed quarter-dB readings remain available in diagnostics;
+their promoted signed sum divided by eight yields the average in dB. The final
+sample is the sensor's receive SNR. Rounding happens only when rendering one
+decimal place. The header explicitly says `avg SNR`.
+
+`test_sensor_trace_snr` covers every route length from one to ten and both hash
+widths, signed extrema, opposite signs, eighth-dB precision, node order,
+multipart output, retry precedence and original-route fallback. A packet-medium
+case assigns different SNR values to each directed link and exercises actual
+MeshCore forwarding for both widths, including sensor RX and exclusion of the
+requester link. Existing scoped delivery tests continue to cover channel/scope
+retention. See the [average SNR validation report](../../upgrades/validation/sensor-trace-average-snr.md).
+
+Physical acceptance must compare the paired raw readings and displayed averages
+on a controlled asymmetric link. Packet-medium tests validate protocol ordering
+and arithmetic but cannot establish real radio measurements.
+
+## Destination trace discovery
+
+`test_sensor_target_trace` tests the public-key-prefix command through real
+MeshCore encryption, authenticated PATH decoding, the shared production peer
+binding and Dispatcher. It covers unknown/ambiguous/malformed prefixes, all
+one-to-ten-repeater routes at both hash widths, RTC tags, bounded discovery
+retries, radio-start/queue/allocation failure, cancellation before radio send,
+scoped replies, late old-target replies, retry/fallback SNRs and full-target
+history isolation. Transient discovery peers are not added to the sensor ACL.
+Management PATH ownership and other authenticated admin traffic are exercised
+against the native ACL runtime.
+
+The packet-medium tests include a known-client/replay-protected repeater
+responder: targeted discovery and the complete loop cross real forwarding
+nodes, both channels, both hash widths and relays rejecting unscoped floods.
+Unknown remote clients time out without automatic login or ACL changes. The
+sensor's peer binding consumes RESPONSE/PATH packets without applying them to
+management routes; ordinary management PATHs retain their existing callback.
+A generic Mesh PATH decoder guard rejects a path that does not fit in the
+authenticated decrypted payload before reading its extra fields; an encrypted
+truncated-path regression covers this under ASan.
+
+See the [destination trace validation record](../../upgrades/validation/sensor-target-trace.md)
+for the commands, measured resource changes and separate physical acceptance.
+
 ## Hardware acceptance
 
 Automated tests cannot establish RF delivery, physical sensor accuracy or the

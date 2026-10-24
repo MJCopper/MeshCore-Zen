@@ -37,6 +37,8 @@ public:
   void loop(uint32_t now_millis);
   void onAdvert(const mesh::Identity& id, uint32_t timestamp, const uint8_t* app_data,
                 size_t app_data_len, uint32_t now_millis);
+  enum Lookup { UNKNOWN, UNIQUE, AMBIGUOUS };
+  Lookup resolvePrefix(const uint8_t prefix[2], uint8_t key[PUB_KEY_SIZE]) const;
   void formatLabel(const uint8_t* hash, uint8_t hash_size, char* dest, size_t size) const;
   void formatPath(const mesh::Packet* packet, char* dest, size_t size) const;
 };

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../simple_sensor/SensorMesh.h"
-#include "SensorBotService.h"
+#include "SensorScopeBinding.h"
 #include "SensorManagementPolicy.h"
 
 // Thin binding between the upstream sensor runtime and this application's services.
-class Bme680SensorMesh : public SensorMesh, private SensorBotTransport {
+class Bme680SensorMesh : public SensorScopeBinding<SensorMesh> {
   SensorBotService _bot;
   TimeSeriesData _battery{12 * 24, 5 * 60};
   Trigger _low_batt, _critical_batt;
@@ -15,7 +15,7 @@ class Bme680SensorMesh : public SensorMesh, private SensorBotTransport {
 public:
   Bme680SensorMesh(mesh::MainBoard& board, mesh::Radio& radio, mesh::MillisecondClock& ms,
                    mesh::RNG& rng, mesh::RTCClock& rtc, mesh::MeshTables& tables)
-      : SensorMesh(board, radio, ms, rng, rtc, tables), _bot(*this, sensors.snapshot) { }
+      : SensorScopeBinding<SensorMesh>(board, radio, ms, rng, rtc, tables), _bot(*this, sensors.snapshot) { }
   void begin(FILESYSTEM* fs) {
     SensorMesh::begin(fs);
     sensors.snapshot.setVoltage(board.getBattMilliVolts() / 1000.0f);
@@ -162,7 +162,6 @@ private:
                                    const uint8_t* data, size_t length) override {
     return Mesh::createGroupDatagram(type, channel, data, length);
   }
-  void sendFlood(mesh::Packet* packet, uint32_t delay) override { Mesh::sendFlood(packet, delay); }
   void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length,
                    uint32_t delay) override { Mesh::sendDirect(packet, path, length, delay); }
   void releasePacket(mesh::Packet* packet) override { Mesh::releasePacket(packet); }

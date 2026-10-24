@@ -26,7 +26,7 @@ static const char* skipBreak(const char* text) {
 }
 
 PublicResponseQueue::PublicResponseQueue() {
-  memset(_pending, 0, sizeof(_pending));
+  for (auto& pending : _pending) pending = Pending{};
 }
 
 bool PublicResponseQueue::split(const char* response, size_t max_body,
@@ -71,13 +71,13 @@ bool PublicResponseQueue::split(const char* response, size_t max_body,
   return true;
 }
 
-bool PublicResponseQueue::schedule(const char* second, uint32_t due_at, uint8_t channel_index) {
+bool PublicResponseQueue::schedule(const char* second, uint32_t due_at, const SensorReplyContext& context) {
   if (!second || !second[0] || strlen(second) > MAX_PART_LENGTH) return false;
   for (uint8_t i = 0; i < MAX_PENDING; i++) {
     if (_pending[i].active) continue;
     strcpy(_pending[i].text, second);
     _pending[i].due_at = due_at;
-    _pending[i].channel_index = channel_index;
+    _pending[i].context = context;
     _pending[i].first_packet = NULL;
     _pending[i].waiting_first = false;
     _pending[i].active = true;
@@ -87,13 +87,13 @@ bool PublicResponseQueue::schedule(const char* second, uint32_t due_at, uint8_t 
 }
 
 bool PublicResponseQueue::scheduleAfterFirst(const char* second, const void* first_packet,
-                                             uint8_t channel_index) {
+                                             const SensorReplyContext& context) {
   if (!first_packet || !second || !second[0] || strlen(second) > MAX_PART_LENGTH) return false;
   for (uint8_t i = 0; i < MAX_PENDING; i++) {
     if (_pending[i].active) continue;
     strcpy(_pending[i].text, second);
     _pending[i].due_at = 0;
-    _pending[i].channel_index = channel_index;
+    _pending[i].context = context;
     _pending[i].first_packet = first_packet;
     _pending[i].waiting_first = true;
     _pending[i].active = true;
@@ -123,12 +123,12 @@ void PublicResponseQueue::onFirstFailed(const void* first_packet) {
 }
 
 bool PublicResponseQueue::takeDue(uint32_t now_millis, char part[MAX_PART_LENGTH + 1],
-                                  uint8_t* channel_index) {
+                                  SensorReplyContext* context) {
   for (uint8_t i = 0; i < MAX_PENDING; i++) {
     if (!_pending[i].active || _pending[i].waiting_first ||
         (int32_t)(now_millis - _pending[i].due_at) < 0) continue;
     strcpy(part, _pending[i].text);
-    if (channel_index) *channel_index = _pending[i].channel_index;
+    if (context) *context = _pending[i].context;
     _pending[i].active = false;
     return true;
   }

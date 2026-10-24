@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "SensorReplyContext.h"
 
 // Formats at most two channel messages and holds delayed second parts.
 // The command rate limit is enforced separately by PublicChannelSensorBot.
@@ -17,18 +18,18 @@ public:
   static bool split(const char* response, size_t max_body,
                     char first[MAX_PART_LENGTH + 1],
                     char second[MAX_PART_LENGTH + 1], const char* separator = NULL);
-  bool scheduleAfterFirst(const char* second, const void* first_packet, uint8_t channel_index = 0);
+  bool scheduleAfterFirst(const char* second, const void* first_packet, const SensorReplyContext& context);
   void onFirstSent(const void* first_packet, uint32_t now_millis);
   void onFirstFailed(const void* first_packet);
-  bool schedule(const char* second, uint32_t due_at, uint8_t channel_index = 0);
-  bool takeDue(uint32_t now_millis, char part[MAX_PART_LENGTH + 1], uint8_t* channel_index = NULL);
+  bool schedule(const char* second, uint32_t due_at, const SensorReplyContext& context);
+  bool takeDue(uint32_t now_millis, char part[MAX_PART_LENGTH + 1], SensorReplyContext* context = NULL);
 
 private:
   struct Pending {
     char text[MAX_PART_LENGTH + 1];
     uint32_t due_at;
     const void* first_packet;
-    uint8_t channel_index;
+    SensorReplyContext context;
     bool waiting_first;
     bool active;
   };

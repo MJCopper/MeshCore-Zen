@@ -17,7 +17,7 @@ static TraceRoute route(uint8_t first = 1, uint8_t count = 3, uint8_t width = 1)
 TEST(SensorTraceDelivery, RetainsFrozenTextUntilActualCompletion) {
   TraceReportDelivery report;
   char name[] = "Sensor";
-  ASSERT_TRUE(report.begin("Trace: 100 ms RTT", name, 1, 0, 1000, 30000));
+  ASSERT_TRUE(report.begin("Trace: 100 ms RTT", name, SensorReplyContext{1}, 0, 1000, 30000));
   name[0] = 'X';
   EXPECT_STREQ("Sensor: Trace: 100 ms RTT", report.text());
   EXPECT_FALSE(report.ready(999));
@@ -35,7 +35,7 @@ TEST(SensorTraceDelivery, RetainsFrozenTextUntilActualCompletion) {
 
 TEST(SensorTraceDelivery, AllocationRetriesDoNotLoseTextOrMoveTheDeadline) {
   TraceReportDelivery report;
-  ASSERT_TRUE(report.begin("Result", "Sensor", 0, 100, 1500, 30000));
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 100, 1500, 30000));
   report.retry(100);
   EXPECT_FALSE(report.ready(1599));
   EXPECT_TRUE(report.ready(1600));
@@ -51,7 +51,7 @@ TEST(SensorTraceDelivery, AllocationRetriesDoNotLoseTextOrMoveTheDeadline) {
 TEST(SensorTraceDelivery, RetriesRejectedStartsButNeverRepeatsAnUncertainTransmission) {
   TraceReportDelivery report;
   int packet = 0;
-  ASSERT_TRUE(report.begin("Result", "Sensor", 0, 0, 0, 30000));
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 0, 0, 30000));
   report.queued(&packet);
   EXPECT_TRUE(report.failed(&packet, 100, true));
   EXPECT_FALSE(report.ready(349));
@@ -68,7 +68,7 @@ TEST(SensorTraceDelivery, MultipartGapStartsAtCompletionAndHasNoUnsignedUnderflo
   std::string text;
   for (int i = 0; i < 12; i++) text += "1 Ridge +1.0 dB\n";
   int first = 0, second = 0;
-  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", 0, 0, 0, 30000));
+  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{0}, 0, 0, 30000));
   EXPECT_NE(std::string::npos, std::string(report.text()).find("1/2"));
   report.queued(&first);
   report.started(&first);
@@ -90,7 +90,7 @@ TEST(SensorTraceDelivery, ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap) 
   TraceReportDelivery report;
   int packet = 0;
   uint32_t now = UINT32_MAX - 1000;
-  ASSERT_TRUE(report.begin("Result", "Sensor", 0, now, 1500, 30000));
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, now, 1500, 30000));
   EXPECT_FALSE(report.ready(now + 1499));
   EXPECT_TRUE(report.ready(now + 1500));
   report.queued(&packet);
@@ -98,7 +98,7 @@ TEST(SensorTraceDelivery, ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap) 
   EXPECT_FALSE(report.expired(now + 40000));
   report.completed(&packet, now + 40001);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, report.outcome());
-  ASSERT_TRUE(report.begin("Result", "Sensor", 0, now, 0, 30000));
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, now, 0, 30000));
   EXPECT_FALSE(report.expired(now + 9999));
   EXPECT_TRUE(report.expired(now + 10000));
 }
@@ -106,7 +106,7 @@ TEST(SensorTraceDelivery, ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap) 
 TEST(SensorTraceDelivery, UnknownRejectedStartIsConservativelyUncertain) {
   TraceReportDelivery report;
   int packet = 0;
-  ASSERT_TRUE(report.begin("Result", "Sensor", 0, 0, 0, 30000));
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 0, 0, 30000));
   report.queued(&packet);
   EXPECT_TRUE(report.failed(&packet, 100));
   EXPECT_FALSE(report.active());
@@ -117,7 +117,7 @@ TEST(SensorTraceDelivery, SecondPartCanRecoverWithoutRepeatingTheFirstPart) {
   TraceReportDelivery report;
   std::string text(170, 'x');
   int first = 0, second = 0;
-  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", 1, 0, 0, 30000));
+  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{1}, 0, 0, 30000));
   report.queued(&first); report.started(&first); report.completed(&first, 1000);
   EXPECT_TRUE(report.ready(4000));
   report.queued(&second); report.failed(&second, 4000, true);
@@ -132,7 +132,7 @@ TEST(SensorTraceDelivery, OverallDeadlineCannotBeExtendedByMultipartProgress) {
   TraceReportDelivery report;
   std::string text(170, 'x');
   int packet = 0;
-  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", 0, 0, 0, 12000));
+  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{0}, 0, 0, 12000));
   report.queued(&packet); report.started(&packet); report.completed(&packet, 9000);
   EXPECT_FALSE(report.expired(11999));
   EXPECT_TRUE(report.expired(12000));

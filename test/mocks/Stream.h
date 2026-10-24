@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 // Mock Stream class for native testing
 // Provides minimal interface needed by Utils.h
@@ -33,6 +35,14 @@ public:
         return write((const uint8_t *) buffer, size);
     }
 
+    size_t printf(const char* format, ...) {
+        char buffer[256];
+        va_list args;
+        va_start(args, format);
+        int count = vsnprintf(buffer, sizeof(buffer), format, args);
+        va_end(args);
+        return count <= 0 ? 0 : write(buffer, (size_t)count < sizeof(buffer) ? count : sizeof(buffer) - 1);
+    }
     virtual size_t print(unsigned char b, int r = DEC) { return 0; }
     virtual size_t print(int v, int r = DEC) { return 0; }
     virtual size_t print(unsigned int v, int r = DEC) { return 0; }
