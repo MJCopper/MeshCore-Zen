@@ -26,6 +26,10 @@ private:
 
 public:
   Phase phase() const { return _phase; }
+  bool displayPending(bool telemetry_pending,bool login_pending) const {
+    return _phase==RETRY_DELAY || telemetry_pending ||
+      ((_phase==ACL_WAIT || _phase==PASSWORD_WAIT) && login_pending);
+  }
   bool accessConfirmed() const { return _access_confirmed; }
   bool passwordEditing() const { return _phase == PASSWORD; }
 

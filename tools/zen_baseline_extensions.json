@@ -1,0 +1,12 @@
+{
+  "src/Dispatcher.h": {
+    "source_commit": "99dc14489bcaf529be7957a998863c5acc8713e8",
+    "sha256": "83d58e0d9eb6008c403ea7e9d443ddea1ed212509d47ee54176e1d245662f63c",
+    "reason": "Sensor trace TX-start callback and safe queued-packet inspection/cancellation; no default dispatch behaviour change."
+  },
+  "src/Dispatcher.cpp": {
+    "source_commit": "99dc14489bcaf529be7957a998863c5acc8713e8",
+    "sha256": "7eb9a8cbd2c85139ded37d72fe0fc5b703ca4fbd84b36189425c52d53f4d4575",
+    "reason": "Sensor trace TX-start callback and safe queued-packet inspection/cancellation; no default dispatch behaviour change."
+  }
+}

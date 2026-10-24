@@ -1194,6 +1194,7 @@ public:
     _sensor_page.onLoginTimeout(key);
   }
   void tickSensor() { _sensor_page.tick(); }
+  void observeSensorDisplayActivity(zen::DisplayActivity& activity) const { _sensor_page.observeDisplayActivity(activity); }
 
   bool handleInput(char c) override {
     noteHomeInteraction();
@@ -1829,8 +1830,26 @@ void UITask::clearPing() {
   _ping_tag = 0;
 }
 
+bool UITask::startRepeaterTrace(const uint8_t* key,const char* name) {
+  if(!key||_remote_node.active()||_ping_active||isChildModeLocked()) {
+    showAlert("Another operation active or locked",2000);return false;
+  }
+  if(!_remote_node.begin(zen::RemoteNodeCoordinator::TRACE_OWNER,zen::RemoteNodeOperation::TRACE,
+       key,false,zen::RemoteNodeOperation::DO_NOT_RETRY,0)) return false;
+  bool started=the_mesh.startRepeaterTrace(key,name);
+  if(!started) {
+    _remote_node.cancel(zen::RemoteNodeCoordinator::TRACE_OWNER);
+    const auto& trace=the_mesh.repeaterTrace();
+    showAlert(trace.phase()==zen::RepeaterTraceSession::FAILED?trace.phaseName():"Trace busy or unavailable",3000);
+  }
+  return started;
+}
+void UITask::cancelRepeaterTrace() {
+  the_mesh.cancelRepeaterTrace();_remote_node.cancel(zen::RemoteNodeCoordinator::TRACE_OWNER);
+}
+
 bool UITask::startPing(const uint8_t* pub_key) {
-  if (_ping_active || !pub_key) return false;
+  if (_ping_active || _remote_node.active() || !pub_key) return false;
   if (_node_prefs && _node_prefs->path_hash_mode > 1) {
     operationError(zen::Operation::PING,
         zen::OperationOutcome::TRANSPORT_FAILURE,
@@ -2797,6 +2816,7 @@ void UITask::reconcilePower(bool force) {
   if (_display && (transition.changes & zen::PeripheralPowerCoordinator::CHANGE_DISPLAY)) {
     if (transition.target.display_on) _display->turnOn();
     else {
+      _display_activity.suspend();
       _display->turnOff();
 #if ZEN_FEATURE_PET
       if (home) ((HomeScreen*)home)->cancelPetTraining();
@@ -3120,6 +3140,7 @@ void UITask::turnDisplayOn() {
 }
 
 void UITask::turnDisplayOff() {
+  _display_activity.suspend();
   if (!_display) return;
   setDisplayRequested(false);
 }
@@ -3190,7 +3211,43 @@ void UITask::pollCardKB() {
 #endif
 }
 
+void UITask::updateDisplayActivity() {
+  using Activity=zen::DisplayActivity;
+  uint32_t now=millis();
+  bool allowed=_display && _display->isOn() && !isLowPowerMode();
+  _display_activity.beginSample(now,allowed);
+  const auto& remote=_remote_node.operation();
+  // Trace has its own phase/airtime deadlines; ordinary requests expose theirs.
+  uint32_t deadline=_remote_node.owner()==zen::RemoteNodeCoordinator::TRACE_OWNER
+      ? the_mesh.repeaterTrace().displayDeadline() : remote.deadline()+5000;
+  _display_activity.observe({Activity::REMOTE,_remote_node.generation()},
+                           _remote_node.active() &&
+                           _remote_node.owner()!=zen::RemoteNodeCoordinator::SENSOR_OWNER &&
+                           !_node_login.ownedBy(zen::NodeLoginCoordinator::SENSOR),deadline);
+  if(home) ((HomeScreen*)home)->observeSensorDisplayActivity(_display_activity);
+  _display_activity.observe({Activity::PING,_ping_tag},_ping_active,_ping_sent_ms+3000);
+  if(nearby_screen) ((NearbyScreen*)nearby_screen)->observeDisplayActivity(_display_activity);
+  if(messages_screen) ((MessagesScreen*)messages_screen)->observeDisplayActivity(_display_activity);
+  the_mesh.observeManualTransmitActivity(_display_activity);
+#if ZEN_FEATURE_PET
+  if(home) {
+    auto game=((HomeScreen*)home)->petGameDisplay(now);
+    _display_activity.observe({Activity::GAME,game.generation},game.hold);
+  }
+#endif
+  auto decision=_display_activity.endSample(autoOffMillis());
+  _display_activity_held=decision.hold;
+  if(decision.released) {
+    _notification_wake.interaction();
+    if(autoOffMillis()>0) _auto_off=decision.deadline;
+    _next_refresh=0;
+  }
+}
+
 void UITask::loop() {
+  if(_remote_node.ownedBy(zen::RemoteNodeCoordinator::TRACE_OWNER)&&isChildModeLocked()) cancelRepeaterTrace();
+  if(_remote_node.ownedBy(zen::RemoteNodeCoordinator::TRACE_OWNER)&&!the_mesh.repeaterTrace().active())
+    _remote_node.cancel(zen::RemoteNodeCoordinator::TRACE_OWNER);
   // Screen visibility, not just user wake, gates automatic signal discovery.
   the_mesh.serviceSignalDiscovery(_display && _display->isOn());
 #if ZEN_FEATURE_PET
@@ -3377,6 +3434,7 @@ void UITask::loop() {
   }
 
   if (curr) curr->poll();
+  updateDisplayActivity();
 
   // Alarm + countdown run regardless of the current screen / display state, so
   // they're driven here (not via the current screen's poll()).
@@ -3428,20 +3486,8 @@ void UITask::loop() {
       _auto_off = millis() + AUTO_OFF_MILLIS;
     }
 #endif
-    bool game_hold=false,game_expired=false;
-#if ZEN_FEATURE_PET
-    if(home) {
-      auto game=((HomeScreen*)home)->petGameDisplay(millis());
-      game_hold=game.hold; game_expired=game.expired;
-      if(game.released) {
-        uint32_t normal=autoOffMillis();
-        if(normal>0)_auto_off=millis()+normal;
-      }
-    }
-#endif
-    if (game_expired || (!game_hold &&
-        (_notification_wake.active() || autoOffMillis() > 0) &&
-        (int32_t)(millis() - _auto_off) >= 0)) {
+    if (zen::DisplayActivity::shouldBlank(_display_activity_held,millis(),_auto_off,
+                                         autoOffMillis(),_notification_wake.active())) {
       turnDisplayOff();
 #ifdef PIN_LED
       digitalWrite(PIN_LED, LOW);  // turn off status LED with display to save power
@@ -3501,6 +3547,10 @@ void UITask::loop() {
 // for both explicit removal and silent auto-eviction (see MyMesh
 // CMD_REMOVE_CONTACT / onContactOverwrite).
 void UITask::onContactRemoved(const uint8_t* pub_key) {
+  if(the_mesh.repeaterTrace().ownsTarget(pub_key)) {
+    the_mesh.cancelRepeaterTrace(zen::RepeaterTraceSession::NODE_REMOVED);
+    _remote_node.cancel(zen::RemoteNodeCoordinator::TRACE_OWNER);
+  }
   if (!_node_prefs || !pub_key) return;
   bool changed = false;
 

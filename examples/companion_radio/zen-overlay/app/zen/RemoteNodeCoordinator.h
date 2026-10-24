@@ -10,13 +10,15 @@ namespace zen {
 // coordinator.
 class RemoteNodeCoordinator {
 public:
-  enum Owner : uint8_t { NO_OWNER, LOGIN_OWNER, ADMIN_OWNER, SENSOR_OWNER };
+  enum Owner : uint8_t { NO_OWNER, LOGIN_OWNER, ADMIN_OWNER, SENSOR_OWNER, TRACE_OWNER };
 
 private:
   Owner _owner = NO_OWNER;
   RemoteNodeOperation _operation;
+  uint32_t _generation=0;
 
 public:
+  uint32_t generation() const { return _generation; }
   bool active() const { return _owner != NO_OWNER; }
   bool ownedBy(Owner owner) const { return _owner == owner && _operation.active(); }
   Owner owner() const { return _owner; }
@@ -24,8 +26,9 @@ public:
 
   bool begin(Owner owner, RemoteNodeOperation::Kind kind, const uint8_t* key,
              bool known_path, RemoteNodeOperation::RetryMode retry_mode,
-             uint32_t deadline) {
+             uint32_t deadline,bool continuation=false) {
     if (active() || owner == NO_OWNER || !key) return false;
+    if(!continuation || !_generation) { if(++_generation==0) ++_generation; }
     _owner = owner;
     _operation.begin(kind, key, known_path, retry_mode, deadline);
     return true;

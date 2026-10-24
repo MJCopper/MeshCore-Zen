@@ -127,6 +127,17 @@ TEST(RemoteNodeAdapters, RejectsMalformedLoginResponse) {
   EXPECT_TRUE(zen::RemoteLoginAdapter::valid(response, sizeof(response)));
 }
 
+TEST(RemoteNodeCoordinator, TraceExcludesOtherUiRequestsAndReleasesOnCancel) {
+  zen::RemoteNodeCoordinator coordinator;uint8_t key[32]={1};
+  ASSERT_TRUE(coordinator.begin(coordinator.TRACE_OWNER,zen::RemoteNodeOperation::TRACE,key,false,
+      zen::RemoteNodeOperation::DO_NOT_RETRY,0));
+  EXPECT_FALSE(coordinator.begin(coordinator.SENSOR_OWNER,zen::RemoteNodeOperation::TELEMETRY,key,false,
+      zen::RemoteNodeOperation::RETRY_SAFE,1000));
+  EXPECT_FALSE(coordinator.cancel(coordinator.ADMIN_OWNER));
+  EXPECT_TRUE(coordinator.cancel(coordinator.TRACE_OWNER));
+  EXPECT_TRUE(coordinator.begin(coordinator.LOGIN_OWNER,zen::RemoteNodeOperation::LOGIN,key,false,
+      zen::RemoteNodeOperation::RETRY_SAFE,1000));
+}
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

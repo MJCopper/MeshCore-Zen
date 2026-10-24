@@ -5,6 +5,8 @@
 #include "zen/BuiltinMelodies.h"
 #include "zen/ConfigMaintenance.h"
 #include "zen/MessageDeliveryCoordinator.h"
+#include "zen/RemoteNodeOperation.h"
+#include "zen/TraceNameResolver.h"
 #include "MsgExpand.h"
 #include "GeoUtils.h"
 #include "Features.h"
@@ -318,6 +320,7 @@ uint8_t MyMesh::getExtraAckTransmitCount() const {
 }
 
 void MyMesh::logRx(mesh::Packet* packet, int, float) {
+  _repeater_trace.observe(packet);
   const uint32_t now = millis();
   // This hook is called after envelope parsing, before the delayed RX queue.
   if (zen::signalPayloadValid(*packet)) {
@@ -410,6 +413,7 @@ uint8_t MyMesh::getAutoAddMaxHops() const {
 
 void MyMesh::onContactOverwrite(const uint8_t* pub_key) {
     _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE); // delete from storage
+  if(_repeater_trace.ownsTarget(pub_key)) _repeater_trace.cancel(zen::RepeaterTraceSession::NODE_REMOVED);
   if (_ui) _ui->onContactRemoved(pub_key); // same cleanup as an explicit CMD_REMOVE_CONTACT
   if (_serial->isConnected()) {
     out_frame[0] = PUSH_CODE_CONTACT_DELETED;
@@ -501,6 +505,7 @@ bool MyMesh::addDiscoveredContact(const uint8_t* pub_key, const char* name, uint
 // drop the contact, its persisted blob and any saved room login, run the UI cleanup
 // (favourite slot / Locator / Live Share target), then schedule the lazy write.
 bool MyMesh::deleteContactByKey(const uint8_t* pub_key) {
+  if(_repeater_trace.ownsTarget(pub_key)) _repeater_trace.cancel(zen::RepeaterTraceSession::NODE_REMOVED);
   ContactInfo* recipient = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
   if (!recipient || !removeContact(*recipient)) return false;
   _store->deleteBlobByKey(pub_key, PUB_KEY_SIZE);
@@ -1275,6 +1280,7 @@ bool MyMesh::onContactPathRecv(ContactInfo& contact, uint8_t* in_path, uint8_t i
     uint32_t tag;
     memcpy(&tag, extra, 4);
 
+    if (_repeater_trace.pathResponse(contact.id.pub_key,tag,out_path,out_path_len,_trace_reply_snr)) return false;
     if (tag == pending_discovery) {  // check for matching response tag)
       pending_discovery = 0;
 
@@ -1345,6 +1351,7 @@ bool MyMesh::sendNodeDiscoverReq(bool silent) {
 }
 
 void MyMesh::serviceSignalDiscovery(bool screen_on) {
+  if(_repeater_trace.active()) return; // manual trace owns this diagnostic airtime window
   uint32_t now=millis();
   if (!_repeater_signal.shouldDiscover(now,screen_on,radioAvailable(),
                                        !_low_power_mode && !_emergency_mode)) return;
@@ -1363,6 +1370,96 @@ int MyMesh::getDiscoverResults(DiscoverResult dest[], int max_count) {
 }
 
 // ── Ping/Trace functionality ─────────────────────────────────────────────────
+
+uint32_t MyMesh::TraceAdapter::traceNow() const { return millis(); }
+uint32_t MyMesh::TraceAdapter::traceDiscoveryTag() { return mesh->getRTCClock()->getCurrentTimeUnique(); }
+uint32_t MyMesh::TraceAdapter::traceRandom() {
+  uint32_t value; mesh->getRNG()->random((uint8_t*)&value,4);return value;
+}
+uint32_t MyMesh::TraceAdapter::traceAirtime(unsigned bytes) const { return mesh->_radio->getEstAirtimeFor(bytes); }
+uint32_t MyMesh::TraceAdapter::traceFloodTimeout(uint32_t airtime) const {
+  return mesh->calcFloodTimeoutMillisFor(airtime)+zen::RemoteNodeOperation::RESPONSE_GRACE_MS;
+}
+mesh::Packet* MyMesh::TraceAdapter::traceQueueDiscovery(const uint8_t*,uint32_t tag) {
+  uint8_t data[13];memcpy(data,&tag,4);
+  data[4]=REQ_TYPE_GET_TELEMETRY_DATA;data[5]=~TELEM_PERM_BASE;
+  memset(data+6,0,3);uint32_t nonce=traceRandom();memcpy(data+9,&nonce,4);
+  auto& target=mesh->_trace_target;
+  auto packet=mesh->createDatagram(PAYLOAD_TYPE_REQ,target.id,target.getSharedSecret(mesh->self_id),data,sizeof(data));
+  if(!packet) return nullptr;
+  mesh->sendFloodScoped(target,packet);
+  return mesh->isQueuedPacket(packet)?packet:nullptr;
+}
+mesh::Packet* MyMesh::TraceAdapter::traceQueueLoop(const zen::TraceRoute& route,uint32_t tag,uint32_t auth) {
+  auto packet=mesh->createTrace(tag,auth,route.flags);
+  if(!packet) return nullptr;
+  mesh->sendDirect(packet,route.path,route.bytes);
+  return mesh->isQueuedPacket(packet)?packet:nullptr;
+}
+bool MyMesh::TraceAdapter::traceCancelQueued(mesh::Packet* packet) { return mesh->cancelQueuedPacket(packet); }
+
+uint32_t MyMesh::traceContext() const {
+  uint32_t hash=2166136261u;
+  auto mix=[&](const void* data,size_t size) {
+    auto bytes=(const uint8_t*)data;for(size_t i=0;i<size;++i) { hash^=bytes[i];hash*=16777619u; }
+  };
+  mix(&_prefs.freq,sizeof(_prefs.freq));mix(&_prefs.bw,sizeof(_prefs.bw));
+  mix(&_prefs.sf,sizeof(_prefs.sf));mix(&_prefs.cr,sizeof(_prefs.cr));
+  mix(&_prefs.path_hash_mode,sizeof(_prefs.path_hash_mode));
+  mix(send_scope.key,sizeof(send_scope.key));
+  return hash?hash:1;
+}
+bool MyMesh::startRepeaterTrace(const uint8_t* key,const char* name) {
+  if(!key||_repeater_trace.active()||(_pending_node_discover_tag&&!millisHasNowPassed(_pending_node_discover_until))||_sensor_state==SENSOR_WAITING)
+    return false;
+  for(const auto& ping:_ping_results) if(ping.tag&&!ping.received) return false;
+  const uint32_t context=traceContext();
+  if(context!=_trace_context) { _trace_context=context;_repeater_trace.contextChanged(); }
+  _trace_target=ContactInfo();
+  if(auto contact=lookupContactByPubKey(key,PUB_KEY_SIZE)) {
+    if(contact->type!=ADV_TYPE_REPEATER) return false;
+    _trace_target=*contact;
+  } else {
+    memcpy(_trace_target.id.pub_key,key,PUB_KEY_SIZE);_trace_target.type=ADV_TYPE_REPEATER;
+    _trace_target.out_path_len=OUT_PATH_UNKNOWN;
+  }
+  StrHelper::strzcpy(_trace_target.name,name?name:"Repeater",sizeof(_trace_target.name));
+  return _repeater_trace.start(key,radioAvailable()&&!_low_power_mode,_prefs.path_hash_mode+1);
+}
+void MyMesh::traceHopName(const uint8_t* prefix,unsigned width,char* out,size_t size) {
+  zen::TraceNameResolver resolver;ContactInfo contact;
+  for(unsigned i=0;getContactByIdx(i,contact);++i)
+    resolver.observe(prefix,width,contact.id.pub_key,contact.name);
+  if(!lookupContactByPubKey(_trace_target.id.pub_key,PUB_KEY_SIZE))
+    resolver.observe(prefix,width,_trace_target.id.pub_key,_trace_target.name);
+  resolver.format(prefix,width,out,size);
+}
+int MyMesh::searchPeersByHash(const uint8_t* hash) {
+  int n=BaseChatMesh::searchPeersByHash(hash);_trace_peer_index=-1;
+  if(_repeater_trace.active()&&!lookupContactByPubKey(_trace_target.id.pub_key,PUB_KEY_SIZE)&&
+      n<MAX_SEARCH_RESULTS&&_trace_target.id.isHashMatch(hash)) _trace_peer_index=n++;
+  return n;
+}
+void MyMesh::getPeerSharedSecret(uint8_t* secret,int index) {
+  if(index==_trace_peer_index) memcpy(secret,_trace_target.getSharedSecret(self_id),PUB_KEY_SIZE);
+  else BaseChatMesh::getPeerSharedSecret(secret,index);
+}
+void MyMesh::onPeerDataRecv(mesh::Packet* packet,uint8_t type,int index,const uint8_t* secret,uint8_t* data,size_t len) {
+  if(index!=_trace_peer_index) BaseChatMesh::onPeerDataRecv(packet,type,index,secret,data,len);
+}
+bool MyMesh::onPeerPathRecv(mesh::Packet* packet,int index,const uint8_t* secret,uint8_t* path,uint8_t len,
+                            uint8_t extra_type,uint8_t* extra,uint8_t extra_len) {
+  _trace_reply_snr=packet->_snr;
+  if(index!=_trace_peer_index) return BaseChatMesh::onPeerPathRecv(packet,index,secret,path,len,extra_type,extra,extra_len);
+  if(extra_type==PAYLOAD_TYPE_RESPONSE&&extra_len>4) {
+    uint32_t tag;memcpy(&tag,extra,4);_repeater_trace.pathResponse(_trace_target.id.pub_key,tag,path,len,packet->_snr);
+  }
+  return false;
+}
+void MyMesh::onTxStarted(mesh::Packet* packet,uint32_t now) {
+  _repeater_trace.txStarted(packet,now);
+  if(packet) _manual_adverts.started(packet,now,_radio->getEstAirtimeFor(packet->getRawLength()));
+}
 
 uint32_t MyMesh::sendPing(const uint8_t* dest_pubkey, uint8_t hash_width) {
   if (hash_width == 0 || hash_width > 2) return 0;
@@ -1554,6 +1651,7 @@ void MyMesh::onTraceRecv(mesh::Packet *packet, uint32_t tag, uint32_t auth_code,
                          const uint8_t *path_snrs, const uint8_t *path_hashes, uint8_t path_len) {
   uint8_t path_sz = flags & 0x03;  // NEW v1.11+
   
+  if(_repeater_trace.receive(packet,tag,auth_code,flags,path_snrs,path_hashes,path_len)) return;
   // Check if this is a response to our local ping
   for (int i = 0; i < PING_RESULT_MAX; i++) {
     if (_ping_results[i].tag == tag && _ping_results[i].auth_code == auth_code && !_ping_results[i].received) {
@@ -1644,6 +1742,8 @@ void MyMesh::onSendTimeout() {
 // window after radio transmission completes; allow time for the repeater's
 // randomised flood delay, which scales with packet airtime.
 void MyMesh::logTx(mesh::Packet* packet, int len) {
+  _manual_adverts.complete(packet);
+  _repeater_trace.txComplete(packet);
   (void)len;
   _transport_trace.add(zen::TransportTrace::TX_COMPLETE, nullptr,
                        packet ? packet->getPayloadType() : 0);
@@ -1663,6 +1763,15 @@ void MyMesh::logTx(mesh::Packet* packet, int len) {
 }
 
 void MyMesh::logTxFail(mesh::Packet* packet, int len) {
+  _manual_adverts.complete(packet);
+  // A definitive TX failure also closes its existing relay wait immediately.
+  if(packet && _relay_active>0) {
+    uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
+    for(auto& slot:_relay)
+      if(slot.pending && slot.len==packet->payload_len &&
+         memcmp(slot.hash,hash,MAX_HASH_SIZE)==0) slot.deadline=millis();
+  }
+  _repeater_trace.txFailed(packet,millis());
   (void)len;
   _transport_trace.add(zen::TransportTrace::TX_FAILED, nullptr,
                        packet ? packet->getPayloadType() : 0);
@@ -1893,6 +2002,7 @@ void MyMesh::begin() {
 void MyMesh::applyRadioParams() {
   if (_repeater_signal.configure(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr)) {
     _signal_adverts.reset();
+    _repeater_trace.contextChanged();
     // Reject late discovery responses and completion from the old channel.
     _pending_node_discover_tag = 0;
     _pending_node_discover_until = 0;
@@ -1906,6 +2016,7 @@ void MyMesh::applyRadioParams() {
 }
 
 void MyMesh::applyPowerState(bool low_power, bool emergency) {
+  if(low_power) _manual_adverts.clear();
   emergency = low_power && emergency;
   if (_low_power_mode == low_power && _emergency_mode == emergency) return;
 
@@ -1913,8 +2024,10 @@ void MyMesh::applyPowerState(bool low_power, bool emergency) {
   _low_power_mode = low_power;
   _emergency_mode = emergency;
   const bool available = radioAvailable();
+  if(low_power) _repeater_trace.cancel(zen::RepeaterTraceSession::POWER_RESTRICTED);
 
   if (!available) {
+    _repeater_trace.cancel(zen::RepeaterTraceSession::POWER_RESTRICTED);
     _repeater_signal.cancelDiscovery();
     _pending_node_discover_tag=0;
     _pending_node_discover_until=0;
@@ -2007,6 +2120,10 @@ MyMesh::ChannelSaveResult MyMesh::setChannelLocal(uint8_t idx, const ChannelDeta
 }
 
 void MyMesh::handleCmdFrame(size_t len) {
+  if(len && (cmd_frame[0]==CMD_SEND_LOGIN || cmd_frame[0]==CMD_SEND_ANON_REQ ||
+      cmd_frame[0]==CMD_SEND_PATH_DISCOVERY_REQ || cmd_frame[0]==CMD_SEND_TRACE_PATH ||
+      cmd_frame[0]==CMD_SEND_TELEMETRY_REQ || cmd_frame[0]==CMD_SEND_BINARY_REQ ||
+      cmd_frame[0]==CMD_SEND_STATUS_REQ)) _repeater_trace.cancel();
   if (cmd_frame[0] == CMD_DEVICE_QUERY && len >= 2) { // sent when app establishes connection
     app_target_ver = cmd_frame[1];                    // which version of protocol does app understand
 
@@ -3409,6 +3526,9 @@ void MyMesh::checkSerialInterface() {
 }
 
 void MyMesh::loop() {
+  const uint32_t context=traceContext();
+  if(context!=_trace_context) { _trace_context=context;_repeater_trace.contextChanged(); }
+  _repeater_trace.tick();
   // Low Power controls whether Zen invokes the baseline mesh loop; it does not
   // insert a second state machine into the MeshCore dispatcher.
   if (radioAvailable()) BaseChatMesh::loop();
@@ -3470,7 +3590,7 @@ void MyMesh::loop() {
 
 bool MyMesh::advert() {
   if (_low_power_mode) return false;
-  return sendConfiguredSelfAdvert(false);
+  return sendConfiguredSelfAdvert(false,true);
 }
 
 // One privacy gate for every self-advert producer. advert_loc_policy is the
@@ -3487,9 +3607,12 @@ mesh::Packet* MyMesh::createConfiguredSelfAdvert() {
 // The caller chooses reach; payload/privacy and UI state cannot drift between
 // triggers. Contact export deliberately uses createConfiguredSelfAdvert()
 // directly because it serializes a packet without transmitting it.
-bool MyMesh::sendConfiguredSelfAdvert(bool flood) {
+bool MyMesh::sendConfiguredSelfAdvert(bool flood,bool manual) {
   mesh::Packet* pkt = createConfiguredSelfAdvert();
   if (!pkt) return false;
+  if(manual && !_manual_adverts.begin(pkt,millis())) {
+    releasePacket(pkt);return false;
+  }
 
   if (flood) {
     TransportKey default_scope;

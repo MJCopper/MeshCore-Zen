@@ -184,8 +184,7 @@ leaving the page or an interrupting popup cancels the game. Active training
 temporarily holds the screen on, with a 60-second player inactivity limit.
 Watching memory previews and swaps does not consume that allowance; it restarts
 when player control returns. A game's own timeout still applies. Won!/Lost!
-results receive five seconds of display time, followed by a fresh normal display
-timeout. Manual screen-off and safety restrictions always take precedence.
+results immediately start a fresh normal display timeout. Manual screen-off and safety restrictions always take precedence.
 The pet page and care menu alone do not hold the screen on. CardKB uses the
 existing mapped arrow/Enter/Escape keys.
 

@@ -12,7 +12,7 @@ namespace zen {
 // deliberately allocates no heap memory.
 class RemoteNodeOperation {
 public:
-  enum Kind : uint8_t { NONE, LOGIN, TELEMETRY, ADMIN_READ, ADMIN_WRITE, ADMIN_ACTION };
+  enum Kind : uint8_t { NONE, LOGIN, TELEMETRY, ADMIN_READ, ADMIN_WRITE, ADMIN_ACTION, TRACE };
   enum Route : uint8_t { PATH, FLOOD };
   enum RetryMode : uint8_t { RETRY_SAFE, DO_NOT_RETRY };
   enum Action : uint8_t { WAIT, RETRY_PATH, RETRY_FLOOD, FINISH_TIMEOUT, FINISH_UNKNOWN };
@@ -34,6 +34,7 @@ private:
   NodeRouteRetry _retries;
 
 public:
+  uint32_t deadline() const { return _deadline; }
   static const uint32_t RESPONSE_GRACE_MS = 4000;
   static uint32_t responseDeadline(uint32_t now, uint32_t wire_timeout) {
     return now + wire_timeout + RESPONSE_GRACE_MS;

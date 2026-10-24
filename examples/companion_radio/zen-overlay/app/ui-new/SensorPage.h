@@ -8,6 +8,7 @@ class SensorPage {
   UITask* _task;
   int _selected = 0, _scroll = 0, _row = 0, _lines = 0;
   bool _open = false;
+  uint32_t _display_generation=1;
   bool _error_logged = false;
   zen::SensorAccessCoordinator _access;
   uint8_t _key[PUB_KEY_SIZE] = {};
@@ -26,7 +27,7 @@ class SensorPage {
       if (contact.type == ADV_TYPE_SENSOR && index-- == 0) return true;
     return false;
   }
-  bool requestTelemetry(bool new_sequence = true, bool force_flood = false) {
+  bool requestTelemetry(bool new_sequence = true, bool force_flood = false,bool continuation=false) {
     _row = 0;
     if (new_sequence) _error_logged = false;
     ContactInfo* contact = the_mesh.lookupContactByPubKey(_key, PUB_KEY_SIZE);
@@ -46,6 +47,7 @@ class SensorPage {
     uint32_t timeout = 0;
     bool sent = the_mesh.requestSensorTelemetry(_key, &timeout, force_flood);
     if (sent && new_sequence) {
+      if(!continuation && ++_display_generation==0) ++_display_generation;
       _access.beginTelemetry(contact && contact->out_path_len != OUT_PATH_UNKNOWN,
                              _key, zen::RemoteNodeOperation::responseDeadline(
                                  millis(), timeout));
@@ -80,7 +82,10 @@ class SensorPage {
     ContactInfo* contact = the_mesh.lookupContactByPubKey(_key, PUB_KEY_SIZE);
     bool sent = contact && _task->startNodeLogin(
         zen::NodeLoginCoordinator::SENSOR, *contact, password, false);
-    if (sent) _access.loginStarted(entered_password);
+    if (sent) {
+      if(entered_password && ++_display_generation==0) ++_display_generation;
+      _access.loginStarted(entered_password);
+    }
     else {
       _access.loginStartFailed(entered_password);
       _task->operationError(zen::Operation::SENSOR_LOGIN,
@@ -94,6 +99,13 @@ class SensorPage {
 
 public:
   explicit SensorPage(UITask* task) : _task(task) {}
+  void observeDisplayActivity(zen::DisplayActivity& activity) const {
+    bool pending=_open && _access.displayPending(
+      _task->remoteNode().ownedBy(zen::RemoteNodeCoordinator::SENSOR_OWNER),
+      _task->nodeLoginBusy());
+    activity.observe({zen::DisplayActivity::SENSOR,_display_generation},pending);
+  }
+
   bool passwordEditing() const { return _open && _access.passwordEditing(); }
   int renderPassword(ZenDisplayDriver& display) { return _task->keyboard().render(display); }
   void tick() {
@@ -121,7 +133,7 @@ public:
       }
     }
     if (_access.tick(millis()) == zen::SensorAccessCoordinator::SEND_TELEMETRY)
-      requestTelemetry();
+      requestTelemetry(true,false,true);
     if (_access.phase() == zen::SensorAccessCoordinator::ERROR && !_error_logged) {
       _task->operationError(zen::Operation::TELEMETRY,
           zen::OperationOutcome::TIMEOUT, zen::OperationReason::RETRIES_EXHAUSTED,

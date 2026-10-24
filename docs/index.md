@@ -15,6 +15,7 @@
 - [Tools Screen](./zen_features/tools_screen/tools_screen.md)
 - [Radio, GPS, Bluetooth and Adverts](./zen_features/connectivity/connectivity.md)
 - [GPS and Course](./zen_features/gps/gps.md)
+- [Repeater Trace](./zen_features/repeater_trace/repeater_trace.md)
 - [Signal Indicator](./zen_features/signal_indicator/signal_indicator.md)
 - [Sensors](./zen_features/sensors/sensors.md)
 - [Quick Replies](./zen_features/quick_replies/quick_replies.md)
@@ -26,6 +27,7 @@
 - [Battery and Low Power Mode](./zen_features/power/power.md)
 - [Build Zen](./building_zen.md)
 - [Zen UI framework](./design/zen_ui_framework.md)
+- [Display activity and timeout](./design/zen_display_activity.md)
 - [Zen feature and build boundaries](./design/zen_build_boundaries.md)
 
 ### Upstream MeshCore

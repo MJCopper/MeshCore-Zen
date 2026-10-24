@@ -11,6 +11,7 @@
 // phase machine in MessagesScreen keeps referring to them unqualified.
 
 #include "../zen/MessageModels.h"
+#include "../zen/MessageDisplayActivity.h"
 #include "../zen/MessageDeliveryCoordinator.h"
 #include "../zen/MessageTransportAdapter.h"
 #include "../zen/PathDetails.h"
@@ -28,6 +29,20 @@ public:
       _activity_seq(0), _dm_maintenance_pending(false),
       _next_dm_maintenance_ms(0) {
     memset(_ch_unread, 0, sizeof(_ch_unread));
+  }
+
+  template<class RelayPending>
+  void observeDisplayActivity(zen::DisplayActivity& activity,RelayPending pending) const {
+    for(int i=0;i<_dm_hist_count;++i) {
+      unsigned pos=(_dm_hist_head+i)%DM_HIST_MAX;
+      const auto& e=_dm_hist[pos];
+      zen::MessageDisplayActivity::direct(activity,pos,e);
+    }
+    for(int i=0;i<_hist_count;++i) {
+      unsigned pos=(_hist_head+i)%CH_HIST_MAX;
+      const auto& e=_hist[pos];
+      zen::MessageDisplayActivity::channel(activity,pos,e,pending(e.relay_seq));
+    }
   }
 
   // ── Channel ring ──────────────────────────────────────────────────────────
@@ -66,6 +81,7 @@ public:
     strncpy(_hist[pos].text, text, sizeof(_hist[pos].text) - 1);
     _hist[pos].text[sizeof(_hist[pos].text) - 1] = '\0';
     _hist[pos].relay_status = ACK_NONE;
+    _hist[pos].local_send=false;
     _hist[pos].relay_count = 0;
     _hist[pos].relay_seq = 0;
 
@@ -121,8 +137,9 @@ public:
   // Arm the "relayed into mesh" marker on a just-sent entry (pos from
   // addChannelMsg) — MyMesh tracked the flood it originated and will report a
   // heard repeater echo by seq.
-  void armChannelRelay(int pos, uint32_t seq) {
+  void armChannelRelay(int pos, uint32_t seq,bool local=true) {
     if (pos < 0 || pos >= CH_HIST_MAX) return;
+    _hist[pos].local_send=local;
     zen::MessageDeliveryCoordinator::armRelay(_hist[pos], seq);
   }
 
@@ -350,6 +367,8 @@ public:
       zen::PathShape shape = zen::pathShape(c.out_path_len, sizeof(c.out_path));
       if (shape.valid) { e.path_hops = shape.hops; e.path_hash_bytes = shape.hash_bytes; }
     }
+    e.activity_seq=++_activity_seq; // manual resend is a new user operation
+    e.delivery_origin=zen::DELIVERY_ORIGIN_ZEN;
     e.route_retry.begin(direct);
     scheduleDmMaintenance();
     return true;

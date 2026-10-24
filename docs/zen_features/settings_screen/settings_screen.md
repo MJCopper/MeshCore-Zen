@@ -18,6 +18,11 @@ the imported radio settings.
 ## Display
 
 Brightness, display timeout, battery format, clock seconds and 12/24-hour time.
+The display stays on while on-device messages, discovery, Ping, Trace, remote
+login/telemetry/admin requests or pet games are in progress. After the last
+operation finishes, the full configured display timeout starts. Manual screen-off
+and low-power protection take precedence. Background mesh activity and
+companion-app commands do not acquire a hold.
 E-ink builds also provide display rotation, joystick rotation and full-refresh
 interval.
 

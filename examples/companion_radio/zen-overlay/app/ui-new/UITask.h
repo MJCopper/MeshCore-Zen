@@ -29,6 +29,7 @@
 #include "../zen/TimeLocationCoordinator.h"
 #include "../zen/LocalTimeService.h"
 #include "../zen/TimeDeadline.h"
+#include "../zen/DisplayActivity.h"
 #include "../zen/BatteryChargeState.h"
 #include "../zen/NodeLoginCoordinator.h"
 #include "../zen/RemoteNodeCoordinator.h"
@@ -63,6 +64,9 @@ class UITask : public AbstractUITask {
 #endif
   unsigned long _next_refresh, _auto_off;
   zen::NotificationWakeController _notification_wake;
+  zen::DisplayActivity _display_activity;
+  bool _display_activity_held=false;
+  void updateDisplayActivity();
   zen::LowBatteryReminder _low_battery_reminder;
   zen::LowPowerLatch _low_power_latch;
   zen::EmergencyWindow _emergency_window;
@@ -433,6 +437,8 @@ public:
 
   // Ping helpers
   bool startPing(const uint8_t* pub_key);
+  bool startRepeaterTrace(const uint8_t* key,const char* name);
+  void cancelRepeaterTrace();
   bool isPingActive() const { return _ping_active; }
   void getPingResult(int16_t& snr_out_x4, int16_t& snr_back_x4, uint32_t& rtt_ms) const {
     snr_out_x4 = _ping_snr_out_x4;

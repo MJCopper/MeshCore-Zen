@@ -9,7 +9,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v2.2.45**, based on **MeshCore v1.18.0**.
+Current release: **Zen v2.2.48**, based on **MeshCore v1.18.0**.
 
 ## Supported hardware
 
@@ -24,6 +24,8 @@ for charging and bootloader DFU flashing. Firmware is available from the
 
 ## Features
 
+- Repeater node-menu Trace with fresh route discovery, loop RTT and per-link SNR in both directions.
+
 - Direct, channel and room messaging with full transcripts and delivery state.
 - Route-aware retries, manual resend and unread-message shortcuts.
 - Predictive T9 and ABC text entry with Australianised, previous-word-aware completion.
@@ -37,6 +39,7 @@ for charging and bootloader DFU flashing. Firmware is available from the
 - Node discovery, companion repeater mode, ringtone editor and RAM event log.
 - Remote repeater, room and sensor administration from the Node List action menu.
 - Sensors carousel with on-demand remote telemetry.
+- Shared screen-timeout holds for user radio operations and pet games; the normal timeout starts when work finishes.
 - Optional [virtual pet](docs/zen_features/pet.md), with twelve levels and 189 forms,
   feeding, five training minigames, daily mesh rewards, pet alerts and Quiet Time sleep. Off by default;
   daily checkpoints and manual Save Pet preserve progress across reboots.
@@ -92,6 +95,7 @@ Repeat the complete procedure, including a fresh backup, for every Zen update.
 - [Favourites Dial](./docs/zen_features/favourites_dial/favourites_dial.md)
 - [Radio, GPS, Bluetooth and Adverts](./docs/zen_features/connectivity/connectivity.md)
 - [GPS and Course](./docs/zen_features/gps/gps.md)
+- [Repeater Trace](./docs/zen_features/repeater_trace/repeater_trace.md)
 - [Signal Indicator](./docs/zen_features/signal_indicator/signal_indicator.md)
 - [Sensors](./docs/zen_features/sensors/sensors.md)
 - [Quick Replies](./docs/zen_features/quick_replies/quick_replies.md)

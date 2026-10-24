@@ -26,8 +26,10 @@ jobs:
         uses: ./.github/actions/setup-build-environment
       - name: Verify MeshCore boundary
         run: python3 tools/check_zen_baseline.py
+      - name: Verify pinned transport extensions reject drift
+        run: python3 -B -m unittest discover -s test -p 'test_zen_baseline_extensions.py'
       - name: Run native tests
-        run: pio test -e native -e native_kiss_modem
+        run: pio test -e native -e native_kiss_modem -e native_trace_transport
 
       - name: Build standard Wio companion boundary
         run: pio run -e WioTrackerL1_companion_radio_ble

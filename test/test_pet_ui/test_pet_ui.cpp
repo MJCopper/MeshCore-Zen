@@ -474,9 +474,9 @@ TEST(PetUI, EachGameAwardsTrainingOnceAndOnlyAfterSuccess) {
       if(model.phase()==Games::ANSWER) tick();
     }
     EXPECT_EQ(Games::WON,model.phase()); EXPECT_FALSE(page.trainingActive());
-    EXPECT_TRUE(page.gameDisplay(now,true).hold);
-    EXPECT_TRUE(page.gameDisplay(now+4999,true).hold);
-    EXPECT_TRUE(page.gameDisplay(now+5000,true).released);
+    auto complete=page.gameDisplay(now,true);
+    EXPECT_FALSE(complete.hold);EXPECT_TRUE(complete.released);
+    EXPECT_FALSE(page.gameDisplay(now+1,true).released);
     zen::pet::PetNotifications::Alert alert;
     ASSERT_TRUE(page.takeAlert(now,alert,true)); EXPECT_STREQ("Won!",alert.text);
     page.update(now+1,true,false,false);
@@ -571,11 +571,12 @@ TEST(PetUI, LossNotifiesOnceAndPopupPreservesRetry) {
   g_mock_millis=0; zen::pet::Page page;
   page.update(0,true,false,false); key(page,'e'); key(page,'d');
   page.input('e','e','b','h','u','d','l','r','[',']',gameSeed(Games::TIMING));
-  key(page,'e'); key(page,'e'); // Marker starts outside the hit zone.
+  key(page,'e'); ASSERT_TRUE(page.gameDisplay(0,true).hold);
+  key(page,'e'); // Marker starts outside the hit zone.
   ASSERT_TRUE(page.trainingFailed());
-  EXPECT_TRUE(page.gameDisplay(0,true).hold);
-  EXPECT_TRUE(page.gameDisplay(4999,true).hold);
-  EXPECT_TRUE(page.gameDisplay(5000,true).released);
+  auto complete=page.gameDisplay(0,true);
+  EXPECT_FALSE(complete.hold);EXPECT_TRUE(complete.released);
+  EXPECT_FALSE(page.gameDisplay(1,true).released);
   zen::pet::PetNotifications::Alert alert;
   ASSERT_TRUE(page.takeAlert(0,alert)); EXPECT_STREQ("Lost!",alert.text);
   page.update(1000,true,false,false,false,0,false); // Popup covers the game.

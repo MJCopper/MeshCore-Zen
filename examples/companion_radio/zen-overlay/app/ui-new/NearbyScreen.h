@@ -3,6 +3,7 @@
 #include "TabBar.h"
 #include "PathDetailsView.h"
 #include "../zen/SignalFormat.h"
+#include "RepeaterTraceView.h"
 
 // ── Nearby Nodes ──────────────────────────────────────────────────────────────
 // One list / detail / action-menu interaction path over two sources:
@@ -26,7 +27,7 @@ class NearbyScreen : public ZenUIScreen {
 
   // ── action-menu actions (matched by id, not by row index) ────────────────────
   enum Action : uint8_t { ACT_PING, ACT_PATH, ACT_ADD, ACT_DELETE, ACT_FAV, ACT_PIN,
-                          ACT_ADMIN, ACT_SORT, ACT_SCAN };
+                          ACT_ADMIN, ACT_SORT, ACT_SCAN, ACT_TRACE };
 
   // Returning from a node's Admin action preserves this browsing context.
   bool _resume_admin = false;
@@ -70,12 +71,16 @@ class NearbyScreen : public ZenUIScreen {
 
   // ── live-scan state ──────────────────────────────────────────────────────────
   bool          _scanning;
+  uint32_t _scan_generation=0;
   unsigned long _scan_started_ms;
   static const unsigned long SCAN_DURATION_MS = 8000UL;
 
   // ── popups ────────────────────────────────────────────────────────────────────
   PopupMenu _menu;            // unified action menu (Hold Enter), list + detail
   PathDetailsView _path_view;
+  RepeaterTraceView _trace_view;
+  uint8_t _trace_key[32]{};
+  char _trace_name[64]{};
   PopupMenu _ping_menu;       // ping (special: read-only result rows)
   PopupMenu _confirm;         // delete-contact confirmation (destructive → 2-step)
 
@@ -310,13 +315,15 @@ class NearbyScreen : public ZenUIScreen {
     _source        = SRC_SCAN;
     _detail        = false;
     _scanning      = true;
+    if(++_scan_generation==0) ++_scan_generation;
     _scan_started_ms = millis();
     _sel = _scroll = 0;
-    the_mesh.sendNodeDiscoverReq();
+    if(!the_mesh.sendNodeDiscoverReq()) _scanning=false;
     refreshScan();
   }
 
   void leaveScan() {
+    _scanning=false;
     _source = SRC_STORED;
     _detail = false;
     _sel = _scroll = 0;
@@ -514,6 +521,7 @@ class NearbyScreen : public ZenUIScreen {
     };
 
     if (has_key) add("Ping",          ACT_PING);
+    if(e&&has_key&&e->type==ADV_TYPE_REPEATER&&!_task->isChildModeLocked()) add("Trace",ACT_TRACE);
     if (stored && is_contact && has_key && !_task->isChildModeLocked())
       add("Path details", ACT_PATH);
     if (can_add)            add("Add contact", ACT_ADD);
@@ -535,6 +543,18 @@ class NearbyScreen : public ZenUIScreen {
 
   void runAction(Action a) {
     switch (a) {
+      case ACT_TRACE: {
+        const Entry* e=selected();
+        if(e&&e->has_key) {
+          if(_task->startRepeaterTrace(e->pub_key,e->name)) {
+            memcpy(_trace_key,e->pub_key,sizeof(_trace_key));
+            snprintf(_trace_name,sizeof(_trace_name),"%s",e->name);
+            _trace_view.open();
+          }
+
+        }
+        break;
+      }
       case ACT_PING: {
         const Entry* e = selected();
         rebuildPingMenu();
@@ -718,7 +738,26 @@ public:
     enterScan();
   }
 
+  void observeDisplayActivity(zen::DisplayActivity& activity) const {
+    bool pending=_scanning && millis()-_scan_started_ms<SCAN_DURATION_MS;
+    activity.observe({zen::DisplayActivity::DISCOVERY,_scan_generation},pending,
+                     _scan_started_ms+SCAN_DURATION_MS);
+  }
+  void onHide() override {
+    _scanning=false;
+    if(_trace_view.active) { _task->cancelRepeaterTrace();_trace_view.active=false;_menu.active=false; }
+  }
   int render(ZenDisplayDriver& display) override {
+    if(_trace_view.active) {
+      if(_task->isChildModeLocked()) { _task->cancelRepeaterTrace();_trace_view.active=false;_menu.active=false; }
+      else {
+        int refresh=_trace_view.render(display,the_mesh.repeaterTrace(),the_mesh.repeaterTraceName(),
+          [](const uint8_t* key,unsigned width,char* out,size_t size) { the_mesh.traceHopName(key,width,out,size); });
+        display.drawContextMenuHint(ZenDisplayDriver::LIGHT,ctxMenuOpen());
+        if(renderActivePopup(display)) return 50;
+        return refresh;
+      }
+    }
     display.setTextSize(1);
     if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
     if (_path_view.active) {
@@ -842,6 +881,26 @@ public:
   }
 
   bool handleInput(char c) override {
+    if(_trace_view.active) {
+      if(_task->isChildModeLocked()) {
+        _task->cancelRepeaterTrace();_trace_view.active=false;_menu.active=false;
+        return true;
+      }
+      if(_menu.active) {
+        if(_menu.handleInput(c)==PopupMenu::SELECTED) {
+          _task->cancelRepeaterTrace();
+          if(_task->startRepeaterTrace(_trace_key,_trace_name)) _trace_view.open();
+        }
+        return true;
+      }
+      if(c==KEY_CONTEXT_MENU) {
+        _menu.begin("Trace options",1);_menu.addItem("Re-Trace");
+      }
+      else if(c==KEY_CANCEL) { _task->cancelRepeaterTrace();_trace_view.active=false; }
+      else if(c==KEY_UP) _trace_view.scroll(-1);
+      else if(c==KEY_DOWN) _trace_view.scroll(1);
+      return true;
+    }
     if (_path_view.active && _task->isChildModeLocked()) _path_view.active = false;
     if (_path_view.active) return _path_view.handleInput(c);
     // ── navigate-to-node view — any nav key returns to detail ─────────────────

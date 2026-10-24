@@ -81,6 +81,22 @@ def check_shadows() -> list[str]:
     return errors
 
 
+def checked_core_extensions() -> tuple[set[str], list[str]]:
+    """Only exact, pinned sensor-branch transport extensions are permitted."""
+    manifest = json.loads((ROOT / "tools/zen_baseline_extensions.json").read_text())
+    errors = []
+    allowed = {"src/Dispatcher.h", "src/Dispatcher.cpp"}
+    if set(manifest) != allowed:
+        return set(), ["core extension manifest must contain exactly the two Dispatcher files"]
+    for name, entry in manifest.items():
+        source = subprocess.run(["git", "show", f"{entry['source_commit']}:{name}"],
+                                cwd=ROOT, capture_output=True, check=False)
+        digest = hashlib.sha256(source.stdout).hexdigest()
+        if source.returncode or digest != entry["sha256"] or source.stdout != (ROOT/name).read_bytes():
+            errors.append(f"unreviewed core extension: {name}")
+    return allowed, errors
+
+
 def main() -> int:
     command = ["git", "diff", "--name-only", BASELINE, "--", *PROTECTED]
     result = subprocess.run(command, cwd=ROOT, check=False, text=True,
@@ -90,7 +106,9 @@ def main() -> int:
         return result.returncode
     changed = [line for line in result.stdout.splitlines()
                if line and not line.startswith("examples/companion_radio/zen-overlay/")]
-    shadow_errors = check_shadows()
+    extensions, extension_errors = checked_core_extensions()
+    changed = [name for name in changed if name not in extensions]
+    shadow_errors = check_shadows() + extension_errors
     if changed:
         print("Zen baseline boundary violation:", file=sys.stderr)
         for path in changed:
@@ -103,7 +121,7 @@ def main() -> int:
         for error in shadow_errors:
             print(f"  {error}", file=sys.stderr)
         return 1
-    print(f"MeshCore baseline {BASELINE} is unchanged in protected paths.")
+    print(f"MeshCore baseline {BASELINE} is unchanged outside pinned sensor Dispatcher extensions.")
     print("Zen baseline shadows match the reviewed manifest.")
     return 0
 

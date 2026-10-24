@@ -189,7 +189,8 @@ class AdminScreen : public ZenUIScreen {
             _target.id.pub_key,
             current && current->out_path_len != OUT_PATH_UNKNOWN,
             zen::RemoteAdminAdapter::retryMode(retry_safe),
-            zen::RemoteNodeOperation::responseDeadline(millis(), timeout))) {
+            zen::RemoteNodeOperation::responseDeadline(millis(), timeout),
+            pending==VERIFY_SETTING)) {
       the_mesh.cancelAdminCommand();
       showOperation("Not sent", zen::OperationResult::make(
           zen::Operation::ADMIN, zen::OperationOutcome::BUSY,

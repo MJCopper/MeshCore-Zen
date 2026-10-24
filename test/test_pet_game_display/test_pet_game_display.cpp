@@ -25,13 +25,11 @@ TEST(PetGameDisplay, AnimationUpdatesDoNotExtendInputTimeout) {
   for(unsigned now=0;now<60000;now+=100)EXPECT_TRUE(d.update(now,true,false,true).hold);
   EXPECT_TRUE(d.update(60000,true,false,true).expired);
 }
-TEST(PetGameDisplay, ResultsReleaseOnceAfterExactlyFiveSeconds) {
+TEST(PetGameDisplay, ResultsReleaseImmediatelyForNormalScreenTimeout) {
   Display d; d.update(0,true,false,true); d.result(100);
-  EXPECT_TRUE(d.update(100,false,false,true).hold);
-  EXPECT_TRUE(d.update(5099,false,false,true).hold);
-  auto end=d.update(5100,false,false,true);
+  auto end=d.update(100,false,false,true);
   EXPECT_FALSE(end.hold); EXPECT_TRUE(end.released); EXPECT_FALSE(end.expired);
-  EXPECT_FALSE(d.update(5101,false,false,true).released);
+  EXPECT_FALSE(d.update(101,false,false,true).released);
 }
 TEST(PetGameDisplay, CancellationVisibilityAndSafetyOverrideLeaseAndGrace) {
   for(bool result:{false,true}) {
@@ -49,8 +47,8 @@ TEST(PetGameDisplay, RetryStartsFreshAndUptimeWrapIsSafe) {
   d.update(start,true,false,true);
   EXPECT_TRUE(d.update(start+60000,true,false,true).expired);
   d.result(start+60001);
-  EXPECT_TRUE(d.update(start+65000,false,false,true).hold);
-  EXPECT_TRUE(d.update(start+65001,false,false,true).released);
+  EXPECT_FALSE(d.update(start+65000,false,false,true).hold);
+  EXPECT_FALSE(d.update(start+65001,false,false,true).released);
   d.update(start+65002,true,false,true);
   EXPECT_TRUE(d.update(start+125001,true,false,true).hold);
   EXPECT_TRUE(d.update(start+125002,true,false,true).expired);

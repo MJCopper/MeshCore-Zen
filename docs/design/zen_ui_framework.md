@@ -255,3 +255,12 @@ coalesce input and redraws wherever possible.
 Use `UI_REFRESH_STATIC_MS` for event-driven screens and
 `UI_REFRESH_ACTIVE_MS` only while visible time-dependent progress is changing.
 The shared marquee scheduler can request an earlier frame when required.
+
+## Display activity and automatic blanking
+
+`UITask::updateDisplayActivity()` samples authoritative operation state after
+input and screen polling, before rendering and automatic blanking. Sources report
+an owner slot and operation generation to `zen::DisplayActivity`. Rendering must
+never acquire or refresh an activity. The final release starts the currently
+configured screen timeout. See [display activity design](zen_display_activity.md)
+for the source map, cancellation rules and verification coverage.

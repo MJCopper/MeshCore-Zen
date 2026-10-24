@@ -14,9 +14,11 @@
 #include "zen/ConfigMaintenance.h"
 #include "zen/FloodScopeView.h"
 #include "zen/RelayEchoTiming.h"
+#include "zen/ManualTransmitActivity.h"
 #include "zen/ChannelSlotPolicy.h"
 #include "zen/GpsService.h"
 #include "zen/TransportTrace.h"
+#include "zen/RepeaterTraceSession.h"
 #include "zen/BaselinePrefsFingerprint.h"
 #include <helpers/ui/ZenDisplayDriver.h>
 
@@ -33,7 +35,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.45"
+#define FIRMWARE_VERSION "v2.2.48"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -261,6 +263,12 @@ public:
   // Child Mode. Carousel pins are intentionally stored separately in prefs.
   bool setContactFavourite(const uint8_t* pub_key, bool favourite);
 
+  bool startRepeaterTrace(const uint8_t* key,const char* name);
+  void cancelRepeaterTrace(zen::RepeaterTraceSession::Error reason=zen::RepeaterTraceSession::USER_CANCELLED) { _repeater_trace.cancel(reason); }
+  const zen::RepeaterTraceSession& repeaterTrace() const { return _repeater_trace; }
+  const char* repeaterTraceName() const { return _trace_target.name; }
+  void traceHopName(const uint8_t* prefix,unsigned width,char* out,size_t size);
+
   // Ping/Trace functionality
   #define PING_RESULT_MAX 4
   typedef void (*PingCallback)(uint32_t tag, int16_t snr_out_x4, int16_t snr_back_x4, uint32_t rtt_ms);
@@ -300,6 +308,11 @@ protected:
   void sendFloodScoped(const ContactInfo& recipient, mesh::Packet* pkt, uint32_t delay_millis=0) override;
   void sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis=0) override;
 
+  int searchPeersByHash(const uint8_t* hash) override;
+  void getPeerSharedSecret(uint8_t* secret,int index) override;
+  void onPeerDataRecv(mesh::Packet* packet,uint8_t type,int index,const uint8_t* secret,uint8_t* data,size_t len) override;
+  bool onPeerPathRecv(mesh::Packet* packet,int index,const uint8_t* secret,uint8_t* path,uint8_t len,uint8_t extra_type,uint8_t* extra,uint8_t extra_len) override;
+  void onTxStarted(mesh::Packet* packet,uint32_t now) override;
   void logRx(mesh::Packet* packet, int len, float score) override;
   void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
                     const uint8_t* app_data, size_t app_data_len) override;
@@ -348,6 +361,14 @@ public:
   // Seq of the most recently tracked channel send — the UI records it on the
   // outgoing history entry so a heard echo (onChannelRelayed) can match it back.
   uint32_t lastChannelRelaySeq() const { return _last_relay_seq; }
+  bool channelRelayPending(uint32_t seq) const {
+    for(const auto& s:_relay)
+      if(s.pending && s.seq==seq && (int32_t)(millis()-s.deadline)<0) return true;
+    return false;
+  }
+  void observeManualTransmitActivity(zen::DisplayActivity& activity) const {
+    _manual_adverts.observe(activity,millis());
+  }
 private:
   bool childRestrictionsActive() const;
   bool childAllowsContact(const ContactInfo& contact, uint8_t expected_type) const;
@@ -649,6 +670,24 @@ private:
   ZenPrefs _prefs;
   uint64_t _baseline_fingerprint = 0;
   bool _baseline_fingerprint_valid = false;
+  struct TraceAdapter : zen::RepeaterTraceTransport {
+    MyMesh* mesh;
+    explicit TraceAdapter(MyMesh* owner):mesh(owner) {}
+    uint32_t traceNow() const override;
+    uint32_t traceRandom() override;
+    uint32_t traceDiscoveryTag() override;
+    uint32_t traceAirtime(unsigned bytes) const override;
+    uint32_t traceFloodTimeout(uint32_t airtime) const override;
+    mesh::Packet* traceQueueDiscovery(const uint8_t* key,uint32_t tag) override;
+    mesh::Packet* traceQueueLoop(const zen::TraceRoute& route,uint32_t tag,uint32_t auth) override;
+    bool traceCancelQueued(mesh::Packet* packet) override;
+  } _trace_adapter{this};
+  zen::RepeaterTraceSession _repeater_trace{_trace_adapter};
+  ContactInfo _trace_target{};
+  int _trace_peer_index=-1;
+  int8_t _trace_reply_snr=INT8_MIN;
+  uint32_t _trace_context=0;
+  uint32_t traceContext() const;
   zen::TransportTrace _transport_trace;
   bool _identity_loaded_at_boot = false;
   uint32_t pending_login;
@@ -704,7 +743,8 @@ private:
   unsigned long _next_auto_advert_ms;
   unsigned long _advert_indicator_until_ms;
   mesh::Packet* createConfiguredSelfAdvert();
-  bool sendConfiguredSelfAdvert(bool flood);
+  bool sendConfiguredSelfAdvert(bool flood,bool manual=false);
+  zen::ManualTransmitActivity _manual_adverts;
   void noteAdvertQueued();
 
   TransportKey send_scope;

@@ -159,6 +159,7 @@ protected:
   virtual void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) { }   // custom hook
 
   virtual void logRx(Packet* packet, int len, float score) { }   // hooks for custom logging
+  virtual void onTxStarted(Packet* packet, uint32_t now_millis) { }
   virtual void logTx(Packet* packet, int len) { }
   virtual void logTxFail(Packet* packet, int len) { }
   virtual const char* getLogDateTime() { return ""; }
@@ -179,6 +180,12 @@ public:
   Packet* obtainNewPacket();
   void releasePacket(Packet* packet);
   void sendPacket(Packet* packet, uint8_t priority, uint32_t delay_millis=0);
+
+protected:
+  bool isQueuedPacket(const Packet* packet) const;
+  bool cancelQueuedPacket(Packet* packet);
+
+public:
 
   unsigned long getTotalAirTime() const { return total_air_time; }
   unsigned long getReceiveAirTime() const {return rx_air_time; }

@@ -20,6 +20,7 @@ struct ChannelMessageRecord {
   uint32_t timestamp;
   uint32_t activity_seq;
   uint8_t relay_status;
+  bool local_send;
   uint8_t relay_count;
   uint32_t relay_seq;
 };

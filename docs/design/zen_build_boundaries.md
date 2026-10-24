@@ -32,7 +32,8 @@ from the baseline Wio board and owns only the stable battery-divider behaviour.
 
 Packet dispatch, mesh forwarding, radio drivers, BLE transport, USB transport,
 MeshCore `DataStore`, MeshCore `NodePrefs`, the generic sensor contract, RTC discovery and the Wio Arduino variant are
-compiled directly from the MeshCore baseline. Zen observes connection state
+compiled directly from the MeshCore baseline, with the narrowly pinned sensor
+Dispatcher extension described below. Zen observes connection state
 through the registered baseline interfaces, tracks RTC writes with a decorator,
 and applies GPS policy through `zen::GpsService`. None of these services replace
 the baseline RF or companion-protocol lifecycle.
@@ -47,7 +48,8 @@ an upstream counterpart without review fails the boundary check.
 
 `tools/check_zen_baseline.py` verifies the complete shared core, public include
 tree, official Wio variants and complete official companion application against
-the pinned MeshCore 1.18.0 commit. It also enforces the reviewed integration
+the pinned MeshCore 1.18.0 commit, except the two exact sensor Dispatcher files
+listed in `tools/zen_baseline_extensions.json`. It also enforces the reviewed integration
 manifest and requires Zen to compile baseline `DataStore` directly. Run it
 whenever the overlay boundary changes. Update the pinned commit and reviewed
 hashes only as part of an intentional upstream baseline update.
@@ -64,3 +66,12 @@ stores a new independent Zen-only record on external flash.
 Changes to these boundaries must verify the native suite, the standard Wio
 companion boundary where dependencies are available, and both Zen display
 targets. Release artifacts remain scoped to the two Zen environments.
+
+## Reviewed trace transport extension
+
+Repeater Trace deliberately imports the sensor branch's TX-start observer and
+queue-only lookup/cancellation capabilities into `src/Dispatcher.h/.cpp`.
+Those two files are pinned by source commit and SHA-256, not broadly exempted
+from review. Their default callback is empty and queue cancellation cannot
+remove the in-flight packet. All other baseline invariants and the forbidden
+core-shadow list remain enforced. See [trace verification](zen_repeater_trace.md).

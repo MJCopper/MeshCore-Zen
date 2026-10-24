@@ -728,7 +728,7 @@ public:
   }
   void markChannelRelayed(uint32_t seq) { _history.markChannelRelayed(seq); }
   bool markChannelRelayExpired(uint32_t seq) { return _history.markChannelRelayExpired(seq); }
-  void armChannelRelay(int pos, uint32_t seq) { _history.armChannelRelay(pos, seq); }
+  void armChannelRelay(int pos, uint32_t seq) { _history.armChannelRelay(pos, seq,false); }
   bool addDMMsg(const uint8_t* pub_key, bool outgoing, const char* text,
                 uint32_t sender_timestamp = 0) {
     bool viewing = isViewingContact(pub_key);
@@ -823,6 +823,7 @@ public:
 
   // Background tick (called every UI loop, regardless of the active screen) that
   // drives auto-resend of on-device DMs — forwarded to the history store.
+  void observeDisplayActivity(zen::DisplayActivity& activity) const { _history.observeDisplayActivity(activity,[](uint32_t seq){ return the_mesh.channelRelayPending(seq); }); }
   uint8_t tickDmResends() { return _history.tickDmResends(); }
   void cancelDmResends() { _history.cancelDmResends(); }
 
