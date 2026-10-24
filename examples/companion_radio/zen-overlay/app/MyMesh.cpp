@@ -21,6 +21,9 @@
 #include "UITask.h"
 #endif
 
+#define CTL_TYPE_NODE_DISCOVER_REQ  0x80
+#define CTL_TYPE_NODE_DISCOVER_RESP 0x90
+
 #define CMD_APP_START                 1
 #define CMD_SEND_TXT_MSG              2
 #define CMD_SEND_CHANNEL_TXT_MSG      3
@@ -314,23 +317,47 @@ uint8_t MyMesh::getExtraAckTransmitCount() const {
   return _prefs.multi_acks;
 }
 
-void MyMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
-  // A non-empty flood path proves at least one relay; a direct path needs more
-  // than its destination hop to prove an intermediate relay. This excludes
-  // zero-hop companion traffic while sampling normal routed mesh activity.
-  if (raw && len >= 2) {
-    uint8_t route = raw[0] & PH_ROUTE_MASK;
-    int path_pos = (route == ROUTE_TYPE_TRANSPORT_FLOOD ||
-                    route == ROUTE_TYPE_TRANSPORT_DIRECT) ? 5 : 1;
-    if (path_pos < len) {
-      uint8_t path_count = raw[path_pos] & 63;
-      bool relayed = zen::RepeaterSignalMonitor::qualifiesRoute(
-          route == ROUTE_TYPE_FLOOD || route == ROUTE_TYPE_TRANSPORT_FLOOD,
-          route == ROUTE_TYPE_DIRECT || route == ROUTE_TYPE_TRANSPORT_DIRECT,
-          path_count);
-      if (relayed) _repeater_signal.noteSample((int)(snr * 4), millis());
+void MyMesh::logRx(mesh::Packet* packet, int, float) {
+  const uint32_t now = millis();
+  // This hook is called after envelope parsing, before the delayed RX queue.
+  if (zen::signalPayloadValid(*packet)) {
+    if (zen::RepeaterSignalMonitor::qualifiesRoute(packet->isRouteFlood(),
+          packet->isRouteDirect(), packet->getPathHashCount())) {
+      uint8_t token[MAX_HASH_SIZE]; packet->calculatePacketHash(token);
+      _repeater_signal.noteSample(nullptr, zen::RepeaterSignalMonitor::ROUTED,
+          packet->_snr, (int)_radio->getLastRSSI(), now, token);
+    } else if (packet->getPayloadType() == PAYLOAD_TYPE_ADVERT &&
+               packet->isRouteFlood() && packet->getPathHashCount() == 0) {
+      _signal_adverts.remember(packet, (int)_radio->getLastRSSI(), now);
     }
   }
+  // Discovery replies are zero-hop control packets containing the responder's
+  // full key. Match the active request before accepting measurement evidence.
+  const uint8_t* key = zen::signalDiscoveryKey(*packet, _pending_node_discover_tag,
+      _pending_node_discover_tag && !millisHasNowPassed(_pending_node_discover_until));
+  if (key) {
+    uint8_t token[MAX_HASH_SIZE]; packet->calculatePacketHash(token);
+    _repeater_signal.noteSample(key, zen::RepeaterSignalMonitor::DISCOVERY,
+        packet->_snr, (int)_radio->getLastRSSI(), now, token);
+  }
+}
+
+void MyMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
+                          const uint8_t* app_data, size_t app_data_len) {
+  // MeshCore has verified the signature before this callback. A full public
+  // key identifies the physical sender only for a zero-hop flood advert.
+  AdvertDataParser parser(app_data, app_data_len);
+  zen::SignalAdvertCapture::Reading reading;
+  if (packet->isRouteFlood() && packet->getPathHashCount() == 0 &&
+      parser.isValid() && parser.hasName() && parser.getType() == ADV_TYPE_REPEATER &&
+      _signal_adverts.take(packet, millis(), reading)) {
+    _repeater_signal.noteSample(id.pub_key, zen::RepeaterSignalMonitor::ADVERT,
+        reading.snr, reading.rssi, millis(), reading.token, &reading.at);
+  }
+  BaseChatMesh::onAdvertRecv(packet, id, timestamp, app_data, app_data_len);
+}
+
+void MyMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
   if (_serial->isConnected() && len + 3 <= MAX_FRAME_SIZE) {
     int i = 0;
     out_frame[i++] = PUSH_CODE_LOG_RX_DATA;
@@ -404,10 +431,6 @@ void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path
   if (_ui)
     _ui->notify((path_len & 63) ? UIEventType::advertReceivedFlood
                                 : UIEventType::advertReceivedZeroHop);
-  // Routed adverts were already sampled by logRxRaw(); this covers a directly
-  // heard repeater advert without double-weighting the same packet.
-  if (contact.type == ADV_TYPE_REPEATER && (path_len & 63) == 0)
-    _repeater_signal.noteSample((int)(_radio->getLastSNR() * 4), millis());
   if (_serial->isConnected()) {
     if (is_new) {
       writeContactRespFrame(PUSH_CODE_NEW_ADVERT, contact);
@@ -1278,9 +1301,6 @@ bool MyMesh::onContactPathRecv(ContactInfo& contact, uint8_t* in_path, uint8_t i
   return BaseChatMesh::onContactPathRecv(contact, in_path, in_path_len, out_path, out_path_len, extra_type, extra, extra_len);
 }
 
-#define CTL_TYPE_NODE_DISCOVER_REQ  0x80
-#define CTL_TYPE_NODE_DISCOVER_RESP 0x90
-
 bool MyMesh::sendNodeDiscoverReq(bool silent) {
   bool scan_active = _pending_node_discover_tag != 0 &&
                      !millisHasNowPassed(_pending_node_discover_until);
@@ -1310,6 +1330,7 @@ bool MyMesh::sendNodeDiscoverReq(bool silent) {
   }
   sendZeroHop(pkt);
   _repeater_signal.beginDiscovery();
+  _repeater_signal.noteScanAttempt(millis());
   return true;
 }
 
@@ -1318,7 +1339,7 @@ void MyMesh::onUserDisplayWake() {
   // Low Power never spends airtime on probing, including during Emergency.
   // Notification and alarm wakes do not call this entry point.
   if (_low_power_mode || !_repeater_signal.shouldScanOnUserWake(now, radioAvailable())) return;
-  if (sendNodeDiscoverReq(true)) _repeater_signal.noteScanAttempt(now);
+  sendNodeDiscoverReq(true);
 }
 
 int MyMesh::getDiscoverResults(DiscoverResult dest[], int max_count) {
@@ -1435,8 +1456,6 @@ void MyMesh::onControlDataRecv(mesh::Packet *packet) {
       uint8_t node_type = packet->payload[0] & 0x0F;
       const uint8_t* pub_key = &packet->payload[6];
       if (isDupDiscoverResp(tag, pub_key)) return;  // second copy of the same response
-      if (node_type == ADV_TYPE_REPEATER)
-        _repeater_signal.noteDiscovery((int8_t)(_radio->getLastSNR() * 4));
       if (_pending_node_discover_silent) return;
       ContactInfo* known = lookupContactByPubKey(pub_key, PUB_KEY_SIZE);
       if (known) {
@@ -1859,6 +1878,7 @@ void MyMesh::begin() {
 
 void MyMesh::applyRadioParams() {
   if (_repeater_signal.configure(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr)) {
+    _signal_adverts.reset();
     // Reject late discovery responses and completion from the old channel.
     _pending_node_discover_tag = 0;
     _pending_node_discover_until = 0;
@@ -3162,7 +3182,17 @@ void MyMesh::checkCLIRescueCmd() {
     cli_command[len - 1] = 0;  // replace newline with C string null terminator
 
     reply_buf[0] = 0;
-    if (handleCommand(cli_command, 0, reply_buf)) {
+    if (strcmp(cli_command, "signal") == 0 || strncmp(cli_command, "signal ", 7) == 0) {
+      // Local serial diagnostics only: never routed as a remote CLI request.
+      if (!cli_command[6]) _repeater_signal.formatSummary(reply_buf, sizeof(reply_buf), millis(), radioAvailable());
+      else {
+        char* end; unsigned long index = strtoul(cli_command+7, &end, 10);
+        if (end == cli_command+7 || *end || index >= zen::RepeaterSignalMonitor::HISTORY_COUNT)
+          strcpy(reply_buf, "Usage: signal [0..15], newest first; snr4 is quarter dB");
+        else _repeater_signal.formatHistory(reply_buf, sizeof(reply_buf), index, millis());
+      }
+      Serial.println(reply_buf);
+    } else if (handleCommand(cli_command, 0, reply_buf)) {
       // command was handled, print reply output
       Serial.print("  "); Serial.print(reply_buf); Serial.println();
     } else if (strcmp(cli_command, "rebuild") == 0) {

@@ -33,13 +33,16 @@ class DiagnosticsScreen : public ZenUIScreen {
   PopupMenu _reset_menu;   // Live tab, Hold Enter → 1-item "Reset counters" action menu (Back dismisses)
   FullscreenMsgView _event_view;
   char _event_title[16]{};
-  char _event_detail[128]{};
+  char _event_detail[256]{};
+  zen::RepeaterSignalMonitor::Event _selected_signal{};
+  bool _have_selected_signal = false;
+  unsigned _selected_signal_index = 0;
   MyMesh::StorageStatus _internal_storage{};
   MyMesh::StorageStatus _contacts_storage{};
 
   enum Tab : uint8_t {
     TAB_LIVE, TAB_EVENTS, TAB_TRANSPORT, TAB_BATTERY, TAB_LOCATION, TAB_POWER, TAB_SYSTEM,
-    TAB_FONT, TAB_COUNT
+    TAB_FONT, TAB_SIGNAL, TAB_COUNT
   };
   static const char* const TAB_LABELS[TAB_COUNT];
 
@@ -110,6 +113,16 @@ class DiagnosticsScreen : public ZenUIScreen {
     addRow("Noise floor", buf);
     snprintf(buf, sizeof(buf), "%d/%.1f", (int)radio_driver.getLastRSSI(), radio_driver.getLastSNR());
     addRow("RSSI/SNR", buf);
+    auto signal = the_mesh.repeaterSignalSnapshot();
+    snprintf(buf, sizeof(buf), "%s/%u", zen::RepeaterSignalMonitor::statusName(signal.status), signal.bars);
+    addRow("Signal", buf);
+    if (signal.status == zen::RepeaterSignalMonitor::FRESH) {
+      snprintf(buf, sizeof(buf), "%s %lus n%u", signal.identified ? "ID" : "rt",
+          (unsigned long)(signal.age_ms/1000), signal.count);
+      addRow("Evidence", buf);
+      snprintf(buf, sizeof(buf), "%d/%.2f", signal.rssi, signal.snr_x4/4.0f);
+      addRow("Link RX", buf);
+    }
 
   }
 
@@ -342,6 +355,38 @@ class DiagnosticsScreen : public ZenUIScreen {
         location.last_gps_event.type));
   }
 
+  void buildSignalLines() {
+    _line_count = 0;
+    _have_selected_signal = false;
+    const unsigned count = the_mesh.signalHistoryCount();
+    if (!count) { addLine("No signal samples"); return; }
+    if (_event_sel >= (int)count) _event_sel = count ? count-1 : 0;
+    for (unsigned i=0;i<count;++i) {
+      zen::RepeaterSignalMonitor::Event e;
+      if (!the_mesh.signalHistory(i,e)) break;
+      addLine("%u %s %.2f/%d %lus",i,
+          e.source==zen::RepeaterSignalMonitor::ROUTED?"route":
+          e.source==zen::RepeaterSignalMonitor::ADVERT?"adv":"disc",
+          e.snr_x4/4.0f,e.rssi,(unsigned long)((millis()-e.at)/1000));
+      if ((int)i == _event_sel) { _selected_signal=e; _selected_signal_index=i; _have_selected_signal=true; }
+    }
+  }
+
+  void openSelectedSignal() {
+    if (!_have_selected_signal) return;
+    strcpy(_event_title,"Signal sample");
+    zen::RepeaterSignalMonitor::formatEvent(_event_detail,sizeof(_event_detail),
+        _selected_signal_index,millis(),_selected_signal);
+    // Preserve the entire identity in the scrollable detail, not just a prefix.
+    size_t n=strlen(_event_detail);
+    snprintf(_event_detail+n,sizeof(_event_detail)-n," key=");
+    n=strlen(_event_detail);
+    for (unsigned i=0;i<32 && n+2<sizeof(_event_detail);++i) {
+      snprintf(_event_detail+n,sizeof(_event_detail)-n,"%02x",_selected_signal.key[i]); n+=2;
+    }
+    _event_view.begin(false);
+  }
+
   // Representative font samples for checking the display on real hardware.
   void buildFontLines() {
     _line_count = 0;
@@ -451,6 +496,7 @@ public:
     tabbar::draw(display, TAB_LABELS, TAB_COUNT, _tab);
 
     switch (_tab) {
+      case TAB_SIGNAL: buildSignalLines(); renderEventLines(display); break;
       case TAB_EVENTS: buildEventLines(); renderEventLines(display); break;
       case TAB_TRANSPORT: buildTransportLines(); renderLines(display); break;
       case TAB_BATTERY: buildBatteryRows(); renderRows(display); break;
@@ -499,17 +545,18 @@ public:
     if (keyIsPrev(c)) { _tab = (_tab + TAB_COUNT - 1) % TAB_COUNT; _scroll = 0; return true; }
     if (keyIsNext(c)) { _tab = (_tab + 1) % TAB_COUNT;            _scroll = 0; return true; }
     if (c == KEY_UP) {
-      if (_tab == TAB_EVENTS) { if (_event_sel > 0) _event_sel--; }
+      if (_tab == TAB_EVENTS || _tab == TAB_SIGNAL) { if (_event_sel > 0) _event_sel--; }
       else if (_scroll > 0) _scroll--;
       return true;
     }
     if (c == KEY_DOWN) {
-      if (_tab == TAB_EVENTS) {
-        int count = _task->diagnosticLog().size();
+      if (_tab == TAB_EVENTS || _tab == TAB_SIGNAL) {
+        int count = _tab == TAB_SIGNAL ? the_mesh.signalHistoryCount() : _task->diagnosticLog().size();
         if (_event_sel + 1 < count) _event_sel++;
       } else _scroll++;
       return true;
     }
+    if (c == KEY_ENTER && _tab == TAB_SIGNAL) { openSelectedSignal(); return true; }
     if (c == KEY_ENTER && _tab == TAB_EVENTS && _task->diagnosticLog().size()) {
       openSelectedEvent();
       return true;
@@ -527,5 +574,5 @@ public:
 };
 
 const char* const DiagnosticsScreen::TAB_LABELS[DiagnosticsScreen::TAB_COUNT] = {
-  "Live", "Events", "Transport", "Battery", "Location", "Power", "System", "Font"
+  "Live", "Events", "Transport", "Battery", "Location", "Power", "System", "Font", "Signal"
 };

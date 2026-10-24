@@ -103,6 +103,7 @@ class UITask : public AbstractUITask {
   bool _batt_external_power = false;
   bool _batt_sample_valid = false;
   uint32_t _batt_sample_at = 0;
+  uint8_t _signal_status = 0, _signal_bars = 0;
   zen::BatteryRuntimeEstimator _battery_runtime;
   zen::BatteryChargeState _battery_charge;
   unsigned long next_backlight_btn_check = 0;

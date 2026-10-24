@@ -646,7 +646,9 @@ class HomeScreen : public ZenUIScreen {
   }
 
   int renderRepeaterSignal(ZenDisplayDriver& display) {
-    return zen::SignalIndicator::draw(display, the_mesh.repeaterSignalBars());
+    auto signal = the_mesh.repeaterSignalSnapshot();
+    return zen::SignalIndicator::draw(display, signal.bars,
+        signal.status == zen::RepeaterSignalMonitor::STALE);
   }
 
 public:
@@ -3374,6 +3376,13 @@ void UITask::loop() {
   // they're driven here (not via the current screen's poll()).
 
   if (_display != NULL && _display->isOn()) {
+    if (isHomeScreenVisible()) {
+      auto signal = the_mesh.repeaterSignalSnapshot();
+      if (signal.status != _signal_status || signal.bars != _signal_bars) {
+        _signal_status = signal.status; _signal_bars = signal.bars;
+        _next_refresh = 0; // Visible changes only; never wake the display.
+      }
+    }
     uint32_t frame_now = millis();
     if (zen::TimeDeadline::due(frame_now, _next_refresh) && curr) {
       _display->startFrame();

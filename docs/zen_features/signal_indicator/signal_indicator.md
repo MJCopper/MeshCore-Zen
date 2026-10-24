@@ -2,111 +2,132 @@
 
 [Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
-Zen displays a phone-style signal indicator at the right edge of the home-page
-toolbar, immediately after the battery status. It estimates the quality of the
-most recently observed repeater link; it does not indicate Bluetooth, GPS,
-internet access or end-to-end delivery to a particular contact.
+The home-page toolbar shows the best recently observed identified repeater
+reception. It measures incoming radio quality, not distance, Bluetooth, internet
+access, end-to-end delivery, or whether the repeater can hear your transmissions.
 
 | Display | Meaning |
 | ------- | ------- |
-| `×` | No current repeater-link measurement, or radio unavailable |
-| One to four bars | Increasing SF-adjusted reception quality |
+| One to four bars | Fresh qualifying reception, increasingly good SNR margin |
+| Small hollow clock | Previous evidence has expired (stale) |
+| Cross | No evidence since boot/configuration change, or radio unavailable |
 
-The indicator is advisory. LoRa conditions, interference, collisions, routing
-and repeater availability can change between packets, so bars do not guarantee
-that a message will be delivered.
+Only active bars are drawn. Status/bar changes refresh a visible home page
+without waking a sleeping display. No packets are transmitted by rendering or
+by opening Diagnostics.
 
-## Passive measurements
+## Evidence selection
 
-Zen reads the local SNR already supplied by the radio for received packets. It
-accepts measurements when the packet proves that a repeater was involved:
+Each sample expires individually after **five minutes**. Up to five identified
+repeaters each retain their four most recent measurements. The meter selects
+the fresh repeater with the highest averaged SNR, breaking ties in favour of
+more recent reception. When the table is full, the least recently heard entry
+is replaced. Full 32-byte keys, not short path hashes, distinguish identities.
 
-- flood traffic containing at least one routing hop;
-- direct traffic containing an intermediate routing hop;
-- adverts received directly from a node identified as a repeater;
-- repeater responses to manual or silent discovery.
+An identified sample comes from:
 
-Zero-hop companion traffic is excluded. Traffic received through Bluetooth or
-USB is also unrelated to the measurement. Zen does not need to identify or save
-the repeater responsible for a passive sample.
+- a directly received zero-hop flood advert whose signature was verified by
+  MeshCore and whose application data identifies a repeater; or
+- a zero-hop repeater discovery response matching Zen's active request tag.
+  Discovery replies are identified by their full advertised key, but are not
+  signed identity proofs.
 
-The four most recent passive samples form a rolling average. This prevents the
-icon changing rapidly because of one unusually strong or weak packet. A passive
-sample refreshes the measurement age immediately.
+Routed flood traffic with at least one hop, and direct traffic with more than
+one path entry, provide **unattributed fallback** evidence. Their routing data
+does not reliably identify the immediate transmitter. These samples share a
+separate four-sample buffer and cannot dilute an identified repeater's history.
+Fallback is used only when no identified repeater has fresh evidence. It is an
+estimate of recent routed reception, not a claim that all samples came from the
+same repeater.
 
-## Strength calculation
+Zero-hop companions are excluded. Qualification occurs after successful packet
+envelope parsing and minimum payload checks; that does not authenticate routed
+fallback traffic. Measurements use SNR and RSSI from the same radio reception.
+A bounded capture retains advert RSSI through MeshCore's delayed receive queue;
+if that capture is unavailable, the measurement is skipped rather than guessed.
 
-Bars use approximate SNR margin above the configured spreading factor's
-receiver reference: −2.5 dB at SF5, decreasing by 2.5 dB per SF to −20 dB at
-SF12. These are the typical demodulator references in the
-[Semtech SX1261/SX1262 datasheet, Table 6-1](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262).
+Duplicate packet hashes within one link's retained samples are suppressed for
+30 seconds: they do not refresh age or confirm a bar transition. The same
+payload received from different identified repeaters counts independently.
+Unattributed duplicates cannot reliably be separated by transmitter, so they
+are conservatively suppressed together. The hash cache is bounded to the
+four retained samples per link; it is not an unlimited duplicate database.
 
-| Averaged margin above reference | Indicator | Equivalent SNR at SF7 |
-| ------------------------------- | --------- | -------------------- |
-| Up to 12.5 dB, with a valid sample | One bar | Up to 5 dB |
-| More than 12.5 dB, up to 14.5 dB | Two bars | More than 5 dB, up to 7 dB |
-| More than 14.5 dB, below 17.5 dB | Three bars | More than 7 dB, below 10 dB |
-| At least 17.5 dB | Four bars | At least 10 dB |
+## SNR scale and smoothing
 
-Only active bars are drawn. A valid reception, even with negative SNR, always
-provides at least one bar. The scale adjusts for SF5–SF12 across bandwidth and
-coding-rate settings; it applies no additional bandwidth or coding-rate offset.
-It is an advisory reception scale, not a calibrated delivery probability or a
-measurement of whether a repeater can hear your transmissions.
+RSSI is retained for diagnostics; bars remain an SF-adjusted **SNR quality**
+scale. No combined RSSI/SNR score has been introduced without field data.
+A nearby repeater can still have modest reported SNR. The scale does not promise
+four bars merely because a repeater is physically close.
 
-Changing frequency, bandwidth, spreading factor or coding rate clears the
-history and cancels pending signal discovery. New reception is required on the
-new settings. Reapplying unchanged settings retains the history.
+The reference is −2.5 dB at SF5, decreasing by 2.5 dB per SF to −20 dB at SF12
+([Semtech SX1261/SX1262 datasheet, Table 6-1](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262)).
 
-## Discovery refresh
+| Averaged margin above reference | Initial bars | Equivalent SNR at SF7 |
+| ------------------------------- | ------------ | -------------------- |
+| Up to 12.5 dB, with a valid sample | One | Up to 5 dB |
+| More than 12.5 dB, up to 14.5 dB | Two | More than 5 dB, up to 7 dB |
+| More than 14.5 dB, below 17.5 dB | Three | More than 7 dB, below 10 dB |
+| At least 17.5 dB | Four | At least 10 dB |
 
-There is no periodic background scan. Zen considers the measurement due for a
-refresh after 30 minutes. A silent repeater-only discovery starts only when all
-of these conditions are met:
+Initial evidence uses these exact boundaries. Subsequent transitions require
+two accepted receptions on the same link with its averaged SNR at least 1 dB
+beyond the relevant boundary (retaining the strict/inclusive comparisons above).
+At SF7, rising to four therefore requires an average of at least 11 dB twice;
+falling from four requires an average below 9 dB twice. Rendering and duplicate
+packets cannot advance confirmations. Changing the selected repeater does not
+transfer confirmations between links. When evidence expires, classification
+uses only the remaining fresh samples and bypasses the old transition latch.
 
-- the user wakes the sleeping display with Back;
-- the last signal measurement is at least 30 minutes old, or none exists;
-- no silent scan has been attempted during the previous 30 minutes;
-- the radio is available and Low Power mode is not active;
-- another interactive discovery scan is not active.
+SF5–SF12 are supported, with no extra bandwidth/coding-rate correction.
+Changing frequency, bandwidth, SF or coding rate clears evidence, diagnostic
+history and pending discovery. Reapplying unchanged settings retains evidence.
 
-Notification and alarm wakes never start the scan. Pressing a button after a
-notification has already woken the display does not count as a new user wake.
-Emergency Mode does not perform automatic signal discovery.
+## Discovery and airtime
 
-The silent scan lasts eight seconds and produces no popup, sound or additional
-display wake. It does not alter the interactive Discover Repeaters list or saved
-contact timestamps. A manual **Tools › Discover Repeaters** scan can replace an
-active silent scan immediately.
+There is **no periodic background scan**. A silent eight-second repeater-only
+discovery may start only when the user wakes a sleeping display with Back,
+there is no fresh qualifying evidence, and at least **30 minutes** have passed
+since the previous successfully queued discovery request. Manual requests also
+start this automatic-probe cooldown; changing presets cannot bypass it.
 
-Discovery is authoritative when its eight-second window completes:
+Fresh passive traffic suppresses automatic probing. An expired five-minute
+reading can remain stale while the 30-minute cooldown is still active. Repeated
+wakes do not shorten that cooldown. Notification/alarm wakes do not probe, and
+Low Power/Emergency suppress automatic discovery. Manual discovery remains
+available and can replace a silent scan under the existing rules.
 
-- if repeaters answer, the strongest received SNR replaces the passive average;
-- if no repeater answers, the existing reading is cleared and the cross appears.
+Discovery responses update the same per-repeater histories as passive adverts;
+they do not replace all existing evidence with one strongest response. No
+response records a failed scan but preserves other fresh evidence. Cancelled,
+late or nonmatching responses cannot add discovery samples. There is no special
+penalty sample for silence: evidence ages out normally.
 
-A failed silent attempt is not repeated until another eligible user wake at
-least 30 minutes later.
+All history is RAM-only and resets at reboot. Passive collection, expiry,
+selection and diagnostics add no mesh traffic or flash writes. An actual scan
+adds one zero-hop request and responder traffic, so the cooldown still matters.
 
-## Age, restart and power
+## Diagnostics and field checks
 
-A passive or successful discovery value expires after two hours. The cross also
-appears immediately whenever the radio is unavailable. Signal history and scan
-times are held only in RAM, cause no flash writes and reset at reboot.
+In **Tools › Diagnostics › Live**, Signal shows status/bars; Evidence shows
+identified (`ID`) or fallback (`rt`), newest sample age and sample count;
+Link RX shows RSSI/SNR for the selected average, rather than an unrelated last packet.
 
-Passive collection adds no radio transmissions. A silent discovery adds one
-zero-hop request and the resulting repeater replies, but only on an eligible
-user wake. Low Power and Emergency modes suppress this automatic transmission.
+The **Signal** diagnostics tab lists the 16 most recent accepted samples, newest
+first. Each row shows source, packet SNR/RSSI and current age. Select a row and
+press Enter for a scrollable detail containing the packet measurements, source
+key, selected estimate/key prefix, sample count and selected evidence age at
+that moment. The detail freezes the row last displayed so incoming traffic
+cannot silently replace the sample while it is being inspected.
 
-## Troubleshooting
+Local USB CLI Rescue also accepts `signal` for current selection and failure
+count, or `signal 0` through `signal 15` for history. `snr4`, `rx4` and `avg4`
+are quarter-dB units (40 means 10 dB). These commands are local diagnostics;
+they do not initiate discovery. The on-device Signal detail exposes the full
+source key where a CLI line uses its short prefix.
 
-- **Cross immediately after restart:** no qualifying traffic or successful
-  discovery has been received yet. Wake the screen or run Discover Repeaters.
-- **Cross despite receiving messages:** the traffic may be arriving directly
-  from another companion rather than through a repeater.
-- **Cross after a wake:** the authoritative discovery window completed without
-  a repeater response.
-- **Bars do not change for 30 minutes:** this is expected if no qualifying
-  packet arrives; the next eligible user wake requests a refresh.
-- **Bars differ from Discover Repeaters:** passive display uses a rolling
-  average, whereas completed discovery uses its strongest response.
-
+For field calibration, record passive samples beside a repeater, while moving
+away, and at a quiet location. Compare packet RSSI/SNR with selected averages,
+identity and age. A comparison against Discover should allow for its raw single
+response versus the toolbar's per-link smoothing. Keep the initial SNR scale
+until measurements justify a separate combined-strength proposal.

@@ -9,6 +9,7 @@
 #include "zen/AdminSession.h"
 #include "zen/SensorTelemetry.h"
 #include "zen/RepeaterSignalMonitor.h"
+#include "zen/SignalReception.h"
 #include "zen/TimezonePolicy.h"
 #include "zen/ConfigMaintenance.h"
 #include "zen/FloodScopeView.h"
@@ -32,7 +33,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.40"
+#define FIRMWARE_VERSION "v2.2.41"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -235,7 +236,14 @@ public:
   bool sendNodeDiscoverReq(bool silent = false);
   void onUserDisplayWake();
   uint8_t repeaterSignalBars() const {
-    return _repeater_signal.bars(_prefs.sf, millis(), radioAvailable());
+    return repeaterSignalSnapshot().bars;
+  }
+  zen::RepeaterSignalMonitor::Snapshot repeaterSignalSnapshot() const {
+    return _repeater_signal.snapshot(millis(), radioAvailable());
+  }
+  uint8_t signalHistoryCount() const { return _repeater_signal.historyCount(); }
+  bool signalHistory(unsigned index, zen::RepeaterSignalMonitor::Event& out) const {
+    return _repeater_signal.history(index,out);
   }
   void enterCLIRescue();
 
@@ -289,6 +297,9 @@ protected:
   void sendFloodScoped(const ContactInfo& recipient, mesh::Packet* pkt, uint32_t delay_millis=0) override;
   void sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis=0) override;
 
+  void logRx(mesh::Packet* packet, int len, float score) override;
+  void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
+                    const uint8_t* app_data, size_t app_data_len) override;
   void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) override;
   bool isAutoAddEnabled() const override;
   bool shouldAutoAddContactType(uint8_t type) const override;
@@ -726,6 +737,7 @@ private:
   unsigned long   _pending_node_discover_until;
   bool            _pending_node_discover_silent;
   zen::RepeaterSignalMonitor _repeater_signal;
+  zen::SignalAdvertCapture _signal_adverts;
 
   // Dedup for NODE_DISCOVER_RESP copies heard more than once: the responder's
   // zero-hop direct copy and a re-flooded copy relayed by another repeater

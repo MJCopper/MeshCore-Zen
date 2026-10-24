@@ -225,3 +225,18 @@ TEST(UIControls, BatteryGlyphsAreDistinctAndReplaceInteriorFill) {
   for (unsigned i=0;i<images.size();++i)
     for (unsigned j=i+1;j<images.size();++j) EXPECT_NE(images[i],images[j]);
 }
+
+TEST(UIControls, StaleSignalClockFitsAndDiffersFromCross) {
+  const int configs[][3]={{128,64,9},{122,250,9},{250,122,18}};
+  for (const auto& c:configs) {
+    RecordingDisplay d(c[0],c[1],6,c[2]); d.single_font=true;
+    int left=zen::SignalIndicator::draw(d,0,true);
+    ASSERT_EQ(d.draws.size(),3u); EXPECT_TRUE(d.inBounds());
+    for (const auto& r:d.draws) {
+      EXPECT_GE(r.x,left); EXPECT_LE(r.x+r.w,c[0]);
+      EXPECT_LE(r.y+r.h,c[2]-2);
+    }
+    d.draws.clear(); zen::SignalIndicator::draw(d,0,false);
+    EXPECT_EQ(d.draws.size(),12u);
+  }
+}
