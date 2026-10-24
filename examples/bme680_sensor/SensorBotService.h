@@ -11,6 +11,8 @@
 #include "TraceRouteHistory.h"
 #include "TraceDiagnostics.h"
 #include "TraceDiscovery.h"
+#include "TraceRequestAcknowledgement.h"
+#include "TraceTransactionBudget.h"
 
 class SensorBotService;
 
@@ -50,6 +52,8 @@ public:
 
   void begin(FILESYSTEM* fs);
 
+  // Poll the runtime radio between beforeRadioLoop() and loop(); report recovery
+  // must allow Dispatcher to deliver completion/watchdog callbacks first.
   void loop();
   void beforeRadioLoop();
 
@@ -90,6 +94,9 @@ private:
   TraceRouteHistory trace_history;
   TraceDiagnostics trace_diagnostics;
   TraceDiscovery discovery;
+  TraceRequestAcknowledgement trace_ack;
+  uint32_t _deadline = 0;
+  bool _transaction = false, _prelude = false;
   bool _targeted = false;
   uint32_t _profile = 0, _settle_at = 0, _settle_delay = 0, _quiet = 0, _next_queue_at = 0;
   uint32_t _trace_profile = 0, _probe_not_before = 0;
@@ -100,19 +107,25 @@ private:
   SensorReplyContext trace_context;
   mesh::PacketScope trace_scope;
 
-  bool traceBusy() const { return discovery.active() || trace_probe.isActive() || trace_report.active(); }
+  bool traceBusy() const { return _prelude || discovery.pending() || trace_probe.isActive() || trace_report.active(); }
+  bool beginAcknowledgement(uint32_t now);
+  void endTraceWork(uint32_t now);
+  void pumpAcknowledgement(uint32_t now);
+  bool expireTransaction(uint32_t now);
+  bool allowPhase(uint32_t now, uint64_t needed);
   const uint8_t* historyTarget() const { return _targeted ? discovery.key() : NULL; }
+  void formatTraceStatus(char* response, size_t size);
   void pumpDiscovery(uint32_t now);
   void discoveryFailure(const char* text);
   void startDiscovered(const TraceRoute& route, uint32_t now);
 
   enum QueueTraceResult { TRACE_QUEUED, TRACE_NO_PACKET, TRACE_QUEUE_REJECTED };
   QueueTraceResult queueTrace(uint32_t delay_millis = 0);
-  mesh::Packet* createPublicPart(const char* response, const SensorReplyContext& context);
+  mesh::Packet* createPublicPart(const char* response, const SensorReplyContext& context, bool prefix = true);
   bool sendPublicPart(const char* response, const SensorReplyContext& context, uint32_t delay_millis);
   void sendTraceResult(const RepeaterTraceProbe::Result& result);
   void finishTrace(const RepeaterTraceProbe::Result& result);
-  void closeTrace();
+  void closeTrace(bool preserve_deadline = false);
   void queueTraceFailure();
   void traceIdentifiers(uint32_t& tag, uint32_t& auth);
   void admitTrace(uint32_t now, uint32_t delay = 0);

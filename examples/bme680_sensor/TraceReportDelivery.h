@@ -8,7 +8,7 @@
 // Owns immutable report text, never the dispatcher's packet allocation.
 class TraceReportDelivery {
 public:
-  enum Outcome { NONE, DELIVERED, EXPIRED, UNCERTAIN, INVALID };
+  enum Outcome { NONE, DELIVERED, EXPIRED, UNCERTAIN, INVALID, CANCELLED };
   bool begin(const char* text, const char* name, const SensorReplyContext& context, uint32_t now,
              uint32_t delay, uint32_t budget, bool failure = false) {
     reset();
@@ -34,14 +34,22 @@ public:
   bool waiting() const { return _state == WAITING; }
   uint32_t delay(uint32_t now) const { return (int32_t)(_due - now) > 0 ? _due - now : 0; }
   bool expired(uint32_t now) const {
-    return active() && !inFlight() && ((uint32_t)(now - _began) >= _budget ||
+    if (!active()) return false;
+    if (inFlight()) {
+      // Do not free the radio's packet. Stop observing a stalled report after
+      // the Dispatcher watchdog plus scheduling grace, even if its callback is lost.
+      int32_t age = (int32_t)(now - _tx_at);
+      return age >= 0 && (uint32_t)age >= _tx_budget;
+    }
+    int32_t age = (int32_t)(now - _began);
+    return age >= 0 && ((uint32_t)age >= _budget ||
         (int32_t)(now - _part_at) >= (int32_t)TraceTimingPolicy::QUEUE_TIMEOUT_MILLIS);
   }
   const char* text() const { return _parts[_part < 2 ? _part : 1]; }
   uint8_t channel() const { return _context.channel; }
   const SensorReplyContext& context() const { return _context; }
   const void* queuedPacket() const { return _state == QUEUED ? _packet : NULL; }
-  void queued(const void* packet) { _packet = packet; _state = QUEUED; }
+  void queued(const void* packet, uint32_t tx_budget) { _packet = packet; _tx_budget = tx_budget; _state = QUEUED; }
   void retry(uint32_t now, uint32_t jitter = 0) {
     _packet = NULL;
     _state = WAITING;
@@ -49,8 +57,9 @@ public:
     if (_failures < 255) _failures++;
     if ((int32_t)(next - _due) > 0) _due = next;
   }
-  bool started(const void* packet) {
+  bool started(const void* packet, uint32_t now) {
     if (_state != QUEUED || !packet || packet != _packet) return false;
+    _tx_at = now;
     _state = TRANSMITTING;
     return true;
   }
@@ -72,12 +81,14 @@ public:
     else retry(now);
     return true;
   }
-  void expire() { finish(EXPIRED); }
+  void expire(bool transmission_uncertain = false) { finish(transmission_uncertain ? UNCERTAIN : EXPIRED); }
+  void cancel() { finish(CANCELLED); }
   Outcome outcome() const { return _outcome; }
 private:
   enum State { IDLE, WAITING, QUEUED, TRANSMITTING };
   char _parts[2][PublicResponseQueue::MAX_PART_LENGTH + 1]{};
   const void* _packet = NULL;
+  uint32_t _tx_at = 0, _tx_budget = 0;
   uint32_t _began = 0, _part_at = 0, _due = 0, _budget = 0;
   SensorReplyContext _context;
   uint8_t _part = 0, _count = 0, _failures = 0;

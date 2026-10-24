@@ -17,6 +17,8 @@ public:
   bool complete = false;
   bool fail = false;
   bool busy = false;
+  bool transmitting = false;
+  unsigned estimates_during_tx = 0;
   unsigned start_calls = 0;
   uint32_t airtime = 100;
   float last_snr = 0;
@@ -26,18 +28,21 @@ public:
     incoming.clear();
     return count;
   }
-  uint32_t getEstAirtimeFor(int) override { return airtime; }
+  uint32_t getEstAirtimeFor(int) override {
+    if (transmitting) estimates_during_tx++;
+    return airtime;
+  }
   float packetScore(float, int) override { return 1; }
   float getLastSNR() const override { return last_snr; }
   bool startSendRaw(const uint8_t* bytes, int length) override {
     start_calls++;
     if (fail) return false;
     sent.emplace_back(bytes, bytes + length);
-    complete = false;
+    complete = false; transmitting = true;
     return true;
   }
   bool isSendComplete() override { return complete; }
-  void onSendFinished() override { complete = false; }
+  void onSendFinished() override { complete = false; transmitting = false; }
   bool isReceiving() override { return busy; }
   bool isInRecvMode() const override { return true; }
 };
@@ -107,15 +112,22 @@ class TestMesh : public SensorScopeBinding<ScopeTestRuntime> {
 public:
   SensorBotService* bot = nullptr;
   void loop() { if (bot) bot->beforeRadioLoop(); Mesh::loop(); }
+  const char* node_name = "BME680 Sensor";
   uint32_t profile = 0;
+  uint32_t cad_max_duration = 4000;
   uint8_t reject_direct = 0, reject_group = 0;
   bool definite_start_failure = true;
+  // Legacy phase-boundary tests isolate probe/report timing. New acknowledgement
+  // tests and network tests leave this false and use the real Dispatcher.
+  bool complete_trace_ack_immediately = false;
+  std::vector<std::string> isolated_acknowledgements;
+  mesh::Packet* isolated_ack_packet = nullptr;
   TestMesh(TestRadio& radio, TestClock& clock, TestRandom& rng, TestRTC& rtc,
             StaticPoolPacketManager& pool, SimpleMeshTables& tables)
       : SensorScopeBinding<ScopeTestRuntime>(radio, clock, rng, rtc, pool, tables) { }
   uint32_t now() override { return g_mock_millis; }
   uint32_t uniqueTime() override { return getRTCClock()->getCurrentTimeUnique(); }
-  const char* nodeName() override { return "BME680 Sensor"; }
+  const char* nodeName() override { return node_name; }
   mesh::RNG& rng() override { return *getRNG(); }
   uint32_t estimateAirtime(uint8_t length) override { return _radio->getEstAirtimeFor(length); }
   uint32_t radioProfile() override { return profile; }
@@ -125,10 +137,20 @@ public:
   }
   mesh::Packet* createGroupDatagram(uint8_t type, const mesh::GroupChannel& channel,
                                    const uint8_t* data, size_t length) override {
-    return Mesh::createGroupDatagram(type, channel, data, length);
+    auto packet = Mesh::createGroupDatagram(type, channel, data, length);
+    if (packet && complete_trace_ack_immediately && length > 5 &&
+        std::string((const char*)data + 5, length - 5).find("Trace requested, please wait up to ") != std::string::npos) {
+      isolated_ack_packet = packet;
+      isolated_acknowledgements.emplace_back((const char*)data + 5, length - 5);
+    }
+    return packet;
   }
   void sendReply(mesh::Packet* packet, uint32_t delay, const SensorReplyContext& context) override {
-    if (reject_group) { reject_group--; releasePacket(packet); }
+    if (packet == isolated_ack_packet) {
+      isolated_ack_packet = nullptr;
+      if (bot) { bot->onTxStarted(packet, now()); bot->logTx(packet, 0); }
+      releasePacket(packet);
+    } else if (reject_group) { reject_group--; releasePacket(packet); }
     else SensorScopeBinding<ScopeTestRuntime>::sendReply(packet, delay, context);
   }
   void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length, uint32_t delay) override {
@@ -139,6 +161,7 @@ public:
   bool isQueuedPacket(const mesh::Packet* packet) const override { return Mesh::isQueuedPacket(packet); }
   bool cancelQueuedPacket(mesh::Packet* packet) override { return Mesh::cancelQueuedPacket(packet); }
 protected:
+  uint32_t getCADFailMaxDuration() const override { return cad_max_duration; }
   bool allowPacketForward(const mesh::Packet*) override { return false; }
   void logRx(mesh::Packet* packet, int, float) override { if (bot) bot->observeRoute(packet); }
   int calcRxDelay(float, uint32_t) const override { return 0; }

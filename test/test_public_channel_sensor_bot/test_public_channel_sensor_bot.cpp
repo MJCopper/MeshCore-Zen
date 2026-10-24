@@ -79,6 +79,17 @@ TEST(PublicChannelSensorBot, PublicOnlyLookupDoesNotReturnDuplicateCandidates) {
   EXPECT_EQ(0, bot.findChannel(nullptr, candidates, 2));
 }
 
+TEST(PublicChannelSensorBot, ActiveCancelBypassesExhaustedSlotsButIdleCancelAndStatusDoNot) {
+  PublicChannelSensorBot bot;
+  bool busy;
+  for (uint32_t i = 1; i <= 4; i++) EXPECT_TRUE(acceptCommand(bot, "Alice: !hillvue ping", i, false, busy));
+  EXPECT_FALSE(acceptCommand(bot, "Alice: !hillvue trace status", 5, true, busy));
+  EXPECT_TRUE(acceptCommand(bot, "Alice: !hillvue trace cancel", 6, true, busy));
+  EXPECT_FALSE(busy);
+  EXPECT_FALSE(acceptCommand(bot, "Alice: !hillvue trace cancel", 7, false, busy));
+  EXPECT_FALSE(acceptCommand(bot, "Alice: !hillvue trace cancel", 6, true, busy)); // duplicate
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

@@ -19,6 +19,11 @@ public:
   static uint32_t quietInterval(uint32_t airtime) {
     return airtime < 150 ? 150 : airtime > 750 ? 750 : airtime;
   }
+  static uint32_t transmitWatchdog(uint32_t airtime) {
+    uint64_t budget = (uint64_t)airtime * 3 / 2 + 1000;
+    return budget > 0x7FFFF000 ? 0x7FFFF000 : (uint32_t)budget;
+  }
+
   static uint32_t reportBudget(uint32_t airtime) {
     uint64_t budget = 26000 + (uint64_t)airtime * 3;
     return budget < 30000 ? 30000 : budget > 0x7FFFF000 ? 0x7FFFF000 : budget;

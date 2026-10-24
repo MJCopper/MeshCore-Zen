@@ -23,10 +23,10 @@ TEST(SensorTraceDelivery, RetainsFrozenTextUntilActualCompletion) {
   EXPECT_FALSE(report.ready(999));
   EXPECT_EQ(1, report.channel());
   int packet = 0, wrong = 0;
-  report.queued(&packet);
-  EXPECT_FALSE(report.started(&wrong));
+  report.queued(&packet, 60000);
+  EXPECT_FALSE(report.started(&wrong, 0));
   EXPECT_FALSE(report.completed(&packet, 1000));
-  EXPECT_TRUE(report.started(&packet));
+  EXPECT_TRUE(report.started(&packet, 0));
   EXPECT_TRUE(report.completed(&packet, 1100));
   EXPECT_FALSE(report.active());
   EXPECT_EQ(TraceReportDelivery::DELIVERED, report.outcome());
@@ -52,12 +52,12 @@ TEST(SensorTraceDelivery, RetriesRejectedStartsButNeverRepeatsAnUncertainTransmi
   TraceReportDelivery report;
   int packet = 0;
   ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 0, 0, 30000));
-  report.queued(&packet);
+  report.queued(&packet, 60000);
   EXPECT_TRUE(report.failed(&packet, 100, true));
   EXPECT_FALSE(report.ready(349));
   EXPECT_TRUE(report.ready(350));
-  report.queued(&packet);
-  EXPECT_TRUE(report.started(&packet));
+  report.queued(&packet, 60000);
+  EXPECT_TRUE(report.started(&packet, 0));
   EXPECT_TRUE(report.failed(&packet, 400));
   EXPECT_FALSE(report.active());
   EXPECT_EQ(TraceReportDelivery::UNCERTAIN, report.outcome());
@@ -70,8 +70,8 @@ TEST(SensorTraceDelivery, MultipartGapStartsAtCompletionAndHasNoUnsignedUnderflo
   int first = 0, second = 0;
   ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{0}, 0, 0, 30000));
   EXPECT_NE(std::string::npos, std::string(report.text()).find("1/2"));
-  report.queued(&first);
-  report.started(&first);
+  report.queued(&first, 60000);
+  report.started(&first, 0);
   report.completed(&first, 5000);
   EXPECT_TRUE(report.active());
   EXPECT_FALSE(report.expired(5000));
@@ -80,8 +80,8 @@ TEST(SensorTraceDelivery, MultipartGapStartsAtCompletionAndHasNoUnsignedUnderflo
   EXPECT_TRUE(report.ready(8000));
   EXPECT_NE(std::string::npos, std::string(report.text()).find("2/2"));
   EXPECT_FALSE(report.completed(&first, 8000));
-  report.queued(&second);
-  report.started(&second);
+  report.queued(&second, 60000);
+  report.started(&second, 0);
   report.completed(&second, 9000);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, report.outcome());
 }
@@ -93,8 +93,8 @@ TEST(SensorTraceDelivery, ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap) 
   ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, now, 1500, 30000));
   EXPECT_FALSE(report.ready(now + 1499));
   EXPECT_TRUE(report.ready(now + 1500));
-  report.queued(&packet);
-  report.started(&packet);
+  report.queued(&packet, 60000);
+  report.started(&packet, now + 1500);
   EXPECT_FALSE(report.expired(now + 40000));
   report.completed(&packet, now + 40001);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, report.outcome());
@@ -107,7 +107,7 @@ TEST(SensorTraceDelivery, UnknownRejectedStartIsConservativelyUncertain) {
   TraceReportDelivery report;
   int packet = 0;
   ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 0, 0, 30000));
-  report.queued(&packet);
+  report.queued(&packet, 60000);
   EXPECT_TRUE(report.failed(&packet, 100));
   EXPECT_FALSE(report.active());
   EXPECT_EQ(TraceReportDelivery::UNCERTAIN, report.outcome());
@@ -118,13 +118,13 @@ TEST(SensorTraceDelivery, SecondPartCanRecoverWithoutRepeatingTheFirstPart) {
   std::string text(170, 'x');
   int first = 0, second = 0;
   ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{1}, 0, 0, 30000));
-  report.queued(&first); report.started(&first); report.completed(&first, 1000);
+  report.queued(&first, 60000); report.started(&first, 0); report.completed(&first, 1000);
   EXPECT_TRUE(report.ready(4000));
-  report.queued(&second); report.failed(&second, 4000, true);
+  report.queued(&second, 60000); report.failed(&second, 4000, true);
   EXPECT_FALSE(report.ready(4249));
   EXPECT_TRUE(report.ready(4250));
   EXPECT_NE(std::string::npos, std::string(report.text()).find("2/2"));
-  report.queued(&second); report.started(&second); report.completed(&second, 4500);
+  report.queued(&second, 60000); report.started(&second, 0); report.completed(&second, 4500);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, report.outcome());
 }
 
@@ -133,7 +133,7 @@ TEST(SensorTraceDelivery, OverallDeadlineCannotBeExtendedByMultipartProgress) {
   std::string text(170, 'x');
   int packet = 0;
   ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{0}, 0, 0, 12000));
-  report.queued(&packet); report.started(&packet); report.completed(&packet, 9000);
+  report.queued(&packet, 60000); report.started(&packet, 0); report.completed(&packet, 9000);
   EXPECT_FALSE(report.expired(11999));
   EXPECT_TRUE(report.expired(12000));
 }
@@ -222,6 +222,33 @@ TEST(SensorTraceDiagnostics, AllDirectionsAndProgressGeometryForEverySupportedSi
     diagnostics.observe(&reply, probe, 400);
     EXPECT_EQ(100u, diagnostics.progress[0].elapsed);
   }
+}
+
+TEST(SensorTraceDelivery, OlderLoopTimestampCannotExpireANewReport) {
+  TraceReportDelivery report;
+  ASSERT_TRUE(report.begin("Result", "Sensor", SensorReplyContext{0}, 101, 500, 30000));
+  EXPECT_FALSE(report.expired(100));
+}
+
+TEST(SensorTraceDelivery, MissingTxCallbackIsBoundedWithoutRepeatingMultipartWork) {
+  TraceReportDelivery report;
+  std::string text(170, 'x');
+  int packet;
+  uint32_t now = UINT32_MAX - 1000;
+  ASSERT_TRUE(report.begin(text.c_str(), "Sensor", SensorReplyContext{0}, now, 0, 30000));
+  report.queued(&packet, 1150); ASSERT_TRUE(report.started(&packet, now + 100));
+  EXPECT_FALSE(report.expired(now + 1249));
+  EXPECT_TRUE(report.expired(now + 1250));
+  report.expire(true);
+  EXPECT_EQ(TraceReportDelivery::UNCERTAIN, report.outcome());
+  EXPECT_FALSE(report.completed(&packet, now + 1300));
+  EXPECT_FALSE(report.active()); EXPECT_FALSE(report.ready(now + 5000));
+}
+
+TEST(SensorTraceTiming, ReportWatchdogAllowsRadioTimeoutAndSchedulingGrace) {
+  EXPECT_EQ(1150u, TraceTimingPolicy::transmitWatchdog(100));
+  EXPECT_EQ(1000u, TraceTimingPolicy::transmitWatchdog(0));
+  EXPECT_EQ(0x7FFFF000u, TraceTimingPolicy::transmitWatchdog(UINT32_MAX));
 }
 
 int main(int argc, char** argv) {

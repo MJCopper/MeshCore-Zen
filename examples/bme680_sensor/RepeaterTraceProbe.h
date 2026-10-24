@@ -28,6 +28,15 @@ public:
   StartResult startRoute(const TraceRoute& route, uint32_t tag, uint32_t auth, uint32_t now);
   bool beginRetry(uint32_t tag, uint32_t auth, uint32_t now, const TraceRoute* alternate = NULL);
   bool isActive() const { return _state != IDLE; }
+  uint32_t remaining(uint32_t now) const {
+    uint32_t began = _phase_at, budget = TraceTimingPolicy::QUEUE_TIMEOUT_MILLIS;
+    if (_state == IN_FLIGHT) {
+      began = _attempts[_current].started_at; budget = _attempts[_current].timeout;
+    } else if (_state == FINAL_GRACE) budget = TraceTimingPolicy::FINAL_GRACE_MILLIS;
+    else if (_state == FAILURE_PENDING) budget = TraceTimingPolicy::REPORT_TIMEOUT_MILLIS;
+    int32_t age = (int32_t)(now - began);
+    return age < 0 ? budget : (uint32_t)age >= budget ? 0 : budget - age;
+  }
   bool retryPending() const { return _state == RETRY_PENDING; }
   bool retryStarted() const { return _current == 1; }
   bool waitingForQueue() const { return _state == QUEUED; }
@@ -42,6 +51,9 @@ public:
   void setQueuedPacket(mesh::Packet* packet) { _packet = packet; }
   mesh::Packet* queuedPacket() const { return _state == QUEUED ? _packet : NULL; }
   void setAirtimeEstimate(uint32_t airtime);
+  void limitTimeout(uint32_t limit) {
+    if (_attempts[_current].timeout > limit) _attempts[_current].timeout = limit;
+  }
   bool isQueueTimedOut(uint32_t now) const;
   void queueFailed(uint32_t now);
   bool onTxStarted(const mesh::Packet* packet, uint32_t now);

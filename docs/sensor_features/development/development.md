@@ -306,6 +306,64 @@ truncated-path regression covers this under ASan.
 See the [destination trace validation record](../../upgrades/validation/sensor-target-trace.md)
 for the commands, measured resource changes and separate physical acceptance.
 
+## Trace request acknowledgement and overall deadline
+
+`TraceTransactionBudget` defines a fixed 60,000 ms transaction and a 5,000 ms
+terminal-report reserve. Acceptance freezes the deadline and acknowledgement
+text at 60 seconds. At 55 seconds, unfinished discovery/probing becomes a
+stage-specific failure report; at 60 seconds, cleanup releases trace ownership.
+Timers use wrap-safe monotonic millisecond comparisons.
+
+Discovery and probe windows are clamped at actual TX start using cached airtime
+policy and live remaining work time. First/second discovery divide that time by
+four/three; first/retry probes divide it by two/one. This leaves opportunities
+for the later stages without requiring the old maximum ten-hop windows to fit.
+Admissions check estimated TX watchdog plus scheduled delay against remaining
+work time. No retry or response restarts either deadline. TX-start observers do
+only timer arithmetic and never query the radio.
+
+`TraceRequestAcknowledgement` owns a single immutable message independently of
+`TraceReportDelivery`. Its admission lease is ten seconds, followed by a cached
+actual-packet TX watchdog, bounded by the maximum-frame allowance, if transmission starts. Only definitely unsent failures
+can retry. The acknowledgement prelude suspends discovery and probe queue clocks;
+a failure to acknowledge does not fail the trace. Queued expiry is checked before
+Dispatcher polling; TX observer expiry is checked after completion callbacks have
+had their normal opportunity. Deadline cleanup never frees a Dispatcher-owned
+in-flight allocation. Ordinary public reply processing continues during the
+acknowledgement stage.
+
+`test_sensor_trace_ack` covers fixed deadlines, report reservation and budget sharing, all route lengths and both hash
+widths, rollover and exact deadline boundaries, real Dispatcher acknowledgement
+ordering and failure recovery, slow TX, allocation pressure, cancellation, status,
+duplicates, targeted discovery, and both channels/widths/scopes. Older exact-phase
+integration tests explicitly complete acknowledgement through a transport seam to
+retain their probe/report timing characterization. The dedicated acknowledgement
+suite and network simulation leave that seam disabled and run real Dispatcher
+transmission. Network tests separately capture acknowledgements and terminal
+reports; the added flood can cause contention and consume the second allowed
+probe attempt.
+
+See the [60-second cap validation record](../../upgrades/validation/sensor-trace-60-second-cap.md).
+The earlier [acknowledgement plan](../../upgrades/sensor-trace-request-ack-plan.md)
+and [initial validation](../../upgrades/validation/sensor-trace-request-ack.md)
+record the superseded conservative timeout policy.
+
+## Trace lifecycle recovery review
+
+Recovery regressions now attempt another trace after success, discovery timeout,
+queue exhaustion, rejected radio start, probe timeout and queued-report expiry.
+The targeted suite also injects a lost report completion notification, a new
+command arriving exactly as discovery expires, cancellation during queue/wait/
+report phases, late cancelled replies, delayed TX completion polling, and the
+realistic 1,512 ms maximum-frame airtime estimate at the shipped radio defaults.
+The parser tests cover cancellation with an exhausted normal command budget.
+Report unit tests cover stale loop timestamps and a wrap-safe missing-callback
+watchdog. These are selected by the existing regular and ASan environments.
+
+The [complete review and validation record](../../upgrades/validation/sensor-trace-recovery-review.md)
+distinguishes the expected thirty-second discovery wait from reproduced
+lifecycle defects and records firmware artifacts and physical acceptance limits.
+
 ## Hardware acceptance
 
 Automated tests cannot establish RF delivery, physical sensor accuracy or the

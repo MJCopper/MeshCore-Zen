@@ -131,10 +131,10 @@ TEST_F(TargetTrace, AmbiguousPrefixNeverSelectsTheFirstCacheEntry) {
 }
 
 TEST_F(TargetTrace, DiscoveryTimeoutIsBoundedAndNotAnUnreachableClaim) {
-  begin(); finish(200); tick(30100); tick(30101); finish(30200);
+  begin(); finish(200); tick(13900); tick(13901); finish(14000);
   ASSERT_EQ(2u, radio.sent.size());
   EXPECT_GT(requestTag(1), requestTag(0));
-  tick(60101); tick(63000); finish(63100); tick(120000);
+  tick(27700); tick(30000); finish(30100); tick(120000);
   ASSERT_EQ(3u, radio.sent.size());
   EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(2));
   EXPECT_EQ(32, pool.getFreeCount());
@@ -397,6 +397,238 @@ TEST(TargetHistory, FullTargetIdentitySeparatesBareAndTargetedRouteEvidence) {
   history.record(route, 0, 0, 102, false);
   EXPECT_EQ(2, history.rank(route, 0, 0, 103, {}, a));
   EXPECT_EQ(0, history.rank(route, 0, 0, 103));
+}
+
+TEST_F(TargetTrace, ExpiringDiscoveryKeepsOwnershipUntilItsFailureIsHandled) {
+  radio.busy = true; begin(); tick(10100);
+  radio.incoming = command("Bob: !hillvue trace");
+  radio.busy = false; tick(20100);
+  // The old operation must not admit and then cancel a new bare probe.
+  EXPECT_TRUE(radio.sent.empty());
+  EXPECT_EQ(0u, bot.diagnostics().starts);
+}
+
+TEST_F(TargetTrace, MissingReportCompletionCannotLeaveAllFutureTracesBusy) {
+  begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+  tick(5000);
+  ASSERT_EQ(3u, radio.sent.size());
+  mesh.bot = nullptr; finish(5100); mesh.bot = &bot;
+  EXPECT_EQ(32, pool.getFreeCount());  // Dispatcher released it; owner notification was lost.
+  tick(60000);
+  EXPECT_EQ(TraceReportDelivery::UNCERTAIN, bot.diagnostics().delivery);
+  EXPECT_EQ(1u, bot.diagnostics().report_failures);
+  radio.incoming = command("Bob: !hillvue trace"); tick(60100);
+  ASSERT_EQ(4u, radio.sent.size());
+  EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent.back()).getPayloadType());
+}
+
+TEST_F(TargetTrace, ThirtySecondBusyReplyExplainsDiscoveryAndStatusShowsItsAttempt) {
+  begin(); finish(200);
+  radio.incoming = command("Bob: !hillvue trace"); tick(30000);
+  tick(30100); tick(30101); finish(30200); tick(33000); finish(33100);
+  bool found = false;
+  for (size_t i = 0; i < radio.sent.size(); i++) if (parse(radio.sent[i]).getPayloadType() == PAYLOAD_TYPE_GRP_TXT) {
+    auto text = publicText(i);
+    if (text.find("already running; discovery") != std::string::npos) found = true;
+  }
+  EXPECT_TRUE(found);
+  radio.incoming = command("Bob: !hillvue trace status"); tick(34000); tick(37000); finish(37100);
+  EXPECT_NE(std::string::npos, publicText(radio.sent.size() - 1).find("Trace: discovery 2/2"));
+}
+
+TEST_F(TargetTrace, CancellingQueuedDiscoveryUnblocksANewBareTraceWithoutReboot) {
+  radio.busy = true; begin();
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(200);
+  radio.busy = false; tick(3000); finish(3100);
+  ASSERT_EQ(1u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(0));
+  radio.incoming = command("Bob: !hillvue trace"); tick(4000); finish(4100);
+  ASSERT_EQ(2u, radio.sent.size());
+  EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[1]).getPayloadType());
+  traceReply(1, 4500); tick(8000); finish(8100);
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, CancelAndRestartDiscoveryIgnoreTheCancelledOperationsLateReply) {
+  begin(); auto old_tag = requestTag(); finish(200);
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(300); tick(3000); finish(3100);
+  ASSERT_EQ(2u, radio.sent.size()); EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(1));
+  radio.incoming = command(text(target).c_str()); tick(4000); finish(4100);
+  ASSERT_EQ(3u, radio.sent.size());
+  auto new_tag = requestTag(2); EXPECT_GT(new_tag, old_tag);
+  radio.incoming = pathReply(old_tag, {0x10}); tick(4200); EXPECT_EQ(3u, radio.sent.size());
+  radio.incoming = pathReply(new_tag); tick(4500); finish(4600);
+  ASSERT_EQ(4u, radio.sent.size());
+  traceReply(3, 5000); tick(9000); finish(9100);
+  EXPECT_EQ(5u, radio.sent.size()); EXPECT_EQ(32, pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, CancelAndIdleStatusDoNotStartDiscovery) {
+  radio.incoming = command("Bob: !hillvue trace status"); tick(100); tick(3000); finish(3100);
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(4000); tick(7000); finish(7100);
+  ASSERT_EQ(2u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: idle", publicText(0));
+  EXPECT_EQ("BME680 Sensor: Trace: idle", publicText(1));
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, CancellingQueuedResultRemovesItAndFreesTheTraceSlot) {
+  begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(1600); tick(5000); finish(5100);
+  ASSERT_EQ(3u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(2));
+  radio.incoming = command("Bob: !hillvue trace"); tick(6000);
+  ASSERT_EQ(4u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+}
+
+TEST_F(TargetTrace, BareTraceCanBeCancelledAndOldResultsCannotRestartIt) {
+  radio.incoming = command("Bob: !hillvue trace"); tick(100); finish(200);
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(300); tick(3000); finish(3100);
+  ASSERT_EQ(2u, radio.sent.size()); EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(1));
+  traceReply(0, 3200); tick(10000); EXPECT_EQ(2u, radio.sent.size());
+  radio.incoming = command(text(target).c_str()); tick(11000);
+  ASSERT_EQ(3u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_REQ, parse(radio.sent[2]).getPayloadType());
+}
+
+TEST_F(TargetTrace, DiscoveryFailureEventuallyAdmitsANewTrace) {
+  begin(); finish(200); tick(13900); tick(13901); finish(14000);
+  tick(27700); tick(30000); finish(30100);
+  radio.incoming = command("Bob: !hillvue trace"); tick(64000);
+  ASSERT_EQ(4u, radio.sent.size());
+  EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+}
+
+TEST(TargetDiscoveryState, NullCallbacksDoNotAdvanceAnUnsubmittedDiscovery) {
+  TraceDiscovery discovery; uint8_t key[32]{};
+  discovery.begin(key, 100);
+  discovery.started(NULL, 200); discovery.failed(NULL, 300);
+  EXPECT_EQ(TraceDiscovery::QUEUE, discovery.phase());
+  EXPECT_EQ(1, discovery.attempt()); EXPECT_FALSE(discovery.owns(key, 0));
+}
+
+TEST_F(TargetTrace, SlowRadioDiscoveryBudgetNeverAdvertisesMoreThanSixtySeconds) {
+  radio.airtime = 1512;  // RadioLib max-frame airtime at shipped SF8/BW62.5/CR5 defaults.
+  begin(); finish(200);
+  radio.incoming = command("Bob: !hillvue trace status"); tick(30000); tick(33000); finish(33100);
+  ASSERT_EQ(2u, radio.sent.size());
+  EXPECT_NE(std::string::npos, publicText(1).find("BME680 Sensor: Trace: discovery 2/2 queued"));
+  EXPECT_NE(std::string::npos, publicText(1).find("s overall left"));
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(34000); tick(37000); finish(37100);
+  EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(2));
+  radio.incoming = command("Bob: !hillvue trace"); tick(40000);
+  ASSERT_EQ(4u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+}
+
+TEST_F(TargetTrace, CancelReplyUsesTheOperatorsChannelAndScopeRatherThanTheOldTraceScope) {
+  auto region = mesh.regions.putRegion("#trace-scope", 0); region->flags = 0;
+  ASSERT_EQ(1, mesh.regions.getTransportKeysFor(*region, &scope, 1));
+  begin(); auto old_tag = requestTag(); finish(200);
+  TransportKey other_scope{};
+  region = mesh.regions.putRegion("#operator-scope", 0); region->flags = 0;
+  ASSERT_EQ(1, mesh.regions.getTransportKeysFor(*region, &other_scope, 1));
+  auto cancel = parse(command("Bob: !hillvue trace cancel", 2, &channel.channel(1)));
+  cancel.header = (cancel.header & ~PH_ROUTE_MASK) | ROUTE_TYPE_TRANSPORT_FLOOD;
+  cancel.transport_codes[0] = other_scope.calcTransportCode(&cancel); cancel.transport_codes[1] = 0;
+  radio.incoming = wire(cancel); tick(300); tick(3000); finish(3100);
+  ASSERT_EQ(2u, radio.sent.size());
+  auto ack = parse(radio.sent[1]);
+  EXPECT_EQ(other_scope.calcTransportCode(&ack), ack.transport_codes[0]);
+  EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(1, &channel.channel(1)));
+  radio.incoming = pathReply(old_tag); tick(3200); tick(6000);
+  EXPECT_EQ(2u, radio.sent.size()); EXPECT_EQ(32, pool.getFreeCount());
+}
+
+class TraceTerminalRecovery : public TargetTrace, public ::testing::WithParamInterface<int> {};
+TEST_P(TraceTerminalRecovery, EveryTerminalPathAllowsAnotherTraceAndReturnsAllPoolSlots) {
+  uint32_t next_at = 0;
+  switch (GetParam()) {
+    case 0:
+      begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+      tick(5000); finish(5100); next_at = 6000; break;
+    case 1:
+      begin(); finish(200); tick(13900); tick(13901); finish(14000);
+      tick(27700); tick(30000); finish(30100); next_at = 64000; break;
+    case 2:
+      radio.busy = true; begin(); tick(10100); tick(20100);
+      radio.busy = false; tick(24000); finish(24100); next_at = 25000; break;
+    case 3:
+      radio.fail = true; begin(); tick(200); radio.fail = false;
+      tick(3000); finish(3100); next_at = 4000; break;
+    case 4:
+      begin(); finish(200); discover(); finish(600);
+      tick(9000); tick(12000); finish(12100); tick(20000); tick(23000);
+      tick(26000); finish(26100); next_at = 27000; break;
+    case 5:
+      begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+      radio.busy = true; tick(15000); radio.busy = false; next_at = 16000; break;
+  }
+  ASSERT_EQ(32, pool.getFreeCount());
+  size_t previous = radio.sent.size();
+  radio.incoming = command("Next: !hillvue trace"); tick(next_at);
+  ASSERT_EQ(previous + 1, radio.sent.size());
+  ASSERT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent.back()).getPayloadType());
+  finish(next_at + 100); traceReply(previous, next_at + 500);
+  tick(next_at + 4000); finish(next_at + 4100);
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+INSTANTIATE_TEST_SUITE_P(SuccessAndAllFailureStages, TraceTerminalRecovery, ::testing::Range(0, 6));
+
+TEST_F(TargetTrace, DelayedCompletionPollDoesNotDiscardTheSecondReportPart) {
+  begin(); finish(200);
+  discover(500, {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38});
+  finish(600); traceReply(1, 1500); tick(5000);
+  ASSERT_EQ(3u, radio.sent.size()); EXPECT_NE(std::string::npos, publicText(2).find("1/2"));
+  finish(7000);  // polling was delayed beyond airtime + watchdog grace, but TX completed
+  tick(10000); tick(10001); finish(10100);
+  ASSERT_EQ(4u, radio.sent.size()); EXPECT_NE(std::string::npos, publicText(3).find("2/2"));
+  EXPECT_EQ(TraceReportDelivery::DELIVERED, bot.diagnostics().delivery);
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, TxStartObserverUsesCachedBudgetInsteadOfQueryingTheTransmittingRadio) {
+  begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+  tick(5000); finish(5100);
+  EXPECT_EQ(0u, radio.estimates_during_tx);
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, BareQueuedProbeCannotStartOnAChangedRadioProfile) {
+  radio.busy = true; radio.incoming = command("Bob: !hillvue trace"); tick(100);
+  mesh.profile = 1; radio.busy = false; tick(200); tick(3000); finish(3100);
+  ASSERT_EQ(1u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: radio configuration changed", publicText(0));
+  radio.incoming = command("Next: !hillvue trace"); tick(4000);
+  ASSERT_EQ(2u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[1]).getPayloadType());
+}
+
+TEST_F(TargetTrace, QueuedResultIsNotSentUsingAChangedRadioProfileAndOldWatchdogBudget) {
+  begin(); finish(200); discover(); finish(600); traceReply(1, 1500);
+  mesh.profile = 1; radio.airtime = 2000; tick(1600); tick(6000);
+  EXPECT_EQ(2u, radio.sent.size()); EXPECT_EQ(TraceReportDelivery::UNCERTAIN, bot.diagnostics().delivery);
+  radio.incoming = command("Next: !hillvue trace"); tick(7000);
+  ASSERT_EQ(3u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[2]).getPayloadType());
+}
+
+TEST_F(TargetTrace, RadioChangeDuringResultTransmissionCannotQueueAContradictoryFailure) {
+  begin(); finish(200); discover(); finish(600); traceReply(1, 1500); tick(5000);
+  mesh.profile = 1; finish(5100); tick(9000);
+  ASSERT_EQ(3u, radio.sent.size()); EXPECT_EQ(TraceReportDelivery::UNCERTAIN, bot.diagnostics().delivery);
+  radio.incoming = command("Next: !hillvue trace"); tick(10000);
+  ASSERT_EQ(4u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+}
+
+TEST_F(TargetTrace, DiscoveryAtWorkCutoffReportsItsStageAndReleasesBySixtySeconds) {
+  mesh.complete_trace_ack_immediately = false;
+  radio.busy = true; mesh.cad_max_duration = UINT32_MAX;
+  begin();
+  tick(55100);
+  radio.busy = false; tick(55400); finish(55500);
+  ASSERT_EQ(1u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(0));
+  EXPECT_EQ(0u, bot.diagnostics().starts);
+  radio.incoming = command("Bob: !hillvue trace"); tick(60100);
+  ASSERT_EQ(2u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace requested, please wait up to 60 seconds.", publicText(1));
 }
 
 class TargetRoutes : public TargetTrace, public ::testing::WithParamInterface<std::tuple<int, int>> {};

@@ -19,6 +19,7 @@ protected:
 
   void SetUp() override {
     g_mock_millis = 0;
+    mesh.complete_trace_ack_immediately = true;
     mesh.bot = &bot;
     mesh.begin();
     bot.begin(&fs);

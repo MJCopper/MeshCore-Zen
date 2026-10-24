@@ -34,8 +34,18 @@ public:
     _phase = QUEUE; _attempt = _failures = 0; _packet = NULL;
     _phase_at = _next_at = now;
   }
+  void limitTimeout(uint32_t limit) { if (_timeout > limit) _timeout = limit; }
+  void resetQueueClock(uint32_t now) { _phase_at = _next_at = now; }
   Phase phase() const { return _phase; }
   bool active() const { return _phase == QUEUE || _phase == WAIT; }
+  bool pending() const { return active() || _phase == FAILED; }
+  uint8_t attempt() const { return _attempt + 1; }
+  uint32_t remaining(uint32_t now) const {
+    uint32_t began = _phase == WAIT ? _started : _phase_at;
+    uint32_t budget = _phase == WAIT ? _timeout : TraceTimingPolicy::QUEUE_TIMEOUT_MILLIS;
+    int32_t age = (int32_t)(now - began);
+    return age < 0 ? budget : (uint32_t)age >= budget ? 0 : budget - age;
+  }
   const uint8_t* key() const { return _peers[0].key; }
   const uint8_t* peer(uint8_t index) const { return index < 3 && _peers[index].valid ? _peers[index].key : NULL; }
   bool owns(const uint8_t* key, uint32_t tag) const {
@@ -65,11 +75,12 @@ public:
     else if (_phase == WAIT && (uint32_t)(now - _started) >= _timeout) miss(now, TIMEOUT);
   }
   void started(mesh::Packet* packet, uint32_t now) {
-    if (_phase != QUEUE || packet != _packet) return;
+    if (_phase != QUEUE || !packet || packet != _packet) return;
     _peers[0].sent[_attempt] = true; _started = now; _phase = WAIT;
   }
   void completed(mesh::Packet* packet) { if (_packet == packet) _packet = NULL; }
   void failed(mesh::Packet* packet, uint32_t now) {
+    if (!packet) return;
     if (active() && packet == _packet) miss(now, TX_FAILED);
     else completed(packet);
   }

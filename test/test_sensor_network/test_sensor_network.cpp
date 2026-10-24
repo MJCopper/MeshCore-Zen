@@ -30,7 +30,7 @@ public:
     return true;
   }
   bool isSendComplete() override { return active && g_mock_millis - started_at >= airtime; }
-  void onSendFinished() override { active = false; }
+  void onSendFinished() override { TestRadio::onSendFinished(); active = false; }
 };
 
 class NetworkRelay : public mesh::Mesh {
@@ -44,7 +44,7 @@ public:
   unsigned discovery_requests = 0;
   bool discovery_enabled = false;
   PublicChannelSensorBot channels;
-  std::vector<std::string> messages;
+  std::vector<std::string> messages, acknowledgements;
   uint32_t direct_delay = 0, flood_delay = 0;
   bool standard_delay = false;
   NetworkRelay(NetworkRadio& radio, TestClock& clock, TestRandom& random, TestRTC& rtc,
@@ -87,7 +87,12 @@ protected:
   }
   void onGroupDataRecv(mesh::Packet*, uint8_t, const mesh::GroupChannel&,
                        uint8_t* data, size_t length) override {
-    if (length > 5) messages.emplace_back((char*)data + 5, strnlen((char*)data + 5, length - 5));
+    if (length > 5) {
+      std::string message((char*)data + 5, strnlen((char*)data + 5, length - 5));
+      if (message.find("Trace requested, please wait up to ") != std::string::npos)
+        acknowledgements.push_back(message);
+      else messages.push_back(message);
+    }
   }
   bool allowPacketForward(const mesh::Packet*) override { return forwards; }
   int calcRxDelay(float, uint32_t) const override { return 0; }
@@ -240,7 +245,11 @@ protected:
       int length = mesh::Utils::MACThenDecrypt(channel.channel(channel_index).secret, data,
                                               packet.payload + 1, packet.payload_len - 1);
       EXPECT_GT(length, 5);
-      result.emplace_back((char*)data + 5, strnlen((char*)data + 5, length > 5 ? length - 5 : 0));
+      std::string message((char*)data + 5, strnlen((char*)data + 5, length > 5 ? length - 5 : 0));
+      // reports() describes final outcomes; acknowledgements still traverse the
+      // real medium and are asserted separately below.
+      if (message.find("Trace requested, please wait up to ") == std::string::npos)
+        result.push_back(message);
     }
     return result;
   }
@@ -432,7 +441,10 @@ TEST_P(SensorHashCollision, HashWidthControlsWhetherCompetingRepeatersForwardThe
     EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
   } else {
     EXPECT_TRUE(bot->diagnostics().has_result);
-    EXPECT_EQ(1, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
+    // The acknowledgement flood also contends for airtime; a valid two-byte
+    // route may need the second attempt without a short-hash misidentification.
+    EXPECT_LE(transmitted(SENSOR, PAYLOAD_TYPE_TRACE), 2);
+    EXPECT_EQ(1, bot->diagnostics().selected.route.flags);
   }
   expectCleanPools();
 }
@@ -484,6 +496,7 @@ TEST_F(ScopedSensorNetwork, ScopedReportsCrossRelaysRejectingUnscopedFloodsOnBot
     request(ch + 1, ch, &scope);
     runUntil(10000 + ch * 15000);
     ASSERT_EQ(ch + 1u, relay(0).messages.size());
+    ASSERT_EQ(ch + 1u, relay(0).acknowledgements.size());
     EXPECT_NE(std::string::npos, relay(0).messages.back().find(" ms RTT"));
   }
   expectReportCodes();
@@ -579,6 +592,7 @@ class TargetedNetworkRoutes : public TargetedSensorNetwork,
 TEST_P(TargetedNetworkRoutes, AuthenticatedScopedDiscoveryAndLoopReachSelectedRepeater) {
   auto width = std::get<0>(GetParam()), ch = std::get<1>(GetParam());
   targetedRequest(width, ch); runUntil(15000);
+  ASSERT_EQ(1u, relay(0).acknowledgements.size());
   ASSERT_EQ(1u, relay(0).messages.size());
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("avg SNR"));
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("3 Target"));

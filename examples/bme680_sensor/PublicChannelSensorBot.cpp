@@ -53,12 +53,14 @@ int PublicChannelSensorBot::channelIndex(const mesh::GroupChannel& source) const
 bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
                                     uint32_t now_millis, bool trace_busy,
                                     uint8_t& metric_mask, bool& busy_trace,
-                                    uint8_t channel_index, uint8_t* trace_prefix, bool* targeted) {
+                                    uint8_t channel_index, uint8_t* trace_prefix, bool* targeted, TraceAction* trace_action) {
   metric_mask = 0;
   busy_trace = false;
   if (targeted) *targeted = false;
   uint8_t prefix[2]{};
   bool has_target = false;
+  TraceAction action = TRACE_START;
+  if (trace_action) *trace_action = action;
   if (type != PAYLOAD_TYPE_GRP_TXT || !data || len < 6 || len >= MAX_PACKET_PAYLOAD) return false;
   if ((data[4] >> 2) != 0) return false;
 
@@ -87,7 +89,9 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
              (argument[5] == 0 || isspace((unsigned char)argument[5]))) {
     char* destination = argument + 5;
     while (isspace((unsigned char)*destination)) destination++;
-    if (*destination) {
+    if (equalsIgnoreCase(destination, "status")) action = TRACE_STATUS;
+    else if (equalsIgnoreCase(destination, "cancel")) action = TRACE_CANCEL;
+    else if (*destination) {
       if (strlen(destination) != 4) return false;
       for (uint8_t i = 0; i < 4; i++) {
         unsigned char c = tolower((unsigned char)destination[i]);
@@ -126,9 +130,10 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
     }
   }
 
+  if (trace_action) *trace_action = action;
   if (targeted) *targeted = has_target;
   if (trace_prefix && has_target) memcpy(trace_prefix, prefix, sizeof(prefix));
-  if (metric_mask == REQUEST_TRACE && trace_busy) {
+  if (metric_mask == REQUEST_TRACE && action == TRACE_START && trace_busy) {
     busy_trace = true;
     return true;
   }
@@ -139,6 +144,14 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
   if (command_hash == 0) command_hash = 1;
   for (int i = 0; i < RECENT_COMMANDS; i++)
     if (_recent_commands[i] == command_hash) return false;
+
+  // An active operation must always be cancellable, even when normal command
+  // slots are exhausted. One cancel ack per rate-limited start remains bounded.
+  if (action == TRACE_CANCEL && trace_busy) {
+    _recent_commands[_next_recent] = command_hash;
+    _next_recent = (_next_recent + 1) % RECENT_COMMANDS;
+    return true;
+  }
 
   // The next slot is the oldest accepted reply once the window is full.
   if (_reply_count == MAX_REPLIES_PER_WINDOW &&

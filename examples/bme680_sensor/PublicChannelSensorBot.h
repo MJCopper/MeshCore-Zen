@@ -39,6 +39,8 @@ public:
                  METRIC_PRESSURE | METRIC_AIR_QUALITY | METRIC_VOLTAGE,
   };
 
+  enum TraceAction { TRACE_START, TRACE_STATUS, TRACE_CANCEL };
+
   // Public is always watched. A hashtag name adds its standard channel key.
   PublicChannelSensorBot(const char* channel_name = SENSOR_BOT_CHANNEL_NAME);
 
@@ -49,7 +51,8 @@ public:
   // be reported once by the caller without consuming a command-rate slot.
   bool accept(uint8_t type, uint8_t* data, size_t len, uint32_t now_millis,
               bool trace_busy, uint8_t& metric_mask, bool& busy_trace,
-              uint8_t channel_index = 0, uint8_t* trace_prefix = NULL, bool* targeted = NULL);
+              uint8_t channel_index = 0, uint8_t* trace_prefix = NULL, bool* targeted = NULL,
+              TraceAction* trace_action = NULL);
   int channelIndex(const mesh::GroupChannel& source) const;
   const mesh::GroupChannel& channel(uint8_t index = 0) const {
     return index == 1 ? _public_channel : _channel;
