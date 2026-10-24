@@ -186,3 +186,55 @@ int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
+#include "../../examples/companion_radio/zen-overlay/app/zen/BatteryChargeState.h"
+
+TEST(BatteryCharge, ThresholdsHysteresisAndUnplugReset) {
+  using Charge = zen::BatteryChargeState;
+  Charge charge;
+  EXPECT_EQ(charge.state(), Charge::BATTERY);
+  EXPECT_FALSE(charge.update(4150, true, false));
+  EXPECT_TRUE(charge.update(4149, true, true));
+  EXPECT_EQ(charge.state(), Charge::CHARGING);
+  EXPECT_FALSE(charge.update(4120, true, true));
+  EXPECT_TRUE(charge.update(4150, true, true));
+  EXPECT_EQ(charge.state(), Charge::COMPLETE);
+  for (int mv : {4149, 4151, 4120, 4140, 4150}) {
+    EXPECT_FALSE(charge.update(mv, true, true));
+    EXPECT_EQ(charge.state(), Charge::COMPLETE);
+  }
+  EXPECT_TRUE(charge.update(4119, true, true));
+  EXPECT_EQ(charge.state(), Charge::CHARGING);
+  EXPECT_FALSE(charge.update(4149, true, true));
+  EXPECT_TRUE(charge.update(4150, true, true));
+  EXPECT_TRUE(charge.update(4150, true, false));
+  EXPECT_EQ(charge.state(), Charge::BATTERY);
+  EXPECT_TRUE(charge.update(4149, true, true));
+  EXPECT_EQ(charge.state(), Charge::CHARGING);
+}
+
+TEST(BatteryCharge, FullStartupInvalidReadingsAndRecovery) {
+  using Charge = zen::BatteryChargeState;
+  Charge charge;
+  EXPECT_TRUE(charge.update(4150, true, true));
+  EXPECT_EQ(charge.state(), Charge::COMPLETE);
+  EXPECT_TRUE(charge.update(4150, false, true)); // stale filtered value
+  EXPECT_EQ(charge.state(), Charge::EXTERNAL_UNKNOWN);
+  EXPECT_FALSE(charge.update(0, true, true));
+  EXPECT_FALSE(charge.update(0, false, true));
+  EXPECT_TRUE(charge.update(4130, true, true));
+  EXPECT_EQ(charge.state(), Charge::CHARGING);
+  EXPECT_TRUE(charge.update(4150, true, true));
+  EXPECT_TRUE(charge.update(0, false, false));
+  EXPECT_EQ(charge.state(), Charge::BATTERY);
+  EXPECT_TRUE(charge.update(0, false, true));
+  EXPECT_EQ(charge.state(), Charge::EXTERNAL_UNKNOWN);
+}
+
+TEST(BatteryCharge, RefreshOnlyChangedVisibleHomeWithoutWakingDisplay) {
+  using Charge = zen::BatteryChargeState;
+  for (bool changed : {false, true})
+    for (bool on : {false, true})
+      for (bool home : {false, true})
+        EXPECT_EQ(Charge::shouldRefresh(changed, on, home), changed && on && home);
+}

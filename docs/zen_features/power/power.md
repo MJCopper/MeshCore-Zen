@@ -48,3 +48,25 @@ brightness and radio behaviour.
 remaining to 3.3 V. It starts with a five-day full-charge model and gradually
 learns from normal discharge, so the result is an estimate rather than a
 guaranteed runtime.
+
+## Top-bar charging status
+
+The home-page battery display shows a static lightning bolt when USB power is
+connected and a tick when the filtered battery voltage reaches **4.15 V**.
+Charging is inferred from USB power; completion is inferred from voltage, not
+reported by the charger. The tick remains until voltage falls below **4.12 V**
+or USB is disconnected. Reconnecting below 4.15 V shows the bolt again.
+
+In battery-icon mode, the symbol replaces the interior level fill without
+widening the icon. Percentage and voltage modes show the symbol beside the
+value. With USB power and an invalid battery sample, a plug symbol indicates
+external power with unknown charge status. An invalid sample clears the full
+latch; a subsequent valid sample must reach 4.15 V to show the tick again.
+Unplugging restores the usual battery display.
+
+State is checked with the existing battery sample every eight seconds and uses
+the smoothed voltage, so the indication may lag a connection or voltage change.
+A changed status refreshes the visible home-page top bar without waking a
+sleeping display. Status is held only in RAM. The existing percentage estimate
+reaches 100% at 4.12 V; that estimate is independent of the 4.15 V completion
+indicator. Shutdown, Low Power and runtime-estimation policies are unchanged.

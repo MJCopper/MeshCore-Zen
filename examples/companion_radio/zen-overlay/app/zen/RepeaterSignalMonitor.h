@@ -22,6 +22,9 @@ class RepeaterSignalMonitor {
   bool _discover_seen = false;
   int8_t _discover_best_x4 = INT8_MIN;
 
+  float _freq = 0, _bw = 0;
+  uint8_t _sf = 0, _cr = 0;
+
   void clearSignal() {
     _sample_count = _sample_head = 0;
     _last_sample_ms = 0;
@@ -30,6 +33,15 @@ class RepeaterSignalMonitor {
 
 public:
   void reset() { *this = RepeaterSignalMonitor(); }
+
+  // Called by the single radio-configuration application path. Unchanged
+  // settings (including power-state restoration) retain their history.
+  bool configure(float freq, float bw, uint8_t sf, uint8_t cr) {
+    if (_freq == freq && _bw == bw && _sf == sf && _cr == cr) return false;
+    reset();
+    _freq = freq; _bw = bw; _sf = sf; _cr = cr;
+    return true;
+  }
 
   static bool qualifiesRoute(bool flood, bool direct, uint8_t path_count) {
     // Flood paths start empty and acquire one hash per relay. Direct paths
@@ -99,15 +111,20 @@ public:
     return total / _sample_count;
   }
 
-  // Strength is link margin above the approximate LoRa demodulation floor:
-  // <=5 dB is low, <=10 dB medium, and greater than 10 dB high.
+  // Approximate SF-adjusted reception quality, not delivery probability.
+  // Semtech SX1261/2 datasheet Table 6-1: SF5 -2.5 dB to SF12 -20 dB.
+  // Calibrated at SF7: >5 dB = 2, >7 dB = 3, >=10 dB = 4 bars.
+  // Compare sums to preserve fractional-quarter-dB averages at boundaries.
   uint8_t bars(uint8_t sf, uint32_t now, bool radio_available) const {
-    if (!radio_available || !fresh(now) || sf < 7 || sf > 12) return 0;
-    int floor_x4 = (-30 - 10 * (sf - 7)); // SF7 -7.5 dB through SF12 -20 dB
-    int margin_x4 = averageSnrX4() - floor_x4;
-    if (margin_x4 <= 20) return 1;
-    if (margin_x4 <= 40) return 2;
-    return 3;
+    if (!radio_available || !fresh(now) || sf < 5 || sf > 12) return 0;
+    const int floor_x4 = -10 - 10 * (sf - 5);
+    int total = 0;
+    for (uint8_t i = 0; i < _sample_count; i++) total += _samples[i];
+    const int margin_total = total - floor_x4 * _sample_count;
+    if (margin_total >= 70 * _sample_count) return 4;
+    if (margin_total > 58 * _sample_count) return 3;
+    if (margin_total > 50 * _sample_count) return 2;
+    return 1;
   }
 };
 

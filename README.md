@@ -1,5 +1,7 @@
 # MeshCore Zen Companion Firmware
 
+![MeshCore Zen logo](docs/assets/MeshCore-Zen-logo-small.png)
+
 > **First installation:** Read the [flashing notes](#flashing) before installing
 > Zen, especially if the Wio Tracker is currently running different firmware.
 
@@ -7,7 +9,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v2.2.36**, based on **MeshCore v1.18.0**.
+Current release: **Zen v2.2.40**, based on **MeshCore v1.18.0**.
 
 ## Supported hardware
 

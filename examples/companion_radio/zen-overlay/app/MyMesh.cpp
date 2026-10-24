@@ -1858,6 +1858,12 @@ void MyMesh::begin() {
 }
 
 void MyMesh::applyRadioParams() {
+  if (_repeater_signal.configure(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr)) {
+    // Reject late discovery responses and completion from the old channel.
+    _pending_node_discover_tag = 0;
+    _pending_node_discover_until = 0;
+    _pending_node_discover_silent = false;
+  }
   radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
   // Keep the baseline companion ordering: setParams() may reconfigure the
   // radio, so the persisted TX power must be applied afterwards at boot and

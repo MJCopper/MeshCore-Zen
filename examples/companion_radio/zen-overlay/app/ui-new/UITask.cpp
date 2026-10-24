@@ -4,6 +4,8 @@
 #include "../zen/NotificationPreferences.h"
 #include "../zen/NotificationPolicy.h"
 #include "../zen/TimeDeadline.h"
+#include "../zen/SignalIndicator.h"
+#include "../zen/BatteryIndicator.h"
 #include "../zen/GpsCourse.h"
 #include "../zen/PinAttemptLimiter.h"
 #include <helpers/TxtDataHelpers.h>
@@ -588,8 +590,6 @@ class HomeScreen : public ZenUIScreen {
 
   int renderBatteryIndicator(ZenDisplayDriver& display, uint16_t batteryMilliVolts,
                              int right_x) {
-    int pct = zen::BatteryPolicy::percent(batteryMilliVolts);
-
     uint8_t mode = (_node_prefs && _node_prefs->batt_display_mode < 3)
                      ? _node_prefs->batt_display_mode : 0;
 
@@ -602,35 +602,8 @@ class HomeScreen : public ZenUIScreen {
     const int ind_h   = display.isSingleFont() ? lh - 2 : lh;
     const int ind_gap = display.isLandscape() ? 3 : 1;  // gap between indicator boxes
 
-    int battLeftX;
-    if (mode == 1) {  // percent
-      char buf[6];
-      snprintf(buf, sizeof(buf),"%d%%", pct);
-      battLeftX = right_x - display.getTextWidth(buf);
-      display.setCursor(battLeftX, 0);
-      display.print(buf);
-    } else if (mode == 2) {  // voltage
-      char buf[8];
-      snprintf(buf, sizeof(buf),"%u.%02uV", batteryMilliVolts / 1000, (batteryMilliVolts % 1000) / 10);
-      battLeftX = right_x - display.getTextWidth(buf);
-      display.setCursor(battLeftX, 0);
-      display.print(buf);
-    } else {  // icon — scales with lh, same box height as the status icons beside it (ind_h)
-      const int iconH = ind_h;
-      const int iconW = lh * 2 - 4;
-      const int bm = display.isLandscape() ? 3 : 2;  // inner margin: 3px on landscape e-ink, 2px on OLED/portrait
-      battLeftX = right_x - iconW - 2;
-      display.drawRect(battLeftX, 0, iconW, iconH);
-      // Nub height/2, vertically centred by remaining-space/2 rather than a flat
-      // iconH/4 margin — the flat form only centres when iconH is a multiple of
-      // 4 (true for the old built-in font's lh=8, false for misc-fixed's 7/9),
-      // so it visibly drifted off-centre once the box height changed.
-      const int nub_h = iconH / 2;
-      display.fillRect(battLeftX + iconW, (iconH - nub_h) / 2, 2, nub_h);
-      const int innerW = iconW - 2 * bm;
-      int fillW = (pct * innerW) / 100;
-      display.fillRect(battLeftX + bm, bm, fillW, iconH - 2 * bm);
-    }
+    int battLeftX = zen::BatteryIndicator::draw(display, batteryMilliVolts, mode,
+                                               right_x, _task->batteryChargeState());
 
     // Secondary status icons, laid out right→left in PRIORITY order so a crowded
     // bar sheds its least-important cues instead of crushing the node name. Once
@@ -673,25 +646,7 @@ class HomeScreen : public ZenUIScreen {
   }
 
   int renderRepeaterSignal(ZenDisplayDriver& display) {
-    const int w = 9;
-    const int x = display.width() - w;
-    const int h = display.isSingleFont() ? display.getLineHeight() - 2
-                                         : display.getLineHeight();
-    uint8_t bars = the_mesh.repeaterSignalBars();
-    if (!bars) {
-      // A compact diagonal cross means no fresh relayed/repeater sample.
-      for (int i = 0; i < 6; i++) {
-        display.fillRect(x + 1 + i, i, 1, 1);
-        display.fillRect(x + 6 - i, i, 1, 1);
-      }
-    } else {
-      for (uint8_t i = 0; i < 3; i++) {
-        int bar_h = 2 + i * 2;
-        if (i < bars) display.fillRect(x + i * 3, h - bar_h, 2, bar_h);
-        else display.drawRect(x + i * 3, h - bar_h, 2, bar_h);
-      }
-    }
-    return x;
+    return zen::SignalIndicator::draw(display, the_mesh.repeaterSignalBars());
   }
 
 public:
@@ -803,7 +758,7 @@ public:
   void renderTopBar(ZenDisplayDriver& display) {
     display.setColor(ZenDisplayDriver::LIGHT);
     int signal_left = renderRepeaterSignal(display);
-    int right_edge = renderBatteryIndicator(display, _task->getBattMilliVolts(),
+    int right_edge = renderBatteryIndicator(display, _task->cachedBattMilliVolts(),
                                              signal_left - 2);
     display.setColor(ZenDisplayDriver::LIGHT);
     display.drawTextEllipsized(0, 0, right_edge - 2,
@@ -3493,6 +3448,9 @@ void UITask::loop() {
     bool external_power = board.isExternalPowered();
     _batt_sample_valid=raw>0;
     _batt_external_power=external_power; _batt_sample_at=millis();
+    bool charge_changed = _battery_charge.update(_batt_mv, _batt_sample_valid, external_power);
+    if (zen::BatteryChargeState::shouldRefresh(charge_changed,
+          _display && _display->isOn(), isHomeScreenVisible())) _next_refresh = 0;
     _battery_runtime.update(millis(), _batt_mv, external_power, isEmergencyMode());
     // Don't shut down while on external power (charging) — avoids a shutdown loop.
     if (zen::BatteryPolicy::shouldShutdown(_batt_mv, external_power)) {

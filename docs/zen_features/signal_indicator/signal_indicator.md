@@ -10,9 +10,7 @@ internet access or end-to-end delivery to a particular contact.
 | Display | Meaning |
 | ------- | ------- |
 | `×` | No current repeater-link measurement, or radio unavailable |
-| One bar | Low link margin |
-| Two bars | Medium link margin |
-| Three bars | High link margin |
+| One to four bars | Increasing SF-adjusted reception quality |
 
 The indicator is advisory. LoRa conditions, interference, collisions, routing
 and repeater availability can change between packets, so bars do not guarantee
@@ -38,18 +36,27 @@ sample refreshes the measurement age immediately.
 
 ## Strength calculation
 
-Bars are based on SNR link margin rather than one fixed SNR threshold. Zen uses
-the approximate receiver limit for the configured spreading factor, from
-−7.5 dB at SF7 to −20 dB at SF12.
+Bars use approximate SNR margin above the configured spreading factor's
+receiver reference: −2.5 dB at SF5, decreasing by 2.5 dB per SF to −20 dB at
+SF12. These are the typical demodulator references in the
+[Semtech SX1261/SX1262 datasheet, Table 6-1](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262).
 
-| Margin above receiver limit | Indicator |
-| --------------------------- | --------- |
-| Up to 5 dB | One bar |
-| More than 5 dB, up to 10 dB | Two bars |
-| More than 10 dB | Three bars |
+| Averaged margin above reference | Indicator | Equivalent SNR at SF7 |
+| ------------------------------- | --------- | -------------------- |
+| Up to 12.5 dB, with a valid sample | One bar | Up to 5 dB |
+| More than 12.5 dB, up to 14.5 dB | Two bars | More than 5 dB, up to 7 dB |
+| More than 14.5 dB, below 17.5 dB | Three bars | More than 7 dB, below 10 dB |
+| At least 17.5 dB | Four bars | At least 10 dB |
 
-This makes the display comparable across radio presets: an SNR usable at SF12
-may be below the demodulation limit at SF7.
+Only active bars are drawn. A valid reception, even with negative SNR, always
+provides at least one bar. The scale adjusts for SF5–SF12 across bandwidth and
+coding-rate settings; it applies no additional bandwidth or coding-rate offset.
+It is an advisory reception scale, not a calibrated delivery probability or a
+measurement of whether a repeater can hear your transmissions.
+
+Changing frequency, bandwidth, spreading factor or coding rate clears the
+history and cancels pending signal discovery. New reception is required on the
+new settings. Reapplying unchanged settings retains the history.
 
 ## Discovery refresh
 

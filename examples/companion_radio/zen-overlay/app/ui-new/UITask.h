@@ -29,6 +29,7 @@
 #include "../zen/TimeLocationCoordinator.h"
 #include "../zen/LocalTimeService.h"
 #include "../zen/TimeDeadline.h"
+#include "../zen/BatteryChargeState.h"
 #include "../zen/NodeLoginCoordinator.h"
 #include "../zen/RemoteNodeCoordinator.h"
 #include "../zen/DiagnosticLog.h"
@@ -103,6 +104,7 @@ class UITask : public AbstractUITask {
   bool _batt_sample_valid = false;
   uint32_t _batt_sample_at = 0;
   zen::BatteryRuntimeEstimator _battery_runtime;
+  zen::BatteryChargeState _battery_charge;
   unsigned long next_backlight_btn_check = 0;
 #ifdef PIN_STATUS_LED
   int led_state = 0;
@@ -246,6 +248,7 @@ public:
   bool useImperial() const { return _node_prefs && _node_prefs->units_imperial; }
   uint16_t getBattMilliVolts() const { return _batt_mv > 0 ? _batt_mv : AbstractUITask::getBattMilliVolts(); }
   uint16_t cachedBattMilliVolts() const { return _batt_mv; }
+  zen::BatteryChargeState::State batteryChargeState() const { return _battery_charge.state(); }
   bool cachedExternalPower() const { return _batt_external_power; }
   bool cachedBatteryValid() const { return _batt_sample_valid && _batt_mv>0; }
   uint32_t cachedBatterySample() const { return _batt_sample_at; }
