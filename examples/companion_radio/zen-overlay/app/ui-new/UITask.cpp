@@ -603,7 +603,8 @@ class HomeScreen : public ZenUIScreen {
     const int ind_gap = display.isLandscape() ? 3 : 1;  // gap between indicator boxes
 
     int battLeftX = zen::BatteryIndicator::draw(display, batteryMilliVolts, mode,
-                                               right_x, _task->batteryChargeState());
+                                               right_x, _task->batteryChargeState(),
+                                               zen::BatteryIndicator::boltVisible(millis()));
 
     // Secondary status icons, laid out right→left in PRIORITY order so a crowded
     // bar sheds its least-important cues instead of crushing the node name. Once
@@ -648,7 +649,8 @@ class HomeScreen : public ZenUIScreen {
   int renderRepeaterSignal(ZenDisplayDriver& display) {
     auto signal = the_mesh.repeaterSignalSnapshot();
     return zen::SignalIndicator::draw(display, signal.bars,
-        signal.status == zen::RepeaterSignalMonitor::STALE);
+        signal.status == zen::RepeaterSignalMonitor::STALE ||
+        signal.status == zen::RepeaterSignalMonitor::NONE);
   }
 
 public:
@@ -1180,6 +1182,8 @@ public:
       int32_t remaining = (int32_t)(_home_idle_deadline - millis());
       if (remaining > 0 && remaining < refresh_ms) refresh_ms = remaining;
     }
+    const unsigned charge_refresh = zen::BatteryIndicator::refreshDelay(_task->batteryChargeState(),millis());
+    if (charge_refresh && (int)charge_refresh < refresh_ms) refresh_ms = charge_refresh;
     return refresh_ms;
   }
 
@@ -3187,6 +3191,8 @@ void UITask::pollCardKB() {
 }
 
 void UITask::loop() {
+  // Screen visibility, not just user wake, gates automatic signal discovery.
+  the_mesh.serviceSignalDiscovery(_display && _display->isOn());
 #if ZEN_FEATURE_PET
   if (home) ((HomeScreen*)home)->updatePet();
 #endif

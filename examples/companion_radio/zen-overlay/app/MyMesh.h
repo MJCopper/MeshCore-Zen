@@ -33,7 +33,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.41"
+#define FIRMWARE_VERSION "v2.2.45"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -235,6 +235,9 @@ public:
   bool advertIndicatorActive() const;
   bool sendNodeDiscoverReq(bool silent = false);
   void onUserDisplayWake();
+  void serviceSignalDiscovery(bool screen_on);
+  bool signalDiscoveryActive() const { return _repeater_signal.discovering(); }
+  uint32_t signalDiscoveryDelayMs() const { return _repeater_signal.scanDelayMs(millis()); }
   uint8_t repeaterSignalBars() const {
     return repeaterSignalSnapshot().bars;
   }

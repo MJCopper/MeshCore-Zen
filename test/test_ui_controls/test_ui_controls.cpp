@@ -203,40 +203,166 @@ TEST(UIControls, BatteryStatesFitEveryModeAndKeepSignalAndNameSpace) {
   }
 }
 
-TEST(UIControls, BatteryGlyphsAreDistinctAndReplaceInteriorFill) {
-  using Charge = zen::BatteryChargeState;
-  RecordingDisplay d(128,64,6,9);
-  d.single_font = true;
-  std::vector<std::vector<int>> images;
-  for (auto state : {Charge::BATTERY, Charge::EXTERNAL_UNKNOWN, Charge::CHARGING, Charge::COMPLETE}) {
-    d.draws.clear();
-    const int left = zen::BatteryIndicator::draw(d,4200,0,100,state);
-    std::vector<int> pixels(128*64);
-    for (unsigned i = 2; i < d.draws.size(); ++i) {
-      const auto& r = d.draws[i];
-      for (int y=r.y; y<r.y+r.h; ++y)
-        for (int x=r.x; x<r.x+r.w; ++x) pixels[y*128+x]=1;
-      EXPECT_GT(r.x,left);
-      EXPECT_GT(r.y,0);
-      EXPECT_LT(r.y+r.h,7);
-    }
-    images.push_back(pixels);
+class BatteryRasterDisplay : public RecordingDisplay {
+public:
+  std::vector<int> pixels;
+  int color=LIGHT;
+  BatteryRasterDisplay(int w,int h,int lh=9) : RecordingDisplay(w,h,6,lh),pixels(w*h) { single_font=true; }
+  void setColor(ColorVal c) override { color=c; }
+  void fillRect(int x,int y,int w,int h) override {
+    RecordingDisplay::fillRect(x,y,w,h);
+    for (int row=y;row<y+h;++row) for (int col=x;col<x+w;++col)
+      if (row>=0 && row<height() && col>=0 && col<width()) pixels[row*width()+col]=color;
   }
-  for (unsigned i=0;i<images.size();++i)
-    for (unsigned j=i+1;j<images.size();++j) EXPECT_NE(images[i],images[j]);
+  void drawRect(int x,int y,int w,int h) override {
+    RecordingDisplay::drawRect(x,y,w,h);
+    for (int row=y;row<y+h;++row) for (int col=x;col<x+w;++col)
+      if ((row==y || row==y+h-1 || col==x || col==x+w-1) &&
+          row>=0 && row<height() && col>=0 && col<width()) pixels[row*width()+col]=color;
+  }
+  int at(int x,int y) const { return pixels[y*width()+x]; }
+};
+
+TEST(UIControls, ChargingRetainsFillAndBlinkOffMatchesBatteryOnEveryDisplay) {
+  using Charge=zen::BatteryChargeState;
+  const int configs[][3]={{128,64,9},{122,250,9},{250,122,18}};
+  for (const auto& c:configs) for (int mv : {3450,3650,3800,4100}) {
+    BatteryRasterDisplay normal(c[0],c[1],c[2]),off(c[0],c[1],c[2]),on(c[0],c[1],c[2]);
+    normal.setColor(BatteryRasterDisplay::DARK);
+    zen::BatteryIndicator::draw(normal,mv,0,c[0]-14,Charge::BATTERY);
+    zen::BatteryIndicator::draw(off,mv,0,c[0]-14,Charge::CHARGING,false);
+    zen::BatteryIndicator::draw(on,mv,0,c[0]-14,Charge::CHARGING,true);
+    EXPECT_EQ(normal.pixels,off.pixels); EXPECT_NE(off.pixels,on.pixels);
+    EXPECT_TRUE(on.inBounds()); EXPECT_EQ(on.color,BatteryRasterDisplay::LIGHT);
+    EXPECT_EQ(on.draws[0].y,0); EXPECT_EQ(on.draws[0].h,c[2]-2);
+    EXPECT_EQ(off.draws[0].y,0); EXPECT_EQ(off.draws[0].h,c[2]-2);
+  }
+}
+TEST(UIControls, BoltHasWhiteInteriorBlackOutlineAndVisibleLevelBesideIt) {
+  BatteryRasterDisplay d(128,64);
+  int left=zen::BatteryIndicator::draw(d,3800,0,100,zen::BatteryChargeState::CHARGING,true);
+  EXPECT_EQ(d.at(left+6,2),1); // white bolt
+  EXPECT_EQ(d.at(left+7,2),1); // centred white bolt
+  EXPECT_EQ(d.at(left+5,2),0); // outline erases part of the white level bar
+  EXPECT_EQ(d.at(left+2,2),1); // visible level
+  EXPECT_EQ(d.at(left,2),1); EXPECT_EQ(d.at(left+13,2),1); // intact shell
+  EXPECT_EQ(d.color,BatteryRasterDisplay::LIGHT);
+}
+TEST(UIControls, CompleteUsesRegularFullBarAndWhiteOutlinedTick) {
+  BatteryRasterDisplay low(128,64),high(128,64);
+  int left=zen::BatteryIndicator::draw(low,3300,0,100,zen::BatteryChargeState::COMPLETE);
+  zen::BatteryIndicator::draw(high,4200,0,100,zen::BatteryChargeState::COMPLETE);
+  EXPECT_EQ(low.pixels,high.pixels);
+  EXPECT_EQ(low.at(left+1,1),0); // regular black padding, not solid white
+  EXPECT_EQ(low.at(left+2,2),1); EXPECT_EQ(low.at(left+11,2),1); // full level bar
+  EXPECT_EQ(low.at(left+9,2),1); // centred white tick
+  EXPECT_EQ(low.at(left+8,2),0); // black outline
+  EXPECT_EQ(low.color,BatteryRasterDisplay::LIGHT);
+}
+TEST(UIControls, ChargingPhaseChangesEverySecondAndAlignsRefreshDeadline) {
+  using Indicator=zen::BatteryIndicator; using Charge=zen::BatteryChargeState;
+  EXPECT_TRUE(Indicator::boltVisible(0)); EXPECT_TRUE(Indicator::boltVisible(999));
+  EXPECT_FALSE(Indicator::boltVisible(1000)); EXPECT_FALSE(Indicator::boltVisible(1999));
+  EXPECT_TRUE(Indicator::boltVisible(2000));
+  EXPECT_EQ(Indicator::refreshDelay(Charge::CHARGING,0),1000u);
+  EXPECT_EQ(Indicator::refreshDelay(Charge::CHARGING,999),1u);
+  EXPECT_EQ(Indicator::refreshDelay(Charge::CHARGING,1000),1000u);
+  for (auto state : {Charge::BATTERY,Charge::COMPLETE,Charge::EXTERNAL_UNKNOWN})
+    EXPECT_EQ(Indicator::refreshDelay(state,999),0u);
+  for (int mode : {1,2}) {
+    BatteryRasterDisplay on(128,64),off(128,64);
+    int a=Indicator::draw(on,3800,mode,100,Charge::CHARGING,true);
+    int b=Indicator::draw(off,3800,mode,100,Charge::CHARGING,false);
+    EXPECT_EQ(a,b); EXPECT_NE(on.pixels,off.pixels);
+    EXPECT_EQ(on.draws[0].x,off.draws[0].x);
+  }
 }
 
-TEST(UIControls, StaleSignalClockFitsAndDiffersFromCross) {
+TEST(UIControls, UnknownTriangleContainsSmallXAndStaysHollowOnEveryDisplay) {
   const int configs[][3]={{128,64,9},{122,250,9},{250,122,18}};
   for (const auto& c:configs) {
-    RecordingDisplay d(c[0],c[1],6,c[2]); d.single_font=true;
+    BatteryRasterDisplay d(c[0],c[1],c[2]);
     int left=zen::SignalIndicator::draw(d,0,true);
-    ASSERT_EQ(d.draws.size(),3u); EXPECT_TRUE(d.inBounds());
+    EXPECT_EQ(left,c[0]-12); EXPECT_TRUE(d.inBounds());
+    const int bottom=c[2]-1,cy=2*bottom/3;
+    for (int x=0;x<12;++x) {
+      EXPECT_EQ(d.at(left+x,bottom),1); // flat bottom
+      EXPECT_EQ(d.at(left+x,bottom*(11-x)/11),1); // rising diagonal
+    }
+    for (int y=0;y<c[2];++y) EXPECT_EQ(d.at(left+11,y),1); // vertical right edge
+    for (int i=0;i<3;++i) {
+      EXPECT_EQ(d.at(left+7+i,cy-1+i),1);
+      EXPECT_EQ(d.at(left+9-i,cy-1+i),1);
+    }
+    EXPECT_EQ(d.at(left+8,cy-1),0); // hollow gap between X's top corners
+    EXPECT_EQ(d.at(left+4,bottom-1),0); // triangle is not filled
     for (const auto& r:d.draws) {
       EXPECT_GE(r.x,left); EXPECT_LE(r.x+r.w,c[0]);
-      EXPECT_LE(r.y+r.h,c[2]-2);
+      EXPECT_LE(r.y+r.h,c[2]);
     }
-    d.draws.clear(); zen::SignalIndicator::draw(d,0,false);
-    EXPECT_EQ(d.draws.size(),12u);
+    BatteryRasterDisplay cross(c[0],c[1],c[2]),bars(c[0],c[1],c[2]);
+    zen::SignalIndicator::draw(cross,0,false);
+    zen::SignalIndicator::draw(bars,4,false);
+    EXPECT_NE(d.pixels,cross.pixels); EXPECT_NE(d.pixels,bars.pixels);
+  }
+}
+
+TEST(UIControls, BatteryPixelsMatchApprovedDesignShiftedUpOnePixel) {
+  using Charge=zen::BatteryChargeState;
+  struct Example { int mv; Charge::State state; const char* rows[9]; };
+  const Example examples[] = {
+    {3800,Charge::BATTERY,{
+      "0000000000000000",
+      "1111111111111100",
+      "1000000000000100",
+      "1011111000000111",
+      "1011111000000111",
+      "1011111000000111",
+      "1000000000000100",
+      "1111111111111100",
+      "0000000000000000",
+    }},
+    {3800,Charge::CHARGING,{
+      "0000000000000000",
+      "1111110001111100",
+      "1000000100000100",
+      "1011001100000111",
+      "1011011111000111",
+      "1011000010000111",
+      "1000000100000100",
+      "1111110001111100",
+      "0000000000000000",
+    }},
+    {4200,Charge::BATTERY,{
+      "0000000000000000",
+      "1111111111111100",
+      "1000000000000100",
+      "1011111111110111",
+      "1011111111110111",
+      "1011111111110111",
+      "1000000000000100",
+      "1111111111111100",
+      "0000000000000000",
+    }},
+    {4150,Charge::COMPLETE,{
+      "0000000000000000",
+      "1111111111111100",
+      "1000000000000100",
+      "1011111001010111",
+      "1011000010010111",
+      "1011010100110111",
+      "1000001000000100",
+      "1111100011111100",
+      "0000000000000000",
+    }},
+  };
+  for (const auto& e:examples) {
+    BatteryRasterDisplay d(128,64);
+    const int left=zen::BatteryIndicator::draw(d,e.mv,0,100,e.state,true);
+    ASSERT_FALSE(d.draws.empty());
+    EXPECT_EQ(d.draws[0].y,0); EXPECT_EQ(d.draws[0].h,7); // original shell height
+    EXPECT_EQ(d.draws[0].w,14);
+    for (int y=0;y<9;++y) for (int x=0;x<16;++x)
+      EXPECT_EQ(d.at(left+x,y),y+1<9 ? e.rows[y+1][x]-'0' : 0) << "state=" << e.state << " x=" << x << " y=" << y;
   }
 }

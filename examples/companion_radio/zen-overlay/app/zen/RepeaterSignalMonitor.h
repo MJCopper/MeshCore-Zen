@@ -9,12 +9,13 @@ namespace zen {
 // Bounded, RAM-only reception evidence. No timers here transmit packets.
 class RepeaterSignalMonitor {
 public:
-  static constexpr uint32_t WINDOW_MS = 5UL * 60UL * 1000UL;
-  static constexpr uint32_t SCAN_INTERVAL_MS = 30UL * 60UL * 1000UL;
+  static constexpr uint32_t WINDOW_MS = 15UL * 60UL * 1000UL;
+  static constexpr uint32_t SCAN_INTERVAL_MS = 15UL * 60UL * 1000UL;
+  static constexpr uint32_t QUEUE_RETRY_MS = 5000;
   static constexpr uint32_t DUPLICATE_MS = 30000;
   static constexpr unsigned LINK_COUNT = 5, SAMPLE_COUNT = 4, HISTORY_COUNT = 16;
   enum Source : uint8_t { ROUTED, ADVERT, DISCOVERY };
-  enum Status : uint8_t { NONE, FRESH, STALE, UNAVAILABLE };
+  enum Status : uint8_t { NONE, FRESH, STALE, UNAVAILABLE, NOT_FOUND };
   struct Snapshot {
     Status status = NONE;
     uint8_t bars = 0, count = 0;
@@ -50,6 +51,8 @@ private:
   uint8_t _history_count = 0, _history_head = 0;
   bool _ever = false, _have_scan = false, _discovering = false, _discover_seen = false;
   uint32_t _last_scan = 0, _failed_scans = 0;
+  bool _none_found = false, _passive_during_scan = false, _have_retry = false;
+  uint32_t _scan_started = 0, _failed_at = 0, _last_retry = 0;
   float _freq = 0, _bw = 0;
   uint8_t _sf = 7, _cr = 0;
 
@@ -106,8 +109,10 @@ public:
   bool configure(float freq, float bw, uint8_t sf, uint8_t cr) {
     if (_freq == freq && _bw == bw && _sf == sf && _cr == cr) return false;
     // A configuration change clears evidence but cannot evade the probe budget.
-    bool scanned = _have_scan; uint32_t last = _last_scan;
+    bool scanned = _have_scan, retry = _have_retry;
+    uint32_t last = _last_scan, last_retry = _last_retry;
     reset(); _have_scan = scanned; _last_scan = last;
+    _have_retry = retry; _last_retry = last_retry;
     _freq = freq; _bw = bw; _sf = sf; _cr = cr;
     return true;
   }
@@ -117,6 +122,7 @@ public:
   Snapshot snapshot(uint32_t now, bool available = true) const {
     Snapshot result;
     if (!available) { result.status = UNAVAILABLE; return result; }
+    if (_none_found) { result.status = NOT_FOUND; return result; }
     if (_sf < 5 || _sf > 12) return result;
     int best = -1; Average chosen;
     for (unsigned i = 1; i <= LINK_COUNT; ++i) {
@@ -151,6 +157,11 @@ public:
     if (_sf < 5 || _sf > 12) return false;
     if (source == DISCOVERY && !_discovering) return false;
     if ((source == ROUTED) != (key == nullptr)) return false;
+    const uint32_t received = received_at ? *received_at : now;
+    if (now-received >= WINDOW_MS) return false;
+    // Delayed advert processing must not revive evidence predating a failed scan.
+    if (_none_found && now-received > now-_failed_at) return false;
+    if (source == DISCOVERY) _discover_seen = true;
     unsigned slot = 0;
     if (key) {
       slot = 0;
@@ -191,8 +202,9 @@ public:
     auto a = average(link, now);
     link.mask = a.mask; // mask growth is new evidence, not expiry
     smooth(link, a);
-    _ever = true;
-    if (source == DISCOVERY) _discover_seen = true;
+    _ever = true; _none_found = false;
+    if (_discovering && source != DISCOVERY && now-received <= now-_scan_started)
+      _passive_during_scan = true;
     Event& e = _history[_history_head]; e = Event();
     e.at = s.at; e.source = source; e.snr_x4 = s.snr; e.rssi = s.rssi;
     if (key) memcpy(e.key, key, 32);
@@ -201,15 +213,42 @@ public:
     if (_history_count < HISTORY_COUNT) ++_history_count;
     return true;
   }
-  bool shouldScanOnUserWake(uint32_t now, bool available) const {
-    return available && !fresh(now) && (!_have_scan || now-_last_scan >= SCAN_INTERVAL_MS);
+  uint32_t scanDelayMs(uint32_t now) const {
+    uint32_t delay = 0;
+    if (_have_scan && now-_last_scan < SCAN_INTERVAL_MS)
+      delay = SCAN_INTERVAL_MS-(now-_last_scan);
+    if (_have_retry && now-_last_retry < QUEUE_RETRY_MS) {
+      uint32_t retry = QUEUE_RETRY_MS-(now-_last_retry);
+      if (retry > delay) delay = retry;
+    }
+    // Any fresh evidence suppresses probing, including unselected fallback.
+    for (const auto& link : _links) {
+      Average a=average(link,now);
+      if (a.count && WINDOW_MS-a.age > delay) delay=WINDOW_MS-a.age;
+    }
+    return delay;
+  }
+  bool shouldDiscover(uint32_t now, bool screen_on, bool available, bool automatic_allowed) const {
+    return screen_on && available && automatic_allowed && !_discovering &&
+        _sf >= 5 && _sf <= 12 && scanDelayMs(now) == 0;
   }
   bool fresh(uint32_t now) const { return snapshot(now).status == FRESH; }
-  void noteScanAttempt(uint32_t now) { _have_scan = true; _last_scan = now; }
-  void beginDiscovery() { _discovering = true; _discover_seen = false; }
+  bool discovering() const { return _discovering; }
+  void noteQueueFailure(uint32_t now) { _have_retry=true; _last_retry=now; }
+  void noteScanAttempt(uint32_t now) { _have_scan = true; _last_scan = now; _have_retry=false; }
+  void beginDiscovery(uint32_t now) {
+    _discovering = true; _discover_seen = false;
+    _passive_during_scan = false; _scan_started=now;
+  }
   void cancelDiscovery() { _discovering = false; }
-  void finishDiscovery(uint32_t) {
-    if (_discovering && !_discover_seen) ++_failed_scans;
+  void finishDiscovery(uint32_t now) {
+    if (_discovering && !_discover_seen) {
+      ++_failed_scans;
+      if (!(_passive_during_scan && fresh(now))) {
+        for (auto& link : _links) link=Link();
+        _none_found=true; _failed_at=now;
+      }
+    }
     _discovering = false;
   }
   uint32_t failedScans() const { return _failed_scans; }
@@ -220,13 +259,13 @@ public:
     return true;
   }
   static const char* statusName(Status status) {
-    return status == FRESH ? "fresh" : status == STALE ? "stale" : status == UNAVAILABLE ? "radio-off" : "none";
+    return status == FRESH ? "fresh" : status == STALE ? "stale" : status == UNAVAILABLE ? "radio-off" : status == NOT_FOUND ? "none-found" : "none";
   }
   void formatSummary(char* out, size_t size, uint32_t now, bool available) const {
     auto s = snapshot(now, available);
-    snprintf(out,size,"%s bars=%u %s=%02x%02x%02x%02x snr4=%d rssi=%d age=%lus n=%u fail=%lu hist=%u",
+    snprintf(out,size,"%s bars=%u %s=%02x%02x%02x%02x snr4=%d rssi=%d age=%lus n=%u fail=%lu hist=%u scan=%u wait=%lus",
         statusName(s.status),s.bars,s.identified?"key":"fallback",s.key[0],s.key[1],s.key[2],s.key[3],
-        s.snr_x4,s.rssi,(unsigned long)(s.age_ms/1000),s.count,(unsigned long)_failed_scans,_history_count);
+        s.snr_x4,s.rssi,(unsigned long)(s.age_ms/1000),s.count,(unsigned long)_failed_scans,_history_count,_discovering,(unsigned long)((scanDelayMs(now)+999)/1000));
   }
   void formatHistory(char* out, size_t size, unsigned index, uint32_t now) const {
     Event e;

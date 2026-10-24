@@ -121,16 +121,116 @@ TEST(RepeaterSignal, HysteresisConfirmationsStayWithEachRepeater) {
 }
 TEST(RepeaterSignal, DiscoveryAndPassiveEvidenceShareTheSameLink) {
   Monitor m; sample(m,A,40,0);
-  m.beginDiscovery();
+  m.beginDiscovery(0);
   EXPECT_TRUE(m.noteSample(A,Monitor::DISCOVERY,0,-90,10));
   EXPECT_EQ(m.snapshot(10).count,2); EXPECT_EQ(m.snapshot(10).snr_x4,20);
   m.finishDiscovery(11); EXPECT_EQ(m.failedScans(),0);
-  m.beginDiscovery(); m.finishDiscovery(12);
-  EXPECT_EQ(m.failedScans(),1); EXPECT_TRUE(m.fresh(12));
-  EXPECT_EQ(m.snapshot(12).count,2);
+  m.beginDiscovery(0); m.finishDiscovery(12);
+  EXPECT_EQ(m.failedScans(),1); EXPECT_EQ(m.snapshot(12).status,Monitor::NOT_FOUND);
+  EXPECT_EQ(m.snapshot(12).count,0);
   EXPECT_FALSE(m.noteSample(A,Monitor::DISCOVERY,80,-50,13)); // late response
-  m.beginDiscovery(); m.cancelDiscovery(); m.finishDiscovery(14);
+  m.beginDiscovery(0); m.cancelDiscovery(); m.finishDiscovery(14);
   EXPECT_EQ(m.failedScans(),1);
+}
+TEST(RepeaterSignal, FifteenMinuteBoundaryAndFailureStatePriority) {
+  Monitor m;
+  EXPECT_EQ(Monitor::WINDOW_MS,900000u); EXPECT_EQ(Monitor::SCAN_INTERVAL_MS,900000u);
+  EXPECT_EQ(m.snapshot(0).status,Monitor::NONE);
+  sample(m,A,40,0);
+  EXPECT_EQ(m.snapshot(899999).status,Monitor::FRESH);
+  EXPECT_EQ(m.snapshot(900000).status,Monitor::STALE);
+  m.beginDiscovery(900000); // scanning preserves the triangle until completion
+  EXPECT_EQ(m.snapshot(900001).status,Monitor::STALE);
+  m.finishDiscovery(908000);
+  EXPECT_EQ(m.snapshot(908000).status,Monitor::NOT_FOUND);
+  EXPECT_EQ(m.snapshot(4000000).status,Monitor::NOT_FOUND); // X persists
+  EXPECT_EQ(m.snapshot(908000,false).status,Monitor::UNAVAILABLE);
+  sample(m,B,0,4000001);
+  EXPECT_EQ(m.snapshot(4000001).status,Monitor::FRESH);
+  EXPECT_EQ(m.snapshot(4000001).bars,1);
+}
+TEST(RepeaterSignal, FailedDiscoveryClearsOldReadingButNotConcurrentPassiveReception) {
+  Monitor m; sample(m,A,48,0);
+  m.beginDiscovery(100); m.finishDiscovery(8100);
+  EXPECT_EQ(m.snapshot(8100).status,Monitor::NOT_FOUND);
+  EXPECT_EQ(m.snapshot(8100).count,0);
+  // A delayed callback for a pre-failure advert must not resurrect that reading.
+  uint32_t old=50;
+  EXPECT_FALSE(m.noteSample(A,Monitor::ADVERT,48,-60,8200,nullptr,&old));
+  EXPECT_EQ(m.snapshot(8200).status,Monitor::NOT_FOUND);
+  m.beginDiscovery(9000);
+  sample(m,B,40,9500);
+  m.finishDiscovery(17000);
+  EXPECT_EQ(m.failedScans(),2);
+  EXPECT_EQ(m.snapshot(17000).status,Monitor::FRESH);
+  EXPECT_EQ(m.snapshot(17000).key[0],2);
+  // A new successful discovery also clears X.
+  m.beginDiscovery(18000); m.finishDiscovery(26000);
+  EXPECT_EQ(m.snapshot(26000).status,Monitor::NOT_FOUND);
+  m.beginDiscovery(27000);
+  EXPECT_TRUE(m.noteSample(A,Monitor::DISCOVERY,48,-40,27500));
+  m.finishDiscovery(35000);
+  EXPECT_EQ(m.snapshot(35000).bars,4);
+}
+TEST(RepeaterSignal, ContinuousScreenOnQueuesAtMostOneScanPerFifteenMinutes) {
+  Monitor m; unsigned queued=0;
+  auto poll=[&](uint32_t now,bool screen_on) {
+    if (m.shouldDiscover(now,screen_on,true,true)) {
+      ++queued; m.beginDiscovery(now); m.noteScanAttempt(now);
+    }
+  };
+  poll(0,true); ASSERT_EQ(queued,1u);
+  EXPECT_TRUE(m.discovering());
+  for (uint32_t now=1;now<8000;now+=11) poll(now,true);
+  m.finishDiscovery(8000);
+  EXPECT_EQ(m.snapshot(8000).status,Monitor::NOT_FOUND);
+  for (uint32_t now=8000;now<900000;now+=97) poll(now,true);
+  EXPECT_EQ(queued,1u);
+  poll(900000,false); EXPECT_EQ(queued,1u); // never wake a sleeping display
+  poll(900000,true); EXPECT_EQ(queued,2u); // no new wake transition required
+  poll(900001,true); EXPECT_EQ(queued,2u);
+  m.noteSample(A,Monitor::DISCOVERY,40,-60,900100);
+  m.finishDiscovery(908000);
+  poll(1800000,true); EXPECT_EQ(queued,2u); // reception extended freshness
+  poll(1800100,true); EXPECT_EQ(queued,3u);
+}
+TEST(RepeaterSignal, AutomaticGatesAndAllocationBackoffDoNotCreateFailureState) {
+  Monitor m;
+  EXPECT_FALSE(m.shouldDiscover(0,false,true,true));
+  EXPECT_FALSE(m.shouldDiscover(0,true,false,true));
+  EXPECT_FALSE(m.shouldDiscover(0,true,true,false)); // Low Power/Emergency
+  EXPECT_TRUE(m.shouldDiscover(0,true,true,true));
+  m.noteQueueFailure(0);
+  EXPECT_EQ(m.snapshot(1).status,Monitor::NONE);
+  EXPECT_EQ(m.failedScans(),0);
+  EXPECT_EQ(m.scanDelayMs(4999),1u);
+  EXPECT_FALSE(m.shouldDiscover(4999,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(5000,true,true,true));
+  m.noteScanAttempt(5000); m.beginDiscovery(5000); // manual or automatic uses same budget
+  m.cancelDiscovery(); m.finishDiscovery(13000);
+  EXPECT_EQ(m.failedScans(),0);
+  EXPECT_EQ(m.snapshot(13000).status,Monitor::NONE);
+  EXPECT_FALSE(m.shouldDiscover(904999,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(905000,true,true,true));
+}
+TEST(RepeaterSignal, ConfigChangesClearNoneFoundAndPreserveAllocationBackoff) {
+  Monitor m; m.beginDiscovery(0); m.finishDiscovery(8000);
+  EXPECT_EQ(m.snapshot(8000).status,Monitor::NOT_FOUND);
+  m.noteQueueFailure(9000); m.configure(918,125,8,5);
+  EXPECT_EQ(m.snapshot(9001).status,Monitor::NONE);
+  EXPECT_FALSE(m.shouldDiscover(13999,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(14000,true,true,true));
+}
+TEST(RepeaterSignal, BackoffAndFailureCooldownSurviveTimerRollover) {
+  Monitor m; uint32_t start=UINT32_MAX-100;
+  m.noteQueueFailure(start);
+  EXPECT_FALSE(m.shouldDiscover(start+4999,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(start+5000,true,true,true));
+  m.noteScanAttempt(start+5000); m.beginDiscovery(start+5000);
+  m.finishDiscovery(start+13000);
+  EXPECT_EQ(m.snapshot(start+13000).status,Monitor::NOT_FOUND);
+  EXPECT_FALSE(m.shouldDiscover(start+904999,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(start+905000,true,true,true));
 }
 TEST(RepeaterSignal, InvalidIdentitySourcePairsAreRejected) {
   Monitor m;
@@ -141,16 +241,16 @@ TEST(RepeaterSignal, InvalidIdentitySourcePairsAreRejected) {
 }
 TEST(RepeaterSignal, AutomaticProbeBudgetSurvivesConfigChangesAndRollover) {
   Monitor m; const uint32_t start=UINT32_MAX-1000;
-  EXPECT_TRUE(m.shouldScanOnUserWake(start,true));
+  EXPECT_TRUE(m.shouldDiscover(start,true,true,true));
   m.noteScanAttempt(start);
-  for (int i=0;i<100;++i) EXPECT_FALSE(m.shouldScanOnUserWake(start+i,true));
+  for (int i=0;i<100;++i) EXPECT_FALSE(m.shouldDiscover(start+i,true,true,true));
   m.configure(917,125,8,5);
-  EXPECT_FALSE(m.shouldScanOnUserWake(start+Monitor::SCAN_INTERVAL_MS-1,true));
-  EXPECT_TRUE(m.shouldScanOnUserWake(start+Monitor::SCAN_INTERVAL_MS,true));
-  EXPECT_FALSE(m.shouldScanOnUserWake(start+Monitor::SCAN_INTERVAL_MS,false));
+  EXPECT_FALSE(m.shouldDiscover(start+Monitor::SCAN_INTERVAL_MS-1,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(start+Monitor::SCAN_INTERVAL_MS,true,true,true));
+  EXPECT_FALSE(m.shouldDiscover(start+Monitor::SCAN_INTERVAL_MS,true,false,true));
   sample(m,A,0,start+Monitor::SCAN_INTERVAL_MS);
-  EXPECT_FALSE(m.shouldScanOnUserWake(start+Monitor::SCAN_INTERVAL_MS+1,true));
-  EXPECT_TRUE(m.shouldScanOnUserWake(start+Monitor::SCAN_INTERVAL_MS+Monitor::WINDOW_MS,true));
+  EXPECT_FALSE(m.shouldDiscover(start+Monitor::SCAN_INTERVAL_MS+1,true,true,true));
+  EXPECT_TRUE(m.shouldDiscover(start+Monitor::SCAN_INTERVAL_MS+Monitor::WINDOW_MS,true,true,true));
 }
 TEST(RepeaterSignal, SettingsChangesClearHistoryAndCancelDiscovery) {
   Monitor m;
@@ -159,7 +259,7 @@ TEST(RepeaterSignal, SettingsChangesClearHistoryAndCancelDiscovery) {
     EXPECT_TRUE(m.configure(c[0],c[1],c[2],c[3]));
     EXPECT_EQ(m.snapshot(100).status,Monitor::NONE); EXPECT_EQ(m.historyCount(),0);
     EXPECT_FALSE(m.noteSample(A,Monitor::DISCOVERY,40,-60,100));
-    sample(m,A,40,100); m.beginDiscovery();
+    sample(m,A,40,100); m.beginDiscovery(0);
     EXPECT_FALSE(m.configure(c[0],c[1],c[2],c[3]));
     EXPECT_TRUE(m.fresh(100));
   }

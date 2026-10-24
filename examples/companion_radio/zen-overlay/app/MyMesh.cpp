@@ -1302,6 +1302,11 @@ bool MyMesh::onContactPathRecv(ContactInfo& contact, uint8_t* in_path, uint8_t i
 }
 
 bool MyMesh::sendNodeDiscoverReq(bool silent) {
+  if (_pending_node_discover_tag && millisHasNowPassed(_pending_node_discover_until)) {
+    _repeater_signal.finishDiscovery(millis());
+    _pending_node_discover_tag=0;
+    _pending_node_discover_silent=false;
+  }
   bool scan_active = _pending_node_discover_tag != 0 &&
                      !millisHasNowPassed(_pending_node_discover_until);
   // A user-opened Discover screen may replace a silent wake scan immediately;
@@ -1317,6 +1322,10 @@ bool MyMesh::sendNodeDiscoverReq(bool silent) {
   data[1] = (1 << ADV_TYPE_REPEATER);
   getRNG()->random(&data[2], 4);
   memcpy(&_pending_node_discover_tag, &data[2], 4);
+  if (!_pending_node_discover_tag) {
+    _pending_node_discover_tag=1; // zero is reserved for no active request
+    memcpy(&data[2],&_pending_node_discover_tag,4);
+  }
   _pending_node_discover_until = futureMillis(8000);
   _pending_node_discover_silent = silent;
   if (!silent) _discover_count = 0;
@@ -1326,20 +1335,25 @@ bool MyMesh::sendNodeDiscoverReq(bool silent) {
   if (!pkt) {
     _pending_node_discover_tag = 0;
     _pending_node_discover_silent = false;
+    _repeater_signal.noteQueueFailure(millis());
     return false;
   }
   sendZeroHop(pkt);
-  _repeater_signal.beginDiscovery();
+  _repeater_signal.beginDiscovery(millis());
   _repeater_signal.noteScanAttempt(millis());
   return true;
 }
 
-void MyMesh::onUserDisplayWake() {
-  uint32_t now = millis();
-  // Low Power never spends airtime on probing, including during Emergency.
-  // Notification and alarm wakes do not call this entry point.
-  if (_low_power_mode || !_repeater_signal.shouldScanOnUserWake(now, radioAvailable())) return;
+void MyMesh::serviceSignalDiscovery(bool screen_on) {
+  uint32_t now=millis();
+  if (!_repeater_signal.shouldDiscover(now,screen_on,radioAvailable(),
+                                       !_low_power_mode && !_emergency_mode)) return;
   sendNodeDiscoverReq(true);
+}
+
+void MyMesh::onUserDisplayWake() {
+  // The same non-blocking policy also runs continuously while the display is on.
+  serviceSignalDiscovery(true);
 }
 
 int MyMesh::getDiscoverResults(DiscoverResult dest[], int max_count) {
@@ -1901,6 +1915,10 @@ void MyMesh::applyPowerState(bool low_power, bool emergency) {
   const bool available = radioAvailable();
 
   if (!available) {
+    _repeater_signal.cancelDiscovery();
+    _pending_node_discover_tag=0;
+    _pending_node_discover_until=0;
+    _pending_node_discover_silent=false;
     clearPendingReqs();
     // MeshCore exclusively owns its outbound queue. Suspending the peripheral
     // must not free, reorder or reinterpret packets already accepted by the

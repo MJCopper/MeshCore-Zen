@@ -116,6 +116,10 @@ class DiagnosticsScreen : public ZenUIScreen {
     auto signal = the_mesh.repeaterSignalSnapshot();
     snprintf(buf, sizeof(buf), "%s/%u", zen::RepeaterSignalMonitor::statusName(signal.status), signal.bars);
     addRow("Signal", buf);
+    addRow("Discovery",the_mesh.signalDiscoveryActive()?"scanning":"idle");
+    if (_task->isLowPowerMode() || !the_mesh.radioAvailable()) strcpy(buf,"disabled");
+    else snprintf(buf,sizeof(buf),"%lus",(unsigned long)((the_mesh.signalDiscoveryDelayMs()+999)/1000));
+    addRow("Auto wait",buf);
     if (signal.status == zen::RepeaterSignalMonitor::FRESH) {
       snprintf(buf, sizeof(buf), "%s %lus n%u", signal.identified ? "ID" : "rt",
           (unsigned long)(signal.age_ms/1000), signal.count);

@@ -51,15 +51,24 @@ guaranteed runtime.
 
 ## Top-bar charging status
 
-The home-page battery display shows a static lightning bolt when USB power is
+The home-page battery display shows a flashing lightning bolt when USB power is
 connected and a tick when the filtered battery voltage reaches **4.15 V**.
 Charging is inferred from USB power; completion is inferred from voltage, not
 reported by the charger. The tick remains until voltage falls below **4.12 V**
 or USB is disconnected. Reconnecting below 4.15 V shows the bolt again.
 
-In battery-icon mode, the symbol replaces the interior level fill without
-widening the icon. Percentage and voltage modes show the symbol beside the
-value. With USB power and an invalid battery sample, a plug symbol indicates
+In battery-icon mode, charging retains the white battery-level bar. A white
+lightning bolt with a black outline is centred over it, alternating on/off every
+second. Completion uses the same full-width white level bar and black padding as a
+regular full battery, with a centred white tick outlined in black. The shell
+retains its original width and height (14 × 7 pixels on OLED), top-aligned
+with the other status icons. Bolt and tick share the same overlay position; their outlines
+can mask the shell without making it taller.
+Percentage and voltage modes retain their values and show a flashing white bolt
+or steady white tick beside them. Charging schedules a redraw at each one-second
+phase boundary while the home page is visible, including E-ink; actual visible
+cadence is limited by the display's refresh duration. It does not wake sleeping
+displays. With USB power and an invalid battery sample, a plug symbol indicates
 external power with unknown charge status. An invalid sample clears the full
 latch; a subsequent valid sample must reach 4.15 V to show the tick again.
 Unplugging restores the usual battery display.
