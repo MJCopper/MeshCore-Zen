@@ -1,0 +1,1568 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+        <link rel="prev" href="../../../building_sensor/">
+      
+      
+        <link rel="next" href="../../../docs/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Development and Testing - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#development-and-testing" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development and Testing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#application-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Application modules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#baseline-integration-ledger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline integration ledger
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automated-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation validation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trace-plan-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace plan completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trace-reliability-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace reliability validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-firmware-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and firmware updates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-scope-regression-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace scope regression coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#average-bidirectional-trace-snr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Average bidirectional trace SNR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#destination-trace-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Destination trace discovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-request-acknowledgement-and-overall-deadline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace request acknowledgement and overall deadline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#named-destination-acknowledgement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Named destination acknowledgement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-contact-durable-timestamps-and-advert-route-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First contact, durable timestamps and advert-route fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-lifecycle-recovery-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace lifecycle recovery review
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hardware-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardware acceptance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hardware acceptance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trace-request-clock-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace request-clock recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#application-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Application modules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#baseline-integration-ledger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baseline integration ledger
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automated-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation validation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trace-plan-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace plan completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trace-reliability-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace reliability validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-firmware-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and firmware updates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-scope-regression-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace scope regression coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#average-bidirectional-trace-snr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Average bidirectional trace SNR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#destination-trace-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Destination trace discovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-request-acknowledgement-and-overall-deadline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace request acknowledgement and overall deadline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#named-destination-acknowledgement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Named destination acknowledgement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-contact-durable-timestamps-and-advert-route-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First contact, durable timestamps and advert-route fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trace-lifecycle-recovery-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace lifecycle recovery review
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hardware-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardware acceptance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hardware acceptance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trace-request-clock-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trace request-clock recovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/sensor_features/development/development.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="development-and-testing">Development and Testing</h1>
+<p><a href="https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md">Back to README</a></p>
+<h2 id="baseline">Baseline</h2>
+<p>The integration baseline is MeshCore v1.18.0, official release commit
+<code>81dbae592ffad40b4212bc0b37e82b38da08f4bc</code>. Use the official
+<code>companion-v1.18.0</code>, <code>repeater-v1.18.0</code> and <code>room-server-v1.18.0</code> tags;
+all three resolve to this commit. Do not infer the baseline from unrelated
+fork-local version tags.</p>
+<h2 id="application-modules">Application modules</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main.cpp</code></td>
+<td>Hardware startup, serial console and main loop</td>
+</tr>
+<tr>
+<td><code>Bme680SensorMesh</code></td>
+<td>Binding to the upstream sensor runtime and radio callbacks</td>
+</tr>
+<tr>
+<td><code>SensorBotService</code></td>
+<td>Public commands, response formatting and asynchronous coordination</td>
+</tr>
+<tr>
+<td><code>PublicChannelSensorBot</code></td>
+<td>Command decoding, duplicate tracking and rolling rate limit</td>
+</tr>
+<tr>
+<td><code>PublicResponseQueue</code></td>
+<td>Bounded two-part replies and transmission-completion spacing</td>
+</tr>
+<tr>
+<td><code>RepeaterTraceProbe</code></td>
+<td>Path validation, timeouts, single retry and late-result fallback</td>
+</tr>
+<tr>
+<td><code>TraceTimingPolicy</code></td>
+<td>Hop/airtime timeout estimates and bounded queue, grace and report periods</td>
+</tr>
+<tr>
+<td><code>TraceRouteCandidates</code></td>
+<td>Three bounded passive alternatives and deterministic retry ranking</td>
+</tr>
+<tr>
+<td><code>TraceRouteHistory</code></td>
+<td>Four RAM-only, context-scoped recent route outcomes with lazy expiry</td>
+</tr>
+<tr>
+<td><code>TraceReportDelivery</code></td>
+<td>Frozen two-part report, bounded local retry and uncertain-outcome handling</td>
+</tr>
+<tr>
+<td><code>TraceDiagnostics</code></td>
+<td>Full directional SNR, passive progress and local outcome counters</td>
+</tr>
+<tr>
+<td><code>RepeaterNameCache</code></td>
+<td>Verified repeater names and bounded persistent cache</td>
+</tr>
+<tr>
+<td><code>Bme680Telemetry</code></td>
+<td>Cached measurements, channel discovery and telemetry encoding</td>
+</tr>
+<tr>
+<td><code>Bme680SensorManager</code></td>
+<td>Upstream BME680 driver adapter and installation altitude adjustment</td>
+</tr>
+<tr>
+<td><code>BME680AirQuality</code></td>
+<td>RAM-only calibration, warm-up count and relative score</td>
+</tr>
+<tr>
+<td><code>SensorManagementPolicy</code></td>
+<td>Read-only guest admission and administrator persistence</td>
+</tr>
+</tbody>
+</table>
+<p>These modules live in <code>examples/bme680_sensor/</code>. They share one measurement
+snapshot. Public and management queries read that snapshot without sampling
+the BME680 or advancing its calibration. A failed sample retains the previous
+successful reading. Sensor readings and pending trace results do not persist.</p>
+<h2 id="baseline-integration-ledger">Baseline integration ledger</h2>
+<table>
+<thead>
+<tr>
+<th>Baseline file</th>
+<th>Retained integration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>examples/simple_sensor/SensorMesh.h/.cpp</code></td>
+<td>Optional login, protocol-request, preference and persistence hooks; default policies retain the standard sensor behaviour</td>
+</tr>
+<tr>
+<td><code>src/Dispatcher.h/.cpp</code></td>
+<td>Generic transmit-start callback and queued-packet inspection/cancellation</td>
+</tr>
+<tr>
+<td><code>src/Mesh.cpp</code></td>
+<td>TRACE header and complete-path bounds checks</td>
+</tr>
+<tr>
+<td><code>src/helpers/TracePathBounds.h</code></td>
+<td>Small shared TRACE validation helper</td>
+</tr>
+<tr>
+<td><code>src/helpers/ClientACL.h/.cpp</code></td>
+<td>Optional administrator-preserving client allocation, sharing the standard allocator</td>
+</tr>
+<tr>
+<td><code>variants/xiao_nrf52/target.h/.cpp</code></td>
+<td>Selectable sensor-manager type, defaulting to the upstream environment manager</td>
+</tr>
+</tbody>
+</table>
+<p>The standard <code>examples/simple_sensor/main.cpp</code> and
+<code>src/helpers/sensors/EnvironmentSensorManager.cpp</code> match the baseline.
+Earlier humidity-decoding and request-length corrections, together with
+request-scope-aware login/telemetry replies, remain generic sensor corrections.
+Later upstream imports are distinct from this application and are retained.</p>
+<p>The core does not include custom bot, air-quality or guest-policy classes.
+The XIAO custom environment selects the application; there is no bot flag
+controlling unrelated authentication or storage behaviour.</p>
+<h2 id="automated-validation">Automated validation</h2>
+<pre><code class="language-sh">pio test -e native -e native_sensor -e native_kiss_modem
+bash bin/check-sensor-boundaries.sh
+pio run -e Xiao_nrf52_bme680_sensor -e Xiao_nrf52_sensor_baseline
+pio run -e Xiao_nrf52_repeater -e Xiao_nrf52_room_server -e Xiao_nrf52_companion_radio_usb
+</code></pre>
+<p>The original native suite covers command parsing, rate-limit boundaries,
+reply splitting, trace state transitions and malformed TRACE paths. The
+<code>native_sensor</code> suite uses actual MeshCore encryption, signatures, packet
+handling, dispatcher queues, telemetry encoding and ACL storage. Its simulated
+clock, radio and filesystem make failure timing and write counts repeatable.
+Hardware randomness is replaced only by deterministic test input.
+The legacy exact-time packet cases explicitly suppress settling; production
+defaults and separate settling tests enable it. Multi-node tests use the
+production default.</p>
+<p>Integration cases include silent retry, duplicate command reception, cancelling
+a queued retry, late first-result fallback, multipart spacing after actual TX
+completion, verified repeater names, and radio recovery after an advert TX
+timeout. Storage tests cover capacity, ambiguous hashes, corrupt cache data,
+failed file replacement and avoiding writes for unchanged adverts.</p>
+<p>Channel tests cover interleaved Public and <code>#hillvue</code> requests, multipart reply
+ownership, busy notices, trace results and late-result fallback. Pending parts
+and active traces retain a bounded channel index rather than a mutable global
+reply destination. Rate limiting is shared; duplicate tracking includes the
+source channel. Candidate lookup also handles matching one-byte channel hashes.</p>
+<p>Trace expiry now schedules the next action rather than invalidating an otherwise
+matching result. Both transmitted attempt records remain live through final
+grace and unsent failure reporting. The radio adapter commits failure at TX
+start; queued failures and retries are cancelled before their pool handles are
+discarded. Monotonic, randomly seeded tags distinguish successive attempts.</p>
+<p>The multi-repeater suite uses real MeshCore forwarding and encryption with
+simulated airtime, directed links, delay and packet loss. It covers two/three
+repeaters, two-byte hashes, same-route retry, alternate-route retry, asymmetric
+links and useful late results. The medium is not a physical RF or collision model.</p>
+<p>An additional AddressSanitizer run checks the real-crypto suites:</p>
+<pre><code class="language-sh">ASAN_OPTIONS=detect_leaks=0 pio test -e native_sensor_asan
+</code></pre>
+<p>Leak detection is disabled because the baseline static packet-pool test objects
+do not implement destruction. Tests separately require all packet slots to be
+returned after each completed scenario. Address/buffer checks remain enabled.</p>
+<p>Initial command, air-quality, cache, ACL and real-crypto tests were run against
+the implementation before extraction. The extraction also corrects two
+behavioural defects: non-finite sensor inputs cannot advance calibration, and
+remote telemetry requests now use the same cached readings as Public commands.</p>
+<p>The compile-only baseline environment exercises ordinary BME680 telemetry
+without any custom sensor-manager or altitude-offset definition. This also
+guards against the previous misplaced altitude-offset fallback macro.</p>
+<h2 id="implementation-validation">Implementation validation</h2>
+<p>Recorded on 19 October 2026:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pre-extraction characterization tests</td>
+<td>Passed before moving application code</td>
+</tr>
+<tr>
+<td><code>native</code></td>
+<td>88 test cases passed</td>
+</tr>
+<tr>
+<td><code>native_sensor</code></td>
+<td>108 test cases passed, including 49 packet integration and 21 network-medium cases</td>
+</tr>
+<tr>
+<td><code>native_kiss_modem</code></td>
+<td>8 test cases passed</td>
+</tr>
+<tr>
+<td><code>native_sensor_asan</code></td>
+<td>The same 108 sensor cases passed with AddressSanitizer</td>
+</tr>
+<tr>
+<td>Custom sensor, baseline sensor, companion USB, repeater and room-server builds</td>
+<td>All five passed</td>
+</tr>
+<tr>
+<td>Baseline boundary check and <code>git diff --check</code></td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Strict MkDocs site build</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Named UF2 generation and DFU ZIP integrity</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Physical sensor, phone app, RF and OTA acceptance</td>
+<td>Pending: no attached hardware</td>
+</tr>
+</tbody>
+</table>
+<p>The native companion-preferences suite is conditionally excluded by its existing
+platform guard; it does not exercise this sensor application. No test case in
+the executed suites failed.</p>
+<p>The initial extracted sensor build reports 31,200 bytes of static RAM and 353,196
+bytes of flash, compared with 31,168 and 354,604 before extraction. These are
+linker figures, not measured peak heap or stack usage. The new Cayenne buffers
+are allocated once at startup, not for each telemetry request.</p>
+<p>The completed trace remediation reports 31,440 bytes of static RAM and 355,724
+bytes of flash, compared with 31,232 and 353,692 before this remediation. The
+additional trace state therefore costs 208 bytes of static RAM and 2,032 bytes
+of flash. It adds no heap buffers or flash writes. Local sanitizer validation
+used a signature-verified Fedora runtime extracted under <code>/tmp</code>, without
+installing system packages.</p>
+<h3 id="trace-plan-completion">Trace plan completion</h3>
+<ul>
+<li>The two deadline-boundary regressions failed before the implementation changed.</li>
+<li>Per-attempt result validation, final grace, cancellable failure reports and
+  bounded queue ownership are implemented and tested.</li>
+<li>Airtime estimation, a single passive alternate route and original-route
+  fallback rendering are implemented and tested.</li>
+<li>Limits, channel ownership, formatting, packet-pool return and zero-write
+  behaviour are covered by regression and multi-repeater tests.</li>
+<li>CI runs the regular tests, sanitizer tests and five firmware targets.</li>
+<li>Firmware artifacts and documentation are validated separately from hardware.</li>
+</ul>
+<p>The software extraction and earlier remediation are complete. Physical RF, phone-app presentation and OTA
+installation remain pending acceptance on an attached node; simulation is not
+a substitute for those checks.</p>
+<p>The software extraction, automated checks and build integration are complete.
+Full hardware acceptance is not claimed until the following checklist passes.</p>
+<h3 id="trace-reliability-validation">Trace reliability validation</h3>
+<p>The pre-change baseline passed 162 regular cases. The reliability change adds
+retained report delivery, bounded allocation/queue recovery, conservative radio
+start handling, a first-probe settling window, recent route evidence and passive
+diagnostics. All buffers are fixed-capacity; history and progress are RAM-only.
+Idle operation performs no route scans or periodic radio/configuration queries.</p>
+<table>
+<thead>
+<tr>
+<th>Reliability plan item</th>
+<th>Software validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retain successful results through report delivery</td>
+<td>Allocation/queue recovery, frozen text, multipart gap, expiry and uncertain-outcome cases pass</td>
+</tr>
+<tr>
+<td>Recover from local probe failures</td>
+<td>Admission backoff, rejected starts, remaining-attempt budget and late-first recovery pass</td>
+</tr>
+<tr>
+<td>Airtime-aware first-probe settling</td>
+<td>Production defaults, quiet extension, hard limit, unrelated traffic and RTT exclusion pass</td>
+</tr>
+<tr>
+<td>Rank alternatives and retain recent evidence</td>
+<td>Three-candidate/four-history bounds, channel/radio context, expiry and deterministic ranking pass</td>
+</tr>
+<tr>
+<td>Directional SNR and passive progress</td>
+<td>Both hash widths and one through ten repeaters pass; malformed/stale progress is rejected</td>
+</tr>
+<tr>
+<td>Collision/contention/hash-collision tests</td>
+<td>21 deterministic network cases pass, including eight seeded-loss runs</td>
+</tr>
+<tr>
+<td>Physical RF measurements and OTA install</td>
+<td>Pending: no attached XIAO; no physical performance claim</td>
+</tr>
+</tbody>
+</table>
+<p>Final automated validation comprises 204 regular cases and 108 repeated sensor
+cases under AddressSanitizer: 312 executions passed. The existing sanitizer
+leak-detection qualification above still applies; packet-pool return is checked
+explicitly by integration/network tests.</p>
+<p>The final custom sensor linker reports 32,408 bytes of static RAM and 362,956
+bytes of flash. Static RAM increased by 968 bytes from the preceding 31,440-byte
+build, below the two-KiB review budget. These figures exclude the linker's
+reserved heap area and do not claim a measured runtime stack/heap peak. The
+additional modules introduce no per-request application heap allocations or
+new persistent formats/writes.</p>
+<p>The radio medium now has optional half-duplex, overlapping-frame collision,
+hidden-terminal, six-decibel capture-threshold, busy-channel and seeded-loss
+models. It includes standard direct-forwarding delay estimates and competing
+repeaters sharing a one-byte prefix. These are reproducible approximations,
+not measured RF capture behaviour. Packet ownership callbacks are synchronous
+and precede dispatcher release; reports retain no packet handle after callback
+completion. No asynchronous callback may refer to a recycled allocation.
+The adapter runs queued-work expiry before the dispatcher, preventing an old
+queued report from starting after its deadline when the loop resumes late.</p>
+<p>Production conservatively treats rejected report starts as uncertain: the
+RadioLib Boolean interface does not expose whether an error occurred before or
+after the TX command. Tests explicitly mark a simulated rejection as definitely
+unsent only when their fake radio emits no frame. No generic MeshCore callback
+or forwarding changes were needed for this reliability change.</p>
+<p>Hardware acceptance remains a separate gate. Use an isolated/controlled RF
+setup: <code>#hillvue</code> alone does not isolate interference on the shared frequency.
+For each important condition, compare baseline and updated firmware, preferably
+interleaving at least thirty runs each where practical. Observe the existing
+command limit and allow each operation to finish. Record firmware, radio
+settings, topology, trial count, confirmed starts, potentially emitting probe
+submissions, local failures, timeouts, selected route, passive progress, RTT,
+total response delay, local report outcome, companion receipt, duplicates and
+airtime. Include clean two-/three-relay routes, slow settings, contention,
+asymmetry, alternate paths, delayed results and multipart reception. Report
+sample sizes and uncertainty rather than claiming a universal success rate.</p>
+<h2 id="storage-and-firmware-updates">Storage and firmware updates</h2>
+<p>The <code>/repeaters</code>, <code>/s_contacts</code>, identity and preference formats are unchanged.
+Module relocation requires no erase or settings migration. Administrator state
+and repeater names retain their existing write policies. Service buffers are
+bounded; normal request processing does not allocate new application objects.</p>
+<p>The custom target keeps the established <code>Xiao_nrf52_bme680_sensor.uf2</code> and
+<code>Xiao_nrf52_bme680_sensor.zip</code> artifact names.</p>
+<h2 id="trace-scope-regression-coverage">Trace scope regression coverage</h2>
+<p>The scope adapter is shared between the production sensor and native test
+runtime. Native tests use real RegionMap resolution, transport-key HMACs,
+MeshCore encryption, Dispatcher and packet pools. Each delayed reply owns its
+channel, scope key and path-hash width. Scope selection helpers also serve the
+upstream synchronous sensor reply path; the baseline firmware build checks that
+this generic API remains compatible.</p>
+<p><code>test_sensor_dispatcher</code> isolates actual TX-start timing, scheduled and busy-channel
+waiting, failed-start ownership, selective cancellation and ordinary consumer
+completion. <code>test_sensor_scope</code> covers both watched channels, interleaved
+multipart messages, busy notices, trace retry/fallback, allocation and queue
+recovery, scope removal and key rotation. Route tests isolate history by the
+complete scope key and prevent foreign-scope command copies extending settling.
+Network tests validate transport codes on relays that reject unscoped floods,
+including wrong-scope controls, multipart delivery and trace failure reports.</p>
+<p>These tests run in the regular and sanitizer sensor environments. Firmware
+resource measurements, validation commands and separate physical acceptance
+status are recorded in the <a href="../../../upgrades/validation/sensor-trace-scope/">scope implementation validation report</a>.</p>
+<h2 id="average-bidirectional-trace-snr">Average bidirectional trace SNR</h2>
+<p>Trace reports display one node per outward link, beginning at the sensor. For
+zero-based repeater index <code>i</code> and <code>N</code> repeaters, the paired samples are <code>i</code> and
+<code>2*N - 1 - i</code>. Raw signed quarter-dB readings remain available in diagnostics;
+their promoted signed sum divided by eight yields the average in dB. The final
+sample is the sensor's receive SNR. Rounding happens only when rendering one
+decimal place. The header explicitly says <code>avg SNR</code>.</p>
+<p><code>test_sensor_trace_snr</code> covers every route length from one to ten and both hash
+widths, signed extrema, opposite signs, eighth-dB precision, node order,
+multipart output, retry precedence and original-route fallback. A packet-medium
+case assigns different SNR values to each directed link and exercises actual
+MeshCore forwarding for both widths, including sensor RX and exclusion of the
+requester link. Existing scoped delivery tests continue to cover channel/scope
+retention. See the <a href="../../../upgrades/validation/sensor-trace-average-snr/">average SNR validation report</a>.</p>
+<p>Physical acceptance must compare the paired raw readings and displayed averages
+on a controlled asymmetric link. Packet-medium tests validate protocol ordering
+and arithmetic but cannot establish real radio measurements.</p>
+<h2 id="destination-trace-discovery">Destination trace discovery</h2>
+<p><code>test_sensor_target_trace</code> tests the public-key-prefix command through real
+MeshCore encryption, authenticated PATH decoding, the shared production peer
+binding and Dispatcher. It covers unknown/ambiguous/malformed prefixes, all
+one-to-ten-repeater routes at both hash widths, RTC tags, bounded discovery
+retries, radio-start/queue/allocation failure, cancellation before radio send,
+scoped replies, late old-target replies, retry/fallback SNRs and full-target
+history isolation. Transient discovery peers are not added to the sensor ACL.
+Management PATH ownership and other authenticated admin traffic are exercised
+against the native ACL runtime.</p>
+<p>The packet-medium tests include a known-client/replay-protected repeater
+responder: targeted discovery and the complete loop cross real forwarding
+nodes, both channels, both hash widths and relays rejecting unscoped floods.
+Unknown remote clients time out without automatic login or ACL changes. The
+sensor's peer binding consumes RESPONSE/PATH packets without applying them to
+management routes; ordinary management PATHs retain their existing callback.
+A generic Mesh PATH decoder guard rejects a path that does not fit in the
+authenticated decrypted payload before reading its extra fields; an encrypted
+truncated-path regression covers this under ASan.</p>
+<p>See the <a href="../../../upgrades/validation/sensor-target-trace/">destination trace validation record</a>
+for the commands, measured resource changes and separate physical acceptance.</p>
+<h2 id="trace-request-acknowledgement-and-overall-deadline">Trace request acknowledgement and overall deadline</h2>
+<p><code>TraceTransactionBudget</code> defines a fixed 60,000 ms transaction and a 5,000 ms
+terminal-report reserve. Acceptance freezes the deadline and acknowledgement
+text at 60 seconds. At 55 seconds, unfinished discovery/probing becomes a
+stage-specific failure report; at 60 seconds, cleanup releases trace ownership.
+Timers use wrap-safe monotonic millisecond comparisons.</p>
+<p>Discovery and probe windows are clamped at actual TX start using cached airtime
+policy and live remaining work time. First/retry probes divide that time by
+two/one. Initial/final discovery use six-second stage leases within a 40-second
+control cutoff. Guest login permits three attempts total (two retries), each
+with a fresh durable request timestamp. It has separate eight-second queue and post-TX-completion
+reply leases, with an airtime-based watchdog between them. Every lease remains
+clipped to the same control cutoff; delayed/duplicate completion cannot rearm
+an expired or cancelled operation. This leaves opportunities
+for the later stages without requiring the old maximum ten-hop windows to fit.
+Admissions check estimated TX watchdog plus scheduled delay against remaining
+work time. No retry or response restarts either deadline. TX-start observers do
+only timer arithmetic and never query the radio.</p>
+<p><code>TraceRequestAcknowledgement</code> owns a single immutable message independently of
+<code>TraceReportDelivery</code>. Its admission lease is ten seconds, followed by a cached
+actual-packet TX watchdog, bounded by the maximum-frame allowance, if transmission starts. Only definitely unsent failures
+can retry. The acknowledgement prelude suspends discovery and probe queue clocks;
+a failure to acknowledge does not fail the trace. Queued expiry is checked before
+Dispatcher polling; TX observer expiry is checked after completion callbacks have
+had their normal opportunity. Deadline cleanup never frees a Dispatcher-owned
+in-flight allocation. Ordinary public reply processing continues during the
+acknowledgement stage.</p>
+<p><code>test_sensor_trace_ack</code> covers fixed deadlines, report reservation and budget sharing, all route lengths and both hash
+widths, rollover and exact deadline boundaries, real Dispatcher acknowledgement
+ordering and failure recovery, slow TX, allocation pressure, cancellation, status,
+duplicates, targeted discovery, and both channels/widths/scopes. Older exact-phase
+integration tests explicitly complete acknowledgement through a transport seam to
+retain their probe/report timing characterization. The dedicated acknowledgement
+suite and network simulation leave that seam disabled and run real Dispatcher
+transmission. Network tests separately capture acknowledgements and terminal
+reports; the added flood can cause contention and consume the second allowed
+probe attempt.</p>
+<p>See the <a href="../../../upgrades/validation/sensor-trace-60-second-cap/">60-second cap validation record</a>.
+The earlier <a href="../../../upgrades/sensor-trace-request-ack-plan/">acknowledgement plan</a>
+and <a href="../../../upgrades/validation/sensor-trace-request-ack/">initial validation</a>
+record the superseded conservative timeout policy.</p>
+<h2 id="named-destination-acknowledgement">Named destination acknowledgement</h2>
+<p>The destination overload of <code>RepeaterNameCache::resolvePrefix</code> returns a copied
+full key and full display label from the same uniquely matching entry. It clears
+both outputs for unknown/ambiguous prefixes. It preserves words such as
+<code>Repeater</code>, unlike the compact hop-label formatter, and normalizes whitespace
+without altering persisted names or the cache schema. Unusable names use the
+lowercase two-byte prefix as a label; they never replace the full protocol key.</p>
+<p><code>TraceRequestAcknowledgement::begin</code> optionally formats <code>Trace requested to Y</code>.
+The complete message is copied at acceptance. Its existing buffer size is
+unchanged; bounded destination-only UTF-8 truncation keeps the fixed timeout
+suffix. Tests cover exact fit, overflow, invalid UTF-8/fallback, mutable input,
+queue retry/cache rename/eviction, full-key authenticated discovery, both public
+channels and scoped network replies. Bare acknowledgement, compact hop names and
+the 60-second cap remain unchanged.</p>
+<p>See the <a href="../../../upgrades/sensor-trace-destination-ack-plan/">implementation plan</a>
+and <a href="../../../upgrades/validation/sensor-trace-destination-ack/">validation record</a>.</p>
+<h2 id="first-contact-durable-timestamps-and-advert-route-fallback">First contact, durable timestamps and advert-route fallback</h2>
+<p><code>TraceDiscovery</code> now owns the initial request, public guest login, final request
+and passive advert wait as separate bounded phases, with one control-packet
+owner. This folds the planned first-contact/login components into the existing
+controller to avoid competing owners. Login uses the stock 1.18 response shape
+and server timestamp; only a fresh-tag ordinary PATH supplies an authenticated
+route. A delayed login is advisory and cannot commit a route or change clocks.</p>
+<p><code>TraceRequestClock</code> reserves 256 values in two independently committed,
+identity-bound CRC records and verifies both before issuing a timestamp. Reboot
+starts beyond the highest surviving reserved bound. Faults fail closed for
+authenticated requests; advert fallback remains possible. No journal/cache I/O
+occurs in RX/TX observers. <code>TraceGuestPolicy</code> persists public/off independently
+of upstream NodePrefs and fails closed on a corrupt existing policy record.</p>
+<p><code>TraceAdvertRouteCache</code> stores compact verified-advert route hints in less than
+10 KiB, with 48 full-key entries and two alternatives each. It reverses outgoing
+intermediates, appends the target and constructs the return loop. Observations
+are scope/profile/width-bound, known-age hints expire at 24 hours, and restored
+unknown-age hints are explicitly probationary. Atomic sidecar replacement with
+backup recovery coalesces changes for 30 seconds and throttles routine saves to
+ten minutes. Disk records contain only populated entries and replacement keeps
+at most two route files, important for the XIAO's 28 KiB internal filesystem. Stored hints/outcomes never replace a fresh round-trip result.</p>
+<p>The scope binding captures outgoing default scope separately from public reply
+context, and dispatches owned login PATH/RESPONSE without installing management
+routes. Authenticated current-tag replies can return on a different scope,
+matching Zen's eligibility; mismatches are counted. TX observers use cached
+budgets and record control timing. Discovery diagnostics retain stage counters,
+clock health, peer clock regression, role, rejection and route provenance.</p>
+<p>The stock repeater login/replay helpers were extracted into generic
+<code>RepeaterLogin.h</code> and are used by both production and the native network target.
+The runtime sensor adds only a protected default-scope value accessor, while the
+RTC adapter exposes hardware-clock presence. No custom bot policy enters core
+Mesh/Dispatcher. Tests no longer seed an ACL for the essential first-contact
+success case and cover protected guest and persisted login-free fallback.</p>
+<p>See the <a href="../../../upgrades/sensor-trace-discovery-repair-plan/">repair plan</a> and
+<a href="../../../upgrades/validation/sensor-trace-discovery-repair/">implementation validation</a>.</p>
+<h2 id="trace-lifecycle-recovery-review">Trace lifecycle recovery review</h2>
+<p>Recovery regressions now attempt another trace after success, discovery timeout,
+queue exhaustion, rejected radio start, probe timeout and queued-report expiry.
+The targeted suite also injects a lost report completion notification, a new
+command arriving exactly as discovery expires, cancellation during queue/wait/
+report phases, late cancelled replies, delayed TX completion polling, and the
+realistic 1,512 ms maximum-frame airtime estimate at the shipped radio defaults.
+The parser tests cover cancellation with an exhausted normal command budget.
+Report unit tests cover stale loop timestamps and a wrap-safe missing-callback
+watchdog. These are selected by the existing regular and ASan environments.</p>
+<p>The <a href="../../../upgrades/validation/sensor-trace-recovery-review/">complete review and validation record</a>
+distinguishes the expected thirty-second discovery wait from reproduced
+lifecycle defects and records firmware artifacts and physical acceptance limits.</p>
+<h2 id="hardware-acceptance">Hardware acceptance</h2>
+<p>Automated tests cannot establish RF delivery, physical sensor accuracy or the
+phone app's presentation. Complete these checks on the installed XIAO before
+marking hardware acceptance passed:</p>
+<ol>
+<li>Install the named UF2 and confirm identity, radio settings and administrator
+   access survive the update.</li>
+<li>Observe the first reading, ten-sample warm-up and continued one-minute
+   sampling; issue repeated telemetry queries and confirm warm-up does not
+   advance between samples.</li>
+<li>Check blank-password and incorrect-password guest telemetry in the official
+   app and Zen companion; confirm management controls remain restricted.</li>
+<li>Check administrator status, owner info, configuration and ACL management.</li>
+<li>Exercise <code>!hillvue</code>, combined measurements, voltage, ping, path and trace,
+   respecting the rolling four-command limit.</li>
+<li>Test real two- and three-repeater routes on both watched channels, retry
+   success, an observed alternate route, late fallback and multipart delivery
+   during ordinary network traffic. Repeat with a slower radio configuration;
+   compare observed RTT with the airtime-aware deadline. Confirm a valid late
+   result replaces an unsent failure, with no contradictory terminal report.</li>
+<li>Trigger remote Advert and verify whether the advert is heard, its command
+   confirmation arrives, and subsequent telemetry/Public commands still work.
+   The reported app Advert timeout is not reproduced by the simulated radio
+   recovery test and remains a hardware acceptance item.</li>
+<li>Install the named DFU ZIP through the intended OTA application and repeat
+   the basic access and telemetry checks.</li>
+</ol>
+<p>No XIAO serial device was attached during this implementation. Hardware and
+phone-app acceptance must therefore be recorded separately from automated
+test/build results. Zen version and OLED/E-ink build instructions apply to the
+Zen application; those sources/environments are absent on this sensor branch.</p>
+<h3 id="trace-request-clock-recovery">Trace request-clock recovery</h3>
+<p>The durable request floor is separate from calendar time. Use existing local or
+trusted administrator <code>clock</code>, <code>clock sync</code>, or <code>time &lt;epoch-seconds&gt;</code> commands
+to inspect/synchronize the actual RTC when needed; only move it forward from a
+trusted source. A valid journal still prevents issued values from being reused
+if the RTC restarts behind that floor. Inspect <code>diagnostics().clock_healthy</code> and
+control tags to distinguish local journal failure from an unexplained remote
+silence. A missing login/response is not proof of replay rejection.</p>
+<p>One surviving valid replica is recovered on begin. After a transient filesystem
+failure, repair available storage and reboot so the allocator reloads its safe
+bounds. If both records are damaged, retain advert fallback and restore a known
+safe journal pair through local maintenance before re-enabling authenticated
+requests. Do not delete both records or invent a timestamp to bypass remote
+replay checks. Without a safe backup or a demonstrably higher trusted bound,
+explicit operator recovery/re-provisioning is needed. No destructive journal
+reset or remote ACL reset is performed automatically.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

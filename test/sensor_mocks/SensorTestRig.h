@@ -21,6 +21,7 @@ public:
   unsigned estimates_during_tx = 0;
   unsigned start_calls = 0;
   uint32_t airtime = 100;
+  virtual uint32_t timingProfile() const { return airtime; }
   float last_snr = 0;
   int recvRaw(uint8_t* bytes, int size) override {
     int count = std::min((int)incoming.size(), size);
@@ -115,6 +116,13 @@ public:
   const char* node_name = "BME680 Sensor";
   uint32_t profile = 0;
   uint32_t cad_max_duration = 4000;
+  uint8_t outbound_width = 0;
+  SensorReplyContext controlContext(const SensorReplyContext& request) override {
+    auto context=request;
+    if(!default_scope.isNull()) memcpy(context.scope_key,default_scope.key,16);
+    if(outbound_width) context.hash_size=outbound_width;
+    return context;
+  }
   uint8_t reject_direct = 0, reject_group = 0;
   bool definite_start_failure = true;
   // Legacy phase-boundary tests isolate probe/report timing. New acknowledgement
@@ -130,7 +138,7 @@ public:
   const char* nodeName() override { return node_name; }
   mesh::RNG& rng() override { return *getRNG(); }
   uint32_t estimateAirtime(uint8_t length) override { return _radio->getEstAirtimeFor(length); }
-  uint32_t radioProfile() override { return profile; }
+  uint32_t radioProfile() override { return profile ^ (static_cast<TestRadio*>(_radio)->timingProfile()*2654435761u); }
   bool failedStartDefinitelyNotSent() const override { return definite_start_failure; }
   mesh::Packet* createTrace(uint32_t tag, uint32_t auth, uint8_t flags) override {
     return Mesh::createTrace(tag, auth, flags);

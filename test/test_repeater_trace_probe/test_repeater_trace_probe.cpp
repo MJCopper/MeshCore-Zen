@@ -83,23 +83,23 @@ TEST_F(TraceProbeTest, SupportsTenRepeatersAndBothHashWidths) {
   }
 }
 
-TEST_F(TraceProbeTest, MaintainsHopBasedMinimumForAllSupportedRoutes) {
-  const uint32_t seconds[] = { 0, 8, 10, 13, 15, 18, 20, 23, 25, 28, 30 };
+TEST_F(TraceProbeTest, UsesCompanionFormulaForAllSupportedRoutes) {
+  const uint32_t millis[] = { 0, 3200, 4900, 6600, 8300, 10000, 11700, 13400, 15100, 16800, 18500 };
   for (uint8_t count = 1; count <= 10; count++) {
     start(count);
     probe.setAirtimeEstimate(100);
     transmit(1000);
-    EXPECT_FALSE(probe.isTimedOut(1000 + seconds[count] * 1000 - 1));
-    EXPECT_TRUE(probe.isTimedOut(1000 + seconds[count] * 1000));
+    EXPECT_FALSE(probe.isTimedOut(1000 + millis[count] - 1));
+    EXPECT_TRUE(probe.isTimedOut(1000 + millis[count]));
     EXPECT_TRUE(probe.retryPending());
     probe.cancel();
   }
 }
 
 TEST(TraceTimingPolicy, AccountsForSlowRadioAndSaturatesSafely) {
-  EXPECT_EQ(13000u, TraceTimingPolicy::attemptTimeout(3, 100));
-  EXPECT_EQ(38000u, TraceTimingPolicy::attemptTimeout(3, 1000));
-  EXPECT_EQ(126000u, TraceTimingPolicy::attemptTimeout(10, 1000));
+  EXPECT_EQ(6600u, TraceTimingPolicy::attemptTimeout(3, 100));
+  EXPECT_EQ(39000u, TraceTimingPolicy::attemptTimeout(3, 1000));
+  EXPECT_EQ(126500u, TraceTimingPolicy::attemptTimeout(10, 1000));
   EXPECT_EQ(0x7FFFF000u, TraceTimingPolicy::attemptTimeout(10, UINT32_MAX));
 }
 
@@ -109,8 +109,8 @@ TEST_F(TraceProbeTest, QueueWaitDoesNotStartTheRoundTripClock) {
   EXPECT_TRUE(probe.isQueueTimedOut(10100));
   EXPECT_FALSE(probe.isTimedOut(10100));
   transmit(10100);
-  EXPECT_FALSE(probe.isTimedOut(20099));
-  EXPECT_TRUE(probe.isTimedOut(20100));
+  EXPECT_FALSE(probe.isTimedOut(12599));
+  EXPECT_TRUE(probe.isTimedOut(12600));
 }
 
 TEST_F(TraceProbeTest, UntransmittedAttemptCannotProduceAResult) {
@@ -297,10 +297,10 @@ TEST_F(TraceProbeTest, TimersWorkAcrossMillisRollover) {
   uint32_t now = UINT32_MAX - 5000;
   start(3, 1, now);
   transmit(now);
-  EXPECT_FALSE(probe.isTimedOut(now + 12999));
-  EXPECT_TRUE(probe.isTimedOut(now + 13000));
-  EXPECT_EQ(RepeaterTraceProbe::COMPLETE, receive(false, now + 13001));
-  EXPECT_EQ(13001u, result.elapsed_millis);
+  EXPECT_FALSE(probe.isTimedOut(now + 2999));
+  EXPECT_TRUE(probe.isTimedOut(now + 3000));
+  EXPECT_EQ(RepeaterTraceProbe::COMPLETE, receive(false, now + 3001));
+  EXPECT_EQ(3001u, result.elapsed_millis);
 }
 
 TEST_F(TraceProbeTest, RetryIdentifiersAreDistinctEvenWithRepeatedRandomInput) {

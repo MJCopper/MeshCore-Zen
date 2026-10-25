@@ -45,6 +45,24 @@ TEST(PublicChannelSensorBot, ParsesMeasurementAliasesAndCombinations) {
   }
 }
 
+TEST(PublicChannelSensorBot, ExtractsNormalizedRequesterLabelForTraceAcknowledgement) {
+  PublicChannelSensorBot bot;
+  uint8_t data[MAX_PACKET_PAYLOAD] = {};
+  const char* command = "  Alice   Smith : !hillvue trace";
+  strcpy(reinterpret_cast<char*>(&data[5]), command);
+  uint8_t metrics = 0;
+  bool busy = false, targeted = false;
+  PublicChannelSensorBot::TraceAction action;
+  char requester[32]{};
+  ASSERT_TRUE(bot.accept(PAYLOAD_TYPE_GRP_TXT, data, 5 + strlen(command), 100,
+                         false, metrics, busy, 0, nullptr, &targeted, &action,
+                         requester, sizeof(requester)));
+  EXPECT_EQ(PublicChannelSensorBot::REQUEST_TRACE, metrics);
+  EXPECT_FALSE(targeted);
+  EXPECT_EQ(PublicChannelSensorBot::TRACE_START, action);
+  EXPECT_STREQ("Alice Smith", requester);
+}
+
 TEST(PublicChannelSensorBot, RejectsInvalidCommandsAndDuplicates) {
   for (const char* command : { "Alice: !hillvuex", "Alice: !hillvue nonsense",
        "Alice: !hillvue ping t", "Alice: !hillvue path air", "!hillvue" }) {

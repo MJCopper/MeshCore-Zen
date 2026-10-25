@@ -27,6 +27,7 @@ public:
     return true;
   }
   void reset() { _state = IDLE; _packet = NULL; _part = 0; _failures = 0; _outcome = NONE; }
+  uint32_t due() const { return _due; }
   bool active() const { return _state != IDLE; }
   bool inFlight() const { return _state == TRANSMITTING; }
   bool failure() const { return _failure; }

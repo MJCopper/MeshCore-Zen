@@ -6,6 +6,10 @@
 class TraceTimingPolicy {
 public:
   static const uint32_t QUEUE_TIMEOUT_MILLIS = 10000;
+  static const uint8_t LOGIN_MAX_ATTEMPTS = 3;
+  static const uint32_t CONTROL_TIMEOUT_MILLIS = 40000;
+  static const uint32_t LOGIN_QUEUE_TIMEOUT_MILLIS = 8000;
+  static const uint32_t LOGIN_REPLY_TIMEOUT_MILLIS = 8000;
   static const uint32_t FINAL_GRACE_MILLIS = 3000;
   static const uint32_t REPORT_TIMEOUT_MILLIS = 10000;
 
@@ -29,12 +33,12 @@ public:
     return budget < 30000 ? 30000 : budget > 0x7FFFF000 ? 0x7FFFF000 : budget;
   }
 
+  static uint32_t bounded(uint64_t value) { return value>0x7FFFF000?0x7FFFF000:(uint32_t)value; }
+  static uint32_t floodTimeout(uint32_t airtime) { return bounded(1500ULL+16ULL*airtime); }
+  static uint32_t directTimeout(uint32_t airtime,uint8_t entries) {
+    return bounded(1500ULL+(6ULL*airtime+250)*(uint16_t(entries)+1));
+  }
   static uint32_t attemptTimeout(uint8_t repeaters, uint32_t airtime_millis) {
-    uint64_t minimum = 5000 + (uint64_t)repeaters * 2500;
-    uint64_t estimated = 500 + ((uint64_t)airtime_millis * 6 + 250) * (2 * repeaters);
-    uint64_t timeout = minimum > estimated ? minimum : estimated;
-    timeout = ((timeout + 999) / 1000) * 1000;
-    // Keep timer intervals within the wrap-safe half of the millisecond range.
-    return timeout > 0x7FFFF000 ? 0x7FFFF000 : (uint32_t)timeout;
+    return directTimeout(airtime_millis,repeaters?2*repeaters-1:0);
   }
 };

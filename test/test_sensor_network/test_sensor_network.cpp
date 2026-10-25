@@ -2,6 +2,8 @@
 #include <deque>
 #include <memory>
 #include <tuple>
+#include <helpers/RepeaterLogin.h>
+#include "../timing_reference/LoRaReferenceVectors.h"
 #include "../sensor_mocks/SensorTestRig.h"
 
 // Deterministic packet medium: real MeshCore forwarding, simulated links and airtime.
@@ -10,6 +12,14 @@ class NetworkRadio : public TestRadio {
 public:
   struct Reception { std::vector<uint8_t> bytes; int8_t snr; };
   std::deque<Reception> received;
+  const LoRaReferenceProfile* phy=nullptr;
+  uint8_t phy_index=0;
+  uint32_t timingProfile() const override { return phy?0x10000u+phy_index:airtime; }
+  uint32_t getEstAirtimeFor(int length) override {
+    if(!phy) return TestRadio::getEstAirtimeFor(length);
+    if(transmitting) ++estimates_during_tx;
+    return phy->airtime[std::min(255,std::max(0,length))];
+  }
   uint32_t started_at = 0;
   bool active = false;
   uint32_t busy_until = 0;
@@ -24,6 +34,7 @@ public:
     return length;
   }
   bool startSendRaw(const uint8_t* bytes, int length) override {
+    if(phy) airtime=getEstAirtimeFor(length);
     if (!TestRadio::startSendRaw(bytes, length)) return false;
     started_at = g_mock_millis;
     active = true;
@@ -43,6 +54,10 @@ public:
   int discovery_matches[24]{};
   unsigned discovery_requests = 0;
   bool discovery_enabled = false;
+  bool public_guest = true;
+  bool accept_foreign_local_control = false;
+  TransportKey fallback_scope{};
+  unsigned login_requests = 0;
   PublicChannelSensorBot channels;
   std::vector<std::string> messages, acknowledgements;
   uint32_t direct_delay = 0, flood_delay = 0;
@@ -55,8 +70,9 @@ protected:
     if (scoped_only && packet->isRouteFlood() &&
         (packet->getRouteType() != ROUTE_TYPE_TRANSPORT_FLOOD ||
          packet->transport_codes[0] != required_scope.calcTransportCode(packet))) {
-      scope_drops++;
-      return ACTION_RELEASE;
+      bool local=accept_foreign_local_control && packet->payload_len>0 && self_id.isHashMatch(packet->payload) &&
+          (packet->getPayloadType()==PAYLOAD_TYPE_REQ || packet->getPayloadType()==PAYLOAD_TYPE_ANON_REQ);
+      if(!local) { scope_drops++; return ACTION_RELEASE; }
     }
     return Mesh::onRecvPacket(packet);
   }
@@ -74,14 +90,33 @@ protected:
     if (!discovery_enabled || type != PAYLOAD_TYPE_REQ || length < 9 || data[4] != 3) return;
     auto client = discovery_clients.getClientByIdx(discovery_matches[index]);
     uint32_t tag; memcpy(&tag, data, 4);
-    if (tag <= client->last_timestamp) return;  // real repeater replay protection
-    client->last_timestamp = tag; discovery_requests++;
+    if (!isFreshRepeaterRequest(*client,tag)) return;  // real repeater replay protection
+    commitRepeaterRequest(*client,tag,rtcTime()); discovery_requests++;
     uint8_t extra[5]{}; memcpy(extra, &tag, 4); extra[4] = 0xaa;
     auto reply = createPathReturn(client->id, secret, packet->path, packet->path_len,
                                   PAYLOAD_TYPE_RESPONSE, extra, sizeof(extra));
     if (reply) mesh::sendCapturedFlood(static_cast<mesh::Mesh&>(*this),
-              scoped_only ? required_scope : TransportKey{}, reply, 100, packet->getPathHashSize());
+              replyScope(*packet), reply, 100, packet->getPathHashSize());
   }
+  void onAnonDataRecv(mesh::Packet* packet,const uint8_t* secret,const mesh::Identity& sender,
+                      uint8_t* data,size_t length) override {
+    if(!discovery_enabled || length<4) return;
+    data[length]=0; uint32_t tag; memcpy(&tag,data,4); bool persist=false;
+    auto client=authenticateRepeaterClient(discovery_clients,sender,secret,tag,rtcTime(),
+        (const char*)data+4,"admin-secret",public_guest?"":"protected",persist);
+    ++login_requests;
+    if(!client) return;
+    uint8_t body[13],nonce[4]{};
+    encodeRepeaterLoginReply(body,*client,getRTCClock()->getCurrentTimeUnique(),nonce,2);
+    auto reply=createPathReturn(sender,secret,packet->path,packet->path_len,PAYLOAD_TYPE_RESPONSE,body,sizeof(body));
+    if(reply) mesh::sendCapturedFlood(static_cast<mesh::Mesh&>(*this),replyScope(*packet),reply,100,packet->getPathHashSize());
+  }
+  TransportKey replyScope(const mesh::Packet& packet) {
+    bool known=packet.hasTransportCodes() && required_scope.calcTransportCode(&packet)==packet.transport_codes[0];
+    auto selected=mesh::chooseReplyScope(known,packet.getRouteType()==ROUTE_TYPE_FLOOD,!fallback_scope.isNull());
+    return selected==mesh::REPLY_SCOPE_REQUEST?required_scope:selected==mesh::REPLY_SCOPE_DEFAULT?fallback_scope:TransportKey{};
+  }
+  uint32_t rtcTime() { return getRTCClock()->getCurrentTime(); }
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel dest[], int capacity) override {
     return channels.findChannel(hash, dest, capacity);
   }
@@ -255,7 +290,7 @@ protected:
   }
   void expectCleanPools() {
     for (auto& pool : pools) EXPECT_EQ(32, pool->getFreeCount());
-    EXPECT_EQ(0u, fs.writes);
+    EXPECT_FALSE(fs.exists("/s_contacts"));
   }
 };
 
@@ -568,6 +603,7 @@ protected:
           if (meshes[earlier]->self_id.pub_key[0] == meshes[node]->self_id.pub_key[0]) unique = false;
       } while (!unique);
     }
+    bot->begin(&fs); // Bind durable files to the final simulated sensor identity.
     relay(1).discovery_enabled = true;
     auto client = relay(1).discovery_clients.putClient(sensor_mesh->self_id, PERM_ACL_GUEST);
     relay(1).self_id.calcSharedSecret(client->shared_secret, sensor_mesh->self_id);
@@ -593,7 +629,7 @@ TEST_P(TargetedNetworkRoutes, AuthenticatedScopedDiscoveryAndLoopReachSelectedRe
   auto width = std::get<0>(GetParam()), ch = std::get<1>(GetParam());
   targetedRequest(width, ch); runUntil(15000);
   ASSERT_EQ(1u, relay(0).acknowledgements.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested to Target, please wait up to 60 seconds.", relay(0).acknowledgements[0]);
+  EXPECT_EQ("BME680 Sensor: Trace requested to Target, please wait up to " + std::to_string(bot->timing().seconds()) + " seconds.", relay(0).acknowledgements[0]);
   ASSERT_EQ(1u, relay(0).messages.size());
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("avg SNR"));
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("3 Target"));
@@ -607,16 +643,27 @@ TEST_P(TargetedNetworkRoutes, AuthenticatedScopedDiscoveryAndLoopReachSelectedRe
 INSTANTIATE_TEST_SUITE_P(BothChannelsAndWidths, TargetedNetworkRoutes,
     ::testing::Combine(::testing::Values(1, 2), ::testing::Values(0, 1)));
 
-TEST_F(TargetedSensorNetwork, UnknownRemoteClientTimesOutWithoutAutomaticLogin) {
-  relay(1).discovery_clients.load(&fs, relay(1).self_id);
-  targetedRequest(1, 0); runUntil(90000);
-  ASSERT_EQ(1u, relay(0).messages.size());
-  EXPECT_NE(std::string::npos, relay(0).messages[0].find("discovery timed out"));
-  EXPECT_EQ(2, transmitted(SENSOR, PAYLOAD_TYPE_REQ));
-  EXPECT_EQ(0, transmitted(SENSOR, PAYLOAD_TYPE_TRACE));
-  EXPECT_EQ(0, relay(1).discovery_clients.getNumClients());
-  EXPECT_EQ(0, sensor_mesh->management_acl.getNumClients());
-  for (auto& pool : pools) EXPECT_EQ(32, pool->getFreeCount());
+TEST_F(TargetedSensorNetwork, FreshUnknownClientUsesLoginPathWithoutRedundantDiscovery) {
+  relay(1).discovery_clients.load(&fs,relay(1).self_id);
+  ASSERT_EQ(0,relay(1).discovery_clients.getNumClients());
+  targetedRequest(1,0); runUntil(60000);
+  ASSERT_EQ(1u,relay(0).messages.size());
+  EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_EQ(1u,relay(1).login_requests); EXPECT_EQ(0u,relay(1).discovery_requests);
+  EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_REQ)); EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_ANON_REQ));
+  EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_TRACE)); expectCleanPools();
+  const auto& evidence=bot->diagnostics();
+  EXPECT_TRUE(evidence.control[0].sent);EXPECT_TRUE(evidence.control[1].sent);EXPECT_FALSE(evidence.control[2].sent);
+  EXPECT_TRUE(evidence.login_path);
+  EXPECT_GT(evidence.control[1].tag,evidence.control[0].tag); EXPECT_EQ(0u,evidence.control[2].tag);
+  EXPECT_GE(evidence.control[1].completed,evidence.control[1].started);
+  EXPECT_LE(radios[SENSOR].sent.size(),8u);
+  // A stock repeater reboot loses transient guest clients, not its identity.
+  relay(1).discovery_clients.load(&fs,relay(1).self_id);
+  ASSERT_EQ(0,relay(1).discovery_clients.getNumClients());
+  targetedRequest(1,0);runUntil(120000);
+  ASSERT_EQ(2u,relay(0).messages.size());EXPECT_NE(std::string::npos,relay(0).messages.back().find("avg SNR"));
+  EXPECT_EQ(2u,relay(1).login_requests);EXPECT_EQ(2,transmitted(SENSOR,PAYLOAD_TYPE_TRACE));expectCleanPools();
 }
 
 TEST_F(TargetedSensorNetwork, ReplayProtectionUsesMonotonicRtcTagsRatherThanTraceRandomIds) {
@@ -629,7 +676,63 @@ TEST_F(TargetedSensorNetwork, ReplayProtectionUsesMonotonicRtcTagsRatherThanTrac
   expectCleanPools();
 }
 
+TEST_F(TargetedSensorNetwork, VerifiedAdvertFallbackPersistsAndWorksWithoutRemoteLogin) {
+  relay(1).discovery_enabled=false;
+  uint8_t app[40]; auto length=AdvertDataBuilder(ADV_TYPE_REPEATER,"Target").encodeTo(app);
+  auto advertisement=meshes[1]->createAdvert(meshes[1]->self_id,app,length);
+  ASSERT_NE(nullptr,advertisement);
+  mesh::sendCapturedFlood(*meshes[1],scope,advertisement,0,2);
+  runUntil(3000);
+  EXPECT_GT(bot->diagnostics().advert_observations,0u);
+  targetedRequest(2,1);runUntil(60000);
+  ASSERT_EQ(1u,relay(0).messages.size());
+  EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_TRUE(bot->diagnostics().advert_route);
+  EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_TRACE)); EXPECT_TRUE(fs.exists("/trace_adverts"));
+  expectCleanPools();
+  // Recreate the service with retained identity/files but no fresh advert.
+  bot.reset(new SensorBotService(*sensor_mesh,snapshot)); sensor_mesh->bot=bot.get(); bot->begin(&fs);
+  targetedRequest(2,1);runUntil(120000);
+  ASSERT_EQ(2u,relay(0).messages.size());
+  EXPECT_NE(std::string::npos,relay(0).messages.back().find("avg SNR")) << relay(0).messages.back();
+  EXPECT_TRUE(bot->diagnostics().advert_route); EXPECT_TRUE(bot->diagnostics().advert_probation);
+  EXPECT_EQ(2,transmitted(SENSOR,PAYLOAD_TYPE_TRACE)); expectCleanPools();
+}
+
+TEST_F(TargetedSensorNetwork, ProtectedGuestCannotBlockAdvertFallback) {
+  relay(1).discovery_clients.load(&fs,relay(1).self_id); relay(1).public_guest=false;
+  uint8_t app[40];auto len=AdvertDataBuilder(ADV_TYPE_REPEATER,"Target").encodeTo(app);
+  auto advertisement=meshes[1]->createAdvert(meshes[1]->self_id,app,len);
+  mesh::sendCapturedFlood(*meshes[1],scope,advertisement,0,1);runUntil(3000);
+  targetedRequest(1,0);runUntil(60000);
+  ASSERT_EQ(1u,relay(0).messages.size());EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_EQ(3u,relay(1).login_requests); EXPECT_EQ(0,relay(1).discovery_clients.getNumClients());
+  EXPECT_TRUE(bot->diagnostics().advert_route);expectCleanPools();
+}
+
+TEST_F(TargetedSensorNetwork, StockReplyScopeFallbackIsAcceptedWithFrozenPublicContext) {
+  connect(1,SENSOR);
+  relay(1).accept_foreign_local_control=true; relay(1).fallback_scope=scope;
+  sensor_mesh->default_scope.key[0]=0x45; // Target/intermediates do not know this outgoing scope.
+  targetedRequest(1,0);runUntil(15000);
+  ASSERT_EQ(1u,relay(0).messages.size());EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_TRUE(bot->diagnostics().has_result); EXPECT_GT(bot->diagnostics().scope_mismatches,0u);
+  expectReportCodes();expectCleanPools();
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
+}
+
+TEST_F(TargetedSensorNetwork, AustraliaNarrowUsesVariablePacketAirtimeAndLoginReturnPath) {
+  for(auto& radio:radios) { radio.phy=&LORA_REFERENCE[0]; radio.phy_index=0; }
+  relay(1).discovery_clients.load(&fs,relay(1).self_id);
+  targetedRequest(1,0); runUntil(120000);
+  ASSERT_EQ(1u,relay(0).messages.size()); EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_EQ(1u,relay(1).login_requests); EXPECT_EQ(0u,relay(1).discovery_requests);
+  EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_REQ)); EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_ANON_REQ));
+  EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_TRACE)); EXPECT_TRUE(bot->diagnostics().login_path);
+  EXPECT_EQ(TraceTimingPolicy::floodTimeout(LORA_REFERENCE[0].airtime[57]),bot->timing().login_wait); EXPECT_LE(bot->timing().duration,120000u);
+  expectCleanPools();
 }

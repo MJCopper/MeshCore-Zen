@@ -1,0 +1,1285 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Trace discovery repair and stationary-sensor advert fallback - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#trace-discovery-repair-and-stationary-sensor-advert-fallback" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Trace discovery repair and stationary-sensor advert fallback
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-required-user-visible-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Required user-visible behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-concrete-routing-and-first-contact-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Concrete routing and first-contact policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-time-allocation-and-traffic-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Time allocation and traffic bounds
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-correct-login-protocol-and-transaction-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Correct login protocol and transaction ownership
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-scope-policy-make-the-zen-difference-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Scope policy: make the Zen difference explicit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-durable-request-timestamps-and-clock-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Durable request timestamps and clock diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-verified-advert-route-collection-and-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Verified advert-route collection and construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-stationary-node-cache-persistence-and-freshness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Stationary-node cache, persistence and freshness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-diagnostics-and-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Diagnostics and messages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-implementation-boundaries-and-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Implementation boundaries and sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-test-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Test matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Test matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#first-contact-and-real-118-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        First contact and real 1.18 semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advert-conversion-and-login-free-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advert conversion and login-free fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-identity-and-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope, identity and history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time-persistence-and-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Time, persistence and failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regression-firmware-and-documentation-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regression, firmware and documentation gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-hardware-acceptance-and-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Hardware acceptance and completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approved-guest-login-timing-amendment-25-october-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approved guest-login timing amendment — 25 October 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approved-guest-login-retry-amendment-25-october-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approved guest-login retry amendment — 25 October 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/sensor-trace-discovery-repair-plan.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="trace-discovery-repair-and-stationary-sensor-advert-fallback">Trace discovery repair and stationary-sensor advert fallback</h1>
+<p>Status: software implemented and tested; physical acceptance pending.
+See the <a href="../validation/sensor-trace-discovery-repair/">implementation validation</a>.
+Date: 2026-10-25. Sensor baseline: <code>5add24af</code>; Zen comparison: <code>6ba09b28</code>.</p>
+<p>This plan implements the findings in the
+<a href="../validation/sensor-zen-discovery-review/">sensor/Zen discovery review</a>, together
+with login-free advert-route fallback. The sensor is stationary, so retaining
+observed routes is useful. Repeaters and radio conditions can still change;
+every candidate must be tested by a new TRACE before reporting a result.</p>
+<h2 id="1-required-user-visible-behaviour">1. Required user-visible behaviour</h2>
+<p>Keep the existing commands and output:</p>
+<pre><code class="language-text">!hillvue trace 7188
+Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+</code></pre>
+<p>Preserve full-key prefix resolution, frozen destination name or lowercase prefix
+fallback, unknown/ambiguous errors, bare trace acknowledgement, final sensor-to-
+target node ordering, averaged bidirectional SNR and usual result formatting.</p>
+<p>For targeted traces, obtain a route through authenticated discovery where
+possible. Establish first contact when needed and publicly permitted. If no
+authenticated route is obtained, try a stored route inferred from that target's
+verified flooded adverts. A usable advert route must allow tracing without any
+successful login. Never require an administrator password for tracing.</p>
+<p>Use one immutable deadline from command acceptance: stop discovery/probing on
+the first running poll at 55 seconds, reserve the final five seconds for report
+delivery, and release trace ownership by the first running poll at 60 seconds.
+No login, cache hit, retry, late response or new advert extends these deadlines.
+Already transmitting packets stay Dispatcher-owned until completion/recovery.
+RF receipt and application scheduling cannot be guaranteed by the deadline.</p>
+<p>The normal final trace text stays unchanged. Status/debug evidence identifies
+whether the candidate came from authenticated discovery or an advert hint.
+Neither a login response nor a cached route is itself a successful trace result.</p>
+<h2 id="2-concrete-routing-and-first-contact-policy">2. Concrete routing and first-contact policy</h2>
+<p>Recommended default sequence after acknowledgement:</p>
+<ol>
+<li>Send one ordinary authenticated path-discovery request. Existing clients get
+   the fast path and avoid an unnecessary login.</li>
+<li>On no usable response, if public guest login is enabled, send exactly one
+   anonymous login using the empty public guest credential. It includes the
+   sensor's full public key, allowing an unknown requester to establish contact.</li>
+<li>After an authenticated protocol-valid login response, issue the second and
+   final discovery request with a fresh durable timestamp. Do not substitute the
+   login response's route for freshly matched discovery in this first repair.</li>
+<li>If an authenticated route is found, probe it first. Its second probe may use
+   another current authenticated route or a compatible advert alternative.</li>
+<li>If authentication/discovery cannot produce a route, select an advert hint and
+   probe it. Use a second distinct advert candidate when available; otherwise a
+   bounded retry of the same route is allowed while time remains.</li>
+<li>If no candidate exists, remain passively eligible for a new verified advert
+   during the owned request, until insufficient work time remains for a probe.
+   No additional discovery flood or background scan is generated. End with the
+   appropriate bounded failure.</li>
+</ol>
+<p>A configured <code>off</code> policy skips guest login. Following the first unanswered
+request it can make one remaining ordinary discovery attempt if that can fit;
+otherwise transition directly to fallback. It must not use all remaining time
+waiting on authentication while an eligible fallback is available. A login that
+is not acknowledged transitions to fallback rather than another identical
+unauthenticated first-contact cycle.</p>
+<p>Default public mode sends one empty credential, never a password list. Do not
+reuse the sensor's incoming management passwords or Zen's saved credentials.
+Protected guest passwords are outside the initial implementation: tracing such
+a target can use adverts, or an already established client entry. Add sensor-only
+admin/local configuration <code>get trace.login</code> and <code>set trace.login public|off</code>,
+with a small versioned policy record separate from upstream NodePrefs. A failed
+policy save must report failure and retain the previous effective setting.</p>
+<p>The target determines the role granted by its login policy. An empty credential
+could unexpectedly match a misconfigured empty admin password. Do not claim the
+wire protocol guarantees a guest role: reject an unexpected admin grant for the
+first-contact workflow, record it, and use advert fallback. Never perform admin
+commands, copy credentials, or attempt to undo the target's ACL automatically.
+A login necessarily changes remote client state if accepted; local management
+ACLs and saved management routes must remain untouched.</p>
+<h2 id="3-time-allocation-and-traffic-bounds">3. Time allocation and traffic bounds</h2>
+<p>Keep the current acknowledgement admission/watchdog policy, constrained by the
+overall deadline. Add an absolute <strong>control cutoff at 25 seconds from acceptance</strong>
+so primary discovery/login cannot consume the whole work window. It includes
+any time already spent acknowledging; it is not another 25-second timer after
+acknowledgement.</p>
+<table>
+<thead>
+<tr>
+<th>Control stage</th>
+<th>Maximum stage lifetime, including queue/TX/reply wait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial authenticated discovery</td>
+<td>6 seconds</td>
+</tr>
+<tr>
+<td>One public guest login</td>
+<td>8 seconds</td>
+</tr>
+<tr>
+<td>Final authenticated discovery</td>
+<td>6 seconds</td>
+</tr>
+</tbody>
+</table>
+<p>Each stage deadline is the earlier of its entry time plus this limit and the
+25-second control cutoff. Reply wait begins at actual TX start but cannot
+extend that stage deadline. Queue/CAD/duty delays consume the same allowance.
+A quick valid response immediately advances the workflow. If the estimated
+transmission cannot fit, skip it and use fallback. On slow profiles these stages
+can end before a valid but slow response; the fixed user-requested cap takes
+precedence. No timer callback queries the transmitting radio.</p>
+<p>At the control cutoff, cancel owned queued control packets and select an
+available route. Do not free an in-flight packet. Do not queue probes that cannot
+fit their estimate and the remaining work time. If an unusually slow in-flight
+acknowledgement/control packet occupies the radio past this point, wait only
+within the existing work deadline; no phase is entitled to a fresh allowance.</p>
+<p>Probe windows retain airtime awareness, divide remaining work among the
+remaining allowed probe attempts, and share the 55-second cutoff with retry
+pause/settling/grace. The <strong>two-probe total is global</strong>: authenticated-route and
+advert-route probing do not each get two attempts. If the first authenticated
+route fails, prefer a distinct fresh/previously validated compatible advert
+route for the remaining attempt when no better authenticated alternative exists.</p>
+<p>Maximum potentially emitting sensor packets per targeted operation:</p>
+<ul>
+<li>One public acknowledgement.</li>
+<li>Two ordinary discovery requests total.</li>
+<li>One anonymous public guest login.</li>
+<li>Two TRACE probes total across all route sources.</li>
+<li>At most two final public report parts.</li>
+</ul>
+<p>Thus at most eight application-originated emitting packets, excluding unrelated
+commands and other nodes' forwarding. Only definitely-unsent local rejections
+may retry within a stage lease. Never repeat an uncertain emission beyond that
+stage's count. Late replies do not create extra login/discovery/probe submissions.</p>
+<h2 id="4-correct-login-protocol-and-transaction-ownership">4. Correct login protocol and transaction ownership</h2>
+<p>Add a separate bounded <code>TraceGuestLogin</code> owner and a <code>TraceFirstContact</code>
+controller. Reuse the existing discovery/probe owners rather than making login
+look like an ordinary telemetry response. Keep the selected full target key,
+control context, current generation and retired-response ownership independent
+of the mutable name cache.</p>
+<p>Stock 1.18 login replies begin with the <strong>target's</strong> RTC timestamp followed by
+<code>RESP_SERVER_LOGIN_OK</code> and role/version fields. They do not echo the request's
+discovery tag. Validate decrypted packet ownership, full target identity,
+expected response shape/code, current login state, actual login TX start,
+profile and remaining time. Account for encryption padding. Explicitly test the
+13-byte stock response and its padded representation.</p>
+<p>The login wire format has no echoed request nonce. An unseen delayed old login
+reply cannot always be distinguished perfectly from a new one. Treat login
+success as advisory readiness only: do not publish a route, update a clock or
+change management state from it. Require the subsequent fresh-tag authenticated
+PATH response before accepting a primary route. Track last accepted server login
+timestamp where available and absorb retired responses without reopening work.</p>
+<p>Extend the scope binding to dispatch owned login responses delivered inside
+PATH and, where applicable, ordinary RESPONSE packets. Transient peer data is
+currently ignored, so that dispatch requires explicit implementation. Intercept
+only packets owned by the current/retired trace operation; unrelated management
+traffic retains its existing owner. No reciprocal PATH or local management-route
+installation should be triggered by trace-owned replies.</p>
+<p>A late authenticated discovery reply from an attempt sent in the <strong>current</strong>
+transaction may supply a primary candidate while control is still active.
+Cancel any superseded queued control packet. A control packet already on air
+remains radio-owned. Later valid replies may add candidates only while another
+probe can still be selected; they cannot restart completed probing or reporting.</p>
+<h2 id="5-scope-policy-make-the-zen-difference-explicit">5. Scope policy: make the Zen difference explicit</h2>
+<p>Separate three values: frozen public reply context, outgoing discovery/login
+context, and received route-evidence context. A public channel is not a transport
+region.</p>
+<p>Recommended outgoing policy:</p>
+<ol>
+<li>Use the sensor's explicitly configured default outbound transport scope.</li>
+<li>If none is configured, use a resolved scope from the accepted command.</li>
+<li>Otherwise use unscoped flood. Never fan out across guessed regions.</li>
+</ol>
+<p>Use the sensor's configured supported discovery hash width (one or two bytes),
+matching Zen's local-setting approach. Capture it once. Public acknowledgement
+and final reporting retain the original command's channel/scope/hash-width
+context. Advert-route TRACE uses the width actually observed for that route.</p>
+<p>For current-transaction authenticated discovery, match Zen's response eligibility:
+accept a valid full-target MAC/decrypted PATH with an actually sent matching tag,
+valid route and live owner/profile even if its return scope differs. Record that
+difference; do not silently discard the response. Preserve normal runtime packet
+validation. Do not copy a returned scope into outgoing or public reply context.
+This exception is limited to an owned authenticated control response and does
+not authorize background foreign-scope route harvesting.</p>
+<p>Advert fallback eligibility remains conservative: require the observation to
+match the captured outgoing control scope, or both to be unscoped. Unknown or
+ambiguous scope observations are retained only as diagnostics, not reusable
+fallbacks. History and candidates are keyed by full target, stable radio profile,
+control scope and route width; preserve the request-channel dimension of existing
+trace outcome history. Advert observations themselves are channel-independent.
+Temporary radio changes invalidate active history/candidates immediately, even
+when settings later revert. Persistent hints never restore active validated
+history automatically.</p>
+<h2 id="6-durable-request-timestamps-and-clock-diagnostics">6. Durable request timestamps and clock diagnostics</h2>
+<p>Add a sensor-only <code>TraceRequestClock</code> for outgoing login and discovery timestamps.
+Keep them separate from random TRACE identifiers and wall-clock-dependent cache
+ages. Use <code>max(current RTC unique value, next durable request value)</code> and reserve
+an exclusive upper bound before issuing any value from a new block. Proposed
+reservation: <strong>256 timestamp values</strong>.</p>
+<p>Persist a version, local full identity, upper bound, sequence and checksum using
+two independently committed replicated records. A reservation becomes usable
+only after both replicas durably contain its upper bound. On reboot, take the
+highest valid bound, start beyond that reserved range, and commit the next range
+to both replicas before use. This ordering keeps one surviving record sufficient
+when its partner is torn/corrupt: no value from a newer range may have emitted
+before both replicas covered it. If neither record is trustworthy, do not issue
+authenticated timestamps. Missing durability or retry must never reuse a value
+that could already have reached a peer. If a current RTC jump exceeds the reservation,
+reserve a new range before transmission. Saturation/overflow is an error.</p>
+<p>This is a forward-only request-time floor; do not rewrite the real wall clock
+from arbitrary peer data. Reserving ahead trades a bounded forward logical-time
+jump after restart for reduced flash writes. Document that jump and measure write
+frequency. All new journal/cache I/O is deferred to service-loop work, not RX or TX callbacks.
+Reserve a timestamp before queueing its packet. The shared allocator covers
+both trace login and trace discovery, so login cannot consume a timestamp later
+reused by discovery.</p>
+<p>First installation has no record: seed from the local RTC and commit before use,
+marking clock quality in diagnostics. Migration cannot infer a higher timestamp
+previously recorded by a remote client from silence. A corrupt existing journal
+or failed reservation prevents further authenticated requests until safe recovery;
+use advert fallback where possible. Record the condition precisely instead of
+claiming the radio or repeater is unreachable. A successful login does not prove
+that a subsequent sender timestamp exceeds the remote replay floor.</p>
+<p>Record RTC source/quality, journal health, request logical time and clock-regression
+flags. Add a documented local/admin recovery procedure for damaged state or a
+legacy remote replay floor ahead of trusted time. Never repair by random request
+tags, resetting the remote ACL, importing Zen's identity or trusting an unmatched
+login timestamp. Scope this allocator to sensor code; review any other outgoing
+authenticated operation under the same identity before sharing the mechanism.</p>
+<h2 id="7-verified-advert-route-collection-and-construction">7. Verified advert-route collection and construction</h2>
+<p>Introduce <code>TraceAdvertRouteCache</code>, separate from existing name persistence and
+validated outcome history. Populate it only from the <strong>signature-verified</strong>
+<code>onAdvertRecv</code> callback with the actual received packet. The earlier generic RX
+observer is not an authenticated advert hook.</p>
+<p>Accept the repeater identity from the signed payload, valid flood packet metadata,
+one/two-byte hash width, compatible resolved scope and stable radio profile.
+A zero-intermediate flooded advert is a valid direct-target hint. Do not treat
+a direct/shared contact advert as proof of a zero-hop RF neighbour. Reject
+malformed paths, unsupported widths and paths requiring more than ten total
+repeaters, including the target.</p>
+<p>If a received target advert has intermediate path <code>[R1, R2, ... Rn]</code> from target
+towards sensor, infer outward intermediates <code>[Rn, ... R2, R1]</code>, append the target's
+hash, then reverse the outward intermediates for the return leg:</p>
+<pre><code class="language-text">advert: target -&gt; R1 -&gt; R2 -&gt; sensor
+TRACE:  sensor -&gt; R2 -&gt; R1 -&gt; target -&gt; R1 -&gt; R2 -&gt; sensor
+</code></pre>
+<p>Build through an explicit advert-to-<code>TraceRoute</code> converter, not the incoming
+public-command path helper. Test byte order and hop count against actual wire
+packets for both widths and every supported length.</p>
+<p>The advert signature authenticates origin identity/data, <strong>not the mutable flood
+path</strong>. Reversing an advert supplies a route hint, not proof of symmetric links
+or cryptographic proof that a short-hash TRACE passed through that full identity.
+Existing ambiguous hop labels must remain ambiguous. A new round-trip probe is
+mandatory; no success, RTT or SNR may be copied from stored observations.</p>
+<p>Core first-packet deduplication means duplicate routes from the same advert
+normally never reach the verified callback. Collect alternatives from different
+verified advert emissions over time; do not change core deduplication merely to
+collect duplicate-path copies.</p>
+<h2 id="8-stationary-node-cache-persistence-and-freshness">8. Stationary-node cache, persistence and freshness</h2>
+<p>Recommended limits: <strong>48 full target identities, two distinct advert candidates
+per identity</strong>, with a static route-cache budget of <strong>10 KiB</strong>. Store compact
+intermediate paths (up to nine hashes of two bytes), not duplicate expanded loops.
+Measure actual struct sizes and enforce bounds. This matches the known-device
+capacity without relying on mutable name-cache slot indices.</p>
+<p>Keep full key, scope, width, stable PHY fingerprint, local observation time,
+origin advert timestamp/fingerprint, last-hop SNR, provenance and validation/
+failure metadata. Stable PHY fingerprint uses actual relevant configuration;
+a reboot-local generation counter alone cannot identify persisted radio settings.
+Temporary-radio observations are RAM-only. Clear live candidates/history on any
+radio change; restored disk hints are candidates requiring new validation.</p>
+<p>Use a <strong>24-hour observation-age limit</strong> when age can be established reliably.
+This suits a stationary sensor and infrequent repeater adverts better than a
+short discovery window. A stored prior TRACE success may rank the route but
+cannot refresh its advert observation time. Last-hop SNR is a tie-breaker,
+not an end-to-end score. Prefer previously validated, recent compatible distinct
+routes; use shorter airtime/hops as further ranking evidence.</p>
+<p>Repeated copies of a remembered advert must not refresh observation freshness.
+Record timestamp/fingerprint regression rather than presenting a replay or a
+repeater-clock reset as a fresh advertisement. A new clock-regressed observation
+may be kept as a probationary hint and tested by the bounded user-owned TRACE;
+it must not become authenticated fresh route evidence. A bounded fingerprint
+cache cannot prove freshness of every historic signed replay; do not claim it can.
+No advert receipt itself triggers radio traffic.</p>
+<p>Persist a new versioned sidecar file, leaving the existing name-cache schema
+unchanged. Include local sensor identity, record count/size, stable radio metadata,
+CRC and observation provenance. Use atomic replacement/backup recovery, a
+30-second dirty coalescing delay and at most one routine save per ten minutes. Do not rewrite
+for unchanged duplicate adverts or per trace request. Save failures retain RAM
+candidates and last valid disk state; all I/O is outside radio callbacks.</p>
+<p>Persisted hints have three eligibility states:</p>
+<ul>
+<li>Known age, within 24 hours and matching identity/profile/scope: normal fallback.</li>
+<li>Known expired/incompatible/corrupt: ineligible.</li>
+<li>Age unknown after reboot without trusted wall time: probationary fallback,
+  tested only by a new bounded probe. Do not reset or invent an advert observation
+  time, or call it freshly discovered. A successful TRACE records new validation
+  time separately. This permits stationary-node recovery without pretending a
+  volatile RTC supplies reliable calendar age.</li>
+</ul>
+<p>On repeated route failure, lower rank and prefer another candidate; do not
+permanently erase a potentially useful stationary route based on one collision.
+Never return an old selected result without a new probe. Replacing/evicting a
+name-cache entry cannot retarget a route record: full keys are authoritative.</p>
+<h2 id="9-diagnostics-and-messages">9. Diagnostics and messages</h2>
+<p>Add bounded RAM/debug evidence for first-contact stage and route provenance:</p>
+<ul>
+<li>Full selected identity, attempt/generation, queue/TX/completion timing and
+  packets actually submitted versus started.</li>
+<li>Guest mode, response protocol validation, returned role and advisory login state.</li>
+<li>RTC source, durable timestamp/journal health and clock-regression risk.</li>
+<li>Outgoing scope/width, received scope mode/fingerprint and mismatch accepted.</li>
+<li>MAC/decryption/tag/owner/profile/scope/path rejection checkpoints where visible.</li>
+<li>Advert candidate availability, age confidence, width, source and selected route.</li>
+</ul>
+<p>Core decryption failures may require a narrow generic observer or target-side
+packet capture; do not assert visibility that the service does not have. Keep
+sensor policy out of core Mesh/Dispatcher. Expose safe status/debug summaries,
+not shared secrets, passwords or raw private keys. Public silence must never be
+presented as a proven permission denial or replay attack.</p>
+<p>Suggested status phases: acknowledging, authenticated discovery, public guest
+login, discovery after login, waiting for advert route, testing advert route,
+probe retry and reporting; include remaining overall seconds. Final failures
+should distinguish no discovered/advert route, no acknowledged guest login,
+clock/storage issue and attempted-route timeout where evidence supports them.
+Keep one terminal report; do not emit contradictory preliminary failures while
+fallback can still succeed. Unknown/ambiguous target errors remain unchanged.</p>
+<h2 id="10-implementation-boundaries-and-sequence">10. Implementation boundaries and sequence</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Planned responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SensorBotService</code></td>
+<td>Frozen public/control contexts, fixed deadlines, fallback transitions, one final outcome</td>
+</tr>
+<tr>
+<td><code>TraceFirstContact</code>, <code>TraceGuestLogin</code></td>
+<td>Bounded initial discovery/login/fresh discovery orchestration and ownership</td>
+</tr>
+<tr>
+<td><code>TraceDiscovery</code></td>
+<td>Fresh-tag authenticated matching, retired tags and up to two ordinary submissions</td>
+</tr>
+<tr>
+<td><code>SensorScopeBinding</code>, <code>Bme680SensorMesh</code></td>
+<td>Correct anonymous request creation, owned PATH/RESPONSE dispatch, verified advert packet/context capture</td>
+</tr>
+<tr>
+<td><code>TraceRequestClock</code></td>
+<td>Atomic timestamp reservation and diagnostics, separate from wall-clock trust</td>
+</tr>
+<tr>
+<td><code>TraceAdvertRouteCache</code> and converter</td>
+<td>Full-key route evidence, compact paths, persistence/aging/ranking</td>
+</tr>
+<tr>
+<td>Sensor-only configuration hook</td>
+<td>Public guest/off setting; no upstream NodePrefs or credential reuse</td>
+</tr>
+<tr>
+<td><code>RepeaterTraceProbe</code>, timing helpers</td>
+<td>Shared two-probe count, source-aware candidate selection and remaining-time limits</td>
+</tr>
+<tr>
+<td>Diagnostics/status and documentation</td>
+<td>First-contact/scope/clock/provenance visibility and exact bounded behaviour</td>
+</tr>
+</tbody>
+</table>
+<p>Implement in reviewable steps: reproduce missing first contact with a production-
+faithful target; add diagnostic owners and clock journal; implement guest protocol;
+separate scope contexts; collect/cache advert hints; integrate source selection
+and global attempt budget; add persistence/reboot recovery; finish regressions,
+builds and hardware acceptance. Preserve existing working-tree changes and avoid
+unrelated upstream or Zen modifications.</p>
+<h2 id="11-test-matrix">11. Test matrix</h2>
+<h3 id="first-contact-and-real-118-semantics">First contact and real 1.18 semantics</h3>
+<ul>
+<li>Empty target ACL, public guest enabled: initial discovery silence, one valid
+  anonymous login, fresh-tag discovery/PATH, successful TRACE. No test may
+  pre-register the sensor to make this case pass.</li>
+<li>Already known client: first ordinary discovery succeeds, no login is sent.</li>
+<li>Public guest unavailable, protected password, wrong/no login reply, public mode
+  off and unexpected admin grant: bounded transitions to advert fallback; no
+  password guessing or admin operation.</li>
+<li>Guest success but lost reply, delayed old login, padded/truncated/malformed
+  login, wrong peer/key/MAC/code/role and stale server timestamp: no false route
+  commit. Require fresh ordinary discovery ownership.</li>
+<li>Remote reboot loses guest state; next operation re-establishes it. Sensor's
+  management ACL/routes remain unchanged; trace-owned PATH causes no reciprocal
+  traffic. Unrelated management traffic keeps its normal owner.</li>
+</ul>
+<p>The existing simulated target is insufficient by itself. Add a native harness
+that executes the production stock 1.18 login/request reply-selection logic or
+refactor only the needed production policy into shared testable helpers with
+unchanged behaviour. Retain full encryption/Dispatcher integration. Also test
+against actual unmodified 1.18 hardware before declaring field success.</p>
+<h3 id="advert-conversion-and-login-free-fallback">Advert conversion and login-free fallback</h3>
+<ul>
+<li>Verified flooded adverts for one through ten total repeaters and both widths:
+  exact reversed intermediates, appended full-target hash prefix, return loop
+  bytes and normal outward-order/averaged-SNR output.</li>
+<li>Fresh and restored direct-target zero-intermediate flood hints; direct/shared
+  contact adverts do not create a false direct RF route.</li>
+<li>Empty remote ACL and unavailable guest access: advert fallback succeeds with
+  no successful login and no seeded remote client entry.</li>
+<li>No guest credentials, authenticated discovery unavailable and two candidate
+  paths: first broken/asymmetric path fails, second valid route succeeds within
+  the global two-probe and 60-second budgets.</li>
+<li>Authenticated route first, alternate advert used for the one remaining probe;
+  no third probe or restarted timeout.</li>
+<li>Invalid advert signature, wrong device type, unsupported width, overlong/
+  malformed hint and foreign/unresolved scope do not become eligible. Bound
+  looped candidates without mistaking repeated ambiguous short hashes alone for
+  proof of a loop; no route bypasses the round-trip validation requirement.</li>
+<li>First-packet duplicate handling, later independent adverts, duplicate timestamp/
+  fingerprint, timestamp regression and replay never manufacture fresh validated
+  outcomes. Last-hop SNR alone cannot establish end-to-end success.</li>
+<li>A fresh advert during passive wait can supply a route only for the live
+  transaction; cancellation/completion/expiry cannot trigger new traffic.</li>
+</ul>
+<h3 id="scope-identity-and-history">Scope, identity and history</h3>
+<ul>
+<li>Same-scope, target-default fallback scope, unscoped fallback and differing
+  reply scope: current full-target/tag authenticated replies follow the explicit
+  acceptance policy; mismatches are recorded, outgoing/public context stays frozen.</li>
+<li>Wrong MAC/full key/tag/owner/profile rejected even if short hashes match.</li>
+<li>Same four-character prefix on two identities rejected; same name on different
+  identities cannot mix discovery, persisted hints or history.</li>
+<li>Both public channels, both configured discovery widths, advert width different
+  from command width, and configured-default versus request-scope selection.</li>
+<li>Radio change and reversion invalidate active candidates/history; persisted
+  incompatible/temporary hints cannot revive as fresh evidence.</li>
+</ul>
+<h3 id="time-persistence-and-failures">Time, persistence and failures</h3>
+<ul>
+<li>Sensor reboot with remote replay state retained: reserved timestamps always
+  exceed previously possibly emitted values; login and discovery share allocation.</li>
+<li>RTC rollback/forward jump, journal first install/migration, wrong local identity,
+  checksum failure, torn replicated-record write, failed reserve, exhaustion and
+  overflow. No uncommitted value may emit; fallback remains possible.</li>
+<li>Cache save/load, corrupt/truncated/version/count/CRC records, failed save/rename,
+  reboot without trusted UTC, 24-hour boundary, eviction and restored probationary
+  hints. No fabricated observation age or stale result replay.</li>
+<li>Verify write coalescing/ten-minute route-save limit and timestamp reservation
+  write count. No filesystem or radio estimation in TX callbacks; bounded memory.</li>
+<li>Every phase at its deadline minus one, exact deadline and plus one; control
+  cutoff 25 seconds, work cutoff 55, final deadline 60, rollover and skipped polls.</li>
+<li>Packet allocation/queue rejection, CAD/duty contention, definite/uncertain TX
+  failure, missing start/completion and late callbacks after packet reuse.</li>
+<li>Cancel/status/busy/dedup/rate-limit throughout all new states; a new trace starts
+  after every terminal path without reboot. Never free Dispatcher-owned TX memory.</li>
+<li>One frozen named acknowledgement, at most one login, two ordinary discoveries,
+  two probes and two terminal report parts. Verify real emitted packet counts,
+  not just state transitions.</li>
+</ul>
+<h3 id="regression-firmware-and-documentation-gates">Regression, firmware and documentation gates</h3>
+<p>Run focused first-contact, advert, clock, scope and lifecycle tests; then all
+native/native_sensor/native_kiss_modem suites and the working sensor ASan setup.
+Build sensor, baseline sensor, USB companion, repeater and room-server XIAO
+nRF52 environments; generate applicable DFU/UF2 artifacts. Run sensor-boundary,
+whitespace and strict documentation checks. Compare RAM/flash, enforce the route
+cache budget and validate all generated DFU manifests/CRCs. Record exact revision,
+results, sizes and SHA256 values in a new validation report. Package an updated
+uniquely named OTA when requested; do not flash or publish automatically.</p>
+<h2 id="12-hardware-acceptance-and-completion">12. Hardware acceptance and completion</h2>
+<p>Capture a working Zen and a sensor transaction against 7188 (stock 1.18) and the
+additional repeaters Zen can trace without known prior access. Record identities,
+PHY, packet types/order, scopes, tags and timings without assuming their ACL state.</p>
+<p>Required field cases: fresh sensor identity with no remote ACL entry; known client;
+public guest disabled/protected; successful advert-only fallback; sensor reboot
+without external RTC; remote reboot; radio change/reversion; one broken advert
+route and valid alternate; cancellation; and repeated requests after timeout.
+Preload the stationary sensor with genuine received adverts, reboot it, and verify
+fallback still works through persisted hints without manufacturing a fresh advert.</p>
+<p>Completion requires a successful fresh first-contact case <strong>without fixture ACL
+seeding</strong>, a successful login-free advert fallback, preserved result formatting,
+correct scope/clock diagnostics, all bounded ownership/traffic/timing regressions,
+and recorded hardware evidence. Software-only validation must be labelled as
+such until the physical cases are actually performed. No firmware code or tests
+are changed by this planning document.</p>
+<h2 id="approved-guest-login-timing-amendment-25-october-2026">Approved guest-login timing amendment — 25 October 2026</h2>
+<p>The original eight-second combined guest-login lease is superseded. Use an
+independent eight-second queue allowance, an airtime-based TX watchdog starting
+at actual TX start, then an eight-second receive window starting at successful
+local TX completion. All phases remain bounded by the original 25-second control
+cutoff, 55-second work cutoff and 60-second overall deadline. Do not extend
+ordinary discovery stage leases or increase login emissions. An expired queue,
+failed/missing completion, cancellation, or late/duplicate completion cannot
+start or reset a receive window. Status distinguishes queued, transmitting and
+awaiting reply. Tests cover busy-channel queueing, actual completion, exact
+boundaries, late replies, stale callbacks, cancellation and millisecond wrap.</p>
+<h2 id="approved-guest-login-retry-amendment-25-october-2026">Approved guest-login retry amendment — 25 October 2026</h2>
+<p>Allow two retries of guest login (three transmissions total), with distinct
+forward-only request timestamps and bounded backoff after an unanswered reply
+or failed transmission. Stop on accepted login response, unexpected role,
+cancellation, queue expiry, clock failure or exhausted control time. Retain
+separate queue, TX and post-completion receive phases. To accommodate three
+eight-second reply windows plus initial/final discovery, replace the 25-second
+control cutoff with 40 seconds from acceptance. The 55-second work and 60-second
+overall cutoffs remain unchanged. This is an upper bound on retries, not a
+promise all three fit after arbitrary queue delays. The maximum targeted-trace
+application emissions become ten. Preserve diagnostics slots 0/1/2 and add
+slots 3/4 for the login retries. Successful-route persistence is not changed.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

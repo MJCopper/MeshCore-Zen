@@ -18,8 +18,10 @@ protected:
   }
   void SetUp() override {
     SensorIntegration::SetUp();
+    char policy_reply[64]; bot.tracePolicyCommand("set trace.login off",policy_reply);
     mesh.self_id = mesh::LocalIdentity(&random);
     target = mesh::LocalIdentity(&random);
+    bot.begin(&fs);
     remote.self_id = target;
     remote.begin();
     advertise(target);
@@ -108,7 +110,7 @@ TEST_F(TargetTrace, AuthenticatedDiscoveryUsesRtcAndDirectTargetLoopThenNormalRe
   ASSERT_EQ(3u, radio.sent.size());
   EXPECT_EQ("BME680 Sensor: Trace: 1000 ms RTT (avg SNR)\n1 Target -4.0 dB", publicText(2));
   EXPECT_EQ(0, mesh.management_acl.getNumClients());
-  EXPECT_EQ(32, pool.getFreeCount()); EXPECT_EQ(0u, fs.writes);
+  EXPECT_EQ(32, pool.getFreeCount()); EXPECT_FALSE(fs.exists("/s_contacts"));
 }
 
 TEST_F(TargetTrace, UppercasePrefixSelectsTheSameFullIdentity) {
@@ -131,32 +133,25 @@ TEST_F(TargetTrace, AmbiguousPrefixNeverSelectsTheFirstCacheEntry) {
 }
 
 TEST_F(TargetTrace, DiscoveryTimeoutIsBoundedAndNotAnUnreachableClaim) {
-  begin(); finish(200); tick(13900); tick(13901); finish(14000);
-  ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_GT(requestTag(1), requestTag(0));
-  tick(27700); tick(30000); finish(30100); tick(120000);
-  ASSERT_EQ(3u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(2));
-  EXPECT_EQ(32, pool.getFreeCount());
+  begin(); finish(200); tick(3300); tick(3301); finish(3401);
+  ASSERT_EQ(2u,radio.sent.size()); EXPECT_GT(requestTag(1),requestTag(0));
+  tick(6501); completeUntil(11000);
+  ASSERT_EQ(3u,radio.sent.size()); EXPECT_EQ("BME680 Sensor: Trace: discovery timed out",publicText(2));
+  EXPECT_EQ(32,pool.getFreeCount()); tick(bot.traceDeadline()); EXPECT_EQ(3u,radio.sent.size());
 }
 
 TEST_F(TargetTrace, NoReplyIsAcceptedUntilItsDiscoveryActuallyTransmitted) {
-  radio.busy = true; begin();
-  EXPECT_TRUE(radio.sent.empty());
-  radio.incoming = pathReply(1800000001); tick(300);
-  EXPECT_TRUE(radio.sent.empty());
-  tick(10100); tick(20100); radio.busy = false; tick(24000); finish(24100);
-  ASSERT_EQ(1u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: discovery radio busy", publicText(0));
+  radio.busy=true; mesh.cad_max_duration=UINT32_MAX; begin(); EXPECT_TRUE(radio.sent.empty());
+  radio.incoming=pathReply(1800000001); tick(300); EXPECT_TRUE(radio.sent.empty());
+  tick(8100); radio.busy=false; completeUntil(12000);
+  ASSERT_EQ(1u,radio.sent.size()); EXPECT_EQ(0u,bot.diagnostics().starts);
+  EXPECT_NE(std::string::npos,publicText(0).find("queue budget exhausted"));
 }
 
 TEST_F(TargetTrace, TwoRejectedStartsCannotCreateAnUnlimitedDiscoveryStream) {
-  radio.fail = true; begin(); tick(200);
-  EXPECT_EQ(2u, radio.start_calls);
-  radio.fail = false; tick(3000); finish(3100); tick(60000);
-  ASSERT_EQ(1u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: discovery transmit failed", publicText(0));
-  EXPECT_EQ(32, pool.getFreeCount());
+  radio.fail=true; begin(); tick(200); tick(201); EXPECT_EQ(2u,radio.start_calls);
+  radio.fail=false; completeUntil(6000); ASSERT_EQ(1u,radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace: discovery transmit failed",publicText(0)); EXPECT_EQ(32,pool.getFreeCount());
 }
 
 TEST_F(TargetTrace, WrongTimestampAndTamperedAuthenticationCannotStartTrace) {
@@ -193,7 +188,7 @@ TEST_F(TargetTrace, LatePathAfterCompletionCannotMutateAdminRouteOrSendMoreTraff
 
 TEST_F(TargetTrace, RadioChangeCancelsQueuedDiscoveryBeforeDispatcherCanSendIt) {
   radio.busy = true; begin(); mesh.profile = 1;
-  radio.busy = false; tick(200); tick(3000); finish(3100); tick(60000);
+  radio.busy = false; tick(200); completeUntil(3100); tick(60000);
   ASSERT_EQ(1u, radio.sent.size());
   EXPECT_EQ("BME680 Sensor: Trace: radio configuration changed", publicText(0));
   EXPECT_EQ(32, pool.getFreeCount());
@@ -202,15 +197,19 @@ TEST_F(TargetTrace, RadioChangeCancelsQueuedDiscoveryBeforeDispatcherCanSendIt) 
 TEST_F(TargetTrace, OversizedOrUnsupportedDiscoveredPathsFailWithoutProbing) {
   begin(); finish(200);
   radio.incoming = pathReply(requestTag(), std::vector<uint8_t>(10, 0x44)); tick(500); tick(3000); finish(3100);
+  EXPECT_EQ(1u,bot.diagnostics().route_rejections);
+  tick(55100); tick(55400); finish(55500);
   ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: path too long (max 10 repeaters)", publicText(1));
+  EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(1));
 }
 
 TEST_F(TargetTrace, UnsupportedThreeByteHashPathIsRejected) {
   begin(); finish(200);
   radio.incoming = pathReply(requestTag(), {}, 3); tick(500); tick(3000); finish(3100);
+  EXPECT_EQ(1u,bot.diagnostics().route_rejections);
+  tick(55100); tick(55400); finish(55500);
   ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: discovered path unsupported", publicText(1));
+  EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(1));
 }
 
 TEST_F(TargetTrace, UnsupportedRequestHashWidthDoesNotSendDiscovery) {
@@ -274,36 +273,27 @@ TEST_F(TargetTrace, FullCollidingAclSearchStillHasBoundedTransientDiscoverySlot)
   EXPECT_EQ(0u, mesh.management_path_updates);
 }
 
-TEST_F(TargetTrace, DiscoveryIgnoresWrongScopeAndUsesFrozenScopeForItsReport) {
-  auto region = mesh.regions.putRegion("#target-scope", 0); region->flags = 0;
-  ASSERT_EQ(1, mesh.regions.getTransportKeysFor(*region, &scope, 1));
-  begin(2, 1); auto tag = requestTag(); finish(200);
-  auto wrong = parse(pathReply(tag));
-  wrong.transport_codes[0] ^= 1;
-  radio.incoming = wire(wrong); tick(300);
-  EXPECT_EQ(1u, radio.sent.size());
-  // Different authenticated PATH payload avoids the mesh's first-packet duplicate cache.
-  radio.incoming = pathReply(tag, {0x10, 0x11}, 2); tick(500); finish(600);
-  ASSERT_EQ(2u, radio.sent.size());
-  mesh.default_scope.key[0] = 0xff;
-  traceReply(1, 1500); tick(5000); finish(5100);
-  ASSERT_EQ(3u, radio.sent.size());
-  auto report = parse(radio.sent[2]);
-  EXPECT_EQ(ROUTE_TYPE_TRANSPORT_FLOOD, report.getRouteType());
-  EXPECT_EQ(scope.calcTransportCode(&report), report.transport_codes[0]);
-  EXPECT_EQ(2, report.getPathHashSize());
-  EXPECT_NE(std::string::npos, publicText(2, &channel.channel(1)).find("avg SNR"));
+TEST_F(TargetTrace, DiscoveryAcceptsAuthenticatedReturnScopeDriftAndFreezesPublicReplyScope) {
+  auto region=mesh.regions.putRegion("#target-scope",0); region->flags=0;
+  ASSERT_EQ(1,mesh.regions.getTransportKeysFor(*region,&scope,1));
+  begin(2,1); auto tag=requestTag(); finish(200);
+  auto wrong=parse(pathReply(tag)); wrong.transport_codes[0]^=1;
+  radio.incoming=wire(wrong); tick(500); finish(600);
+  ASSERT_EQ(2u,radio.sent.size()); EXPECT_EQ(1u,bot.diagnostics().scope_mismatches);
+  mesh.default_scope.key[0]=0xff;
+  traceReply(1,1500); tick(5000); finish(5100);
+  ASSERT_EQ(3u,radio.sent.size()); auto report=parse(radio.sent[2]);
+  EXPECT_EQ(scope.calcTransportCode(&report),report.transport_codes[0]);
+  EXPECT_NE(std::string::npos,publicText(2,&channel.channel(1)).find("avg SNR"));
 }
 
 TEST_F(TargetTrace, LateFirstDiscoveryCanCancelAQueuedDiscoveryRetry) {
-  begin(); auto tag = requestTag(); finish(200);
-  radio.busy = true; tick(30100);
-  radio.incoming = pathReply(tag); tick(30200);
-  radio.busy = false; tick(31000);
-  ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[1]).getPayloadType());
-  finish(31100); traceReply(1, 32000); tick(36000); finish(36100);
-  EXPECT_EQ(3u, radio.sent.size()); EXPECT_EQ(32, pool.getFreeCount());
+  begin(); auto tag=requestTag(); finish(200);
+  radio.busy=true; tick(3300); radio.incoming=pathReply(tag); tick(3301);
+  radio.busy=false; tick(4000); ASSERT_EQ(2u,radio.sent.size());
+  EXPECT_EQ(PAYLOAD_TYPE_TRACE,parse(radio.sent[1]).getPayloadType());
+  finish(4100); traceReply(1,4200); completeUntil(8000);
+  EXPECT_EQ(3u,radio.sent.size()); EXPECT_EQ(32,pool.getFreeCount());
 }
 
 TEST_F(TargetTrace, FreshDiscoveryAlternativesCanSupplyTheTraceRetry) {
@@ -375,12 +365,12 @@ TEST(TargetDiscoveryState, TimersAndOwnershipWorkAcrossMillisWrap) {
   uint8_t key[32]{}; key[0] = 0x42;
   mesh::Packet packet;
   uint32_t now = UINT32_MAX - 100;
-  discovery.begin(key, now); discovery.queued(&packet, 123, 30000);
+  discovery.begin(key, now,false); discovery.queued(&packet, 123, 30000);
   EXPECT_FALSE(discovery.owns(key, 123));
-  discovery.started(&packet, now + 50); discovery.completed(&packet);
+  discovery.started(&packet, now + 50); discovery.completed(&packet, now + 51);
   EXPECT_TRUE(discovery.owns(key, 123));
-  discovery.tick(now + 30049); EXPECT_EQ(TraceDiscovery::WAIT, discovery.phase());
-  discovery.tick(now + 30050); EXPECT_EQ(TraceDiscovery::QUEUE, discovery.phase());
+  discovery.tick(now + 5999); EXPECT_EQ(TraceDiscovery::WAIT, discovery.phase());
+  discovery.tick(now + 6051); EXPECT_EQ(TraceDiscovery::QUEUE, discovery.phase());
   discovery.cancel();
   EXPECT_TRUE(discovery.owns(key, 123)); EXPECT_FALSE(discovery.current(key, 123));
 }
@@ -400,12 +390,10 @@ TEST(TargetHistory, FullTargetIdentitySeparatesBareAndTargetedRouteEvidence) {
 }
 
 TEST_F(TargetTrace, ExpiringDiscoveryKeepsOwnershipUntilItsFailureIsHandled) {
-  radio.busy = true; begin(); tick(10100);
-  radio.incoming = command("Bob: !hillvue trace");
-  radio.busy = false; tick(20100);
-  // The old operation must not admit and then cancel a new bare probe.
-  EXPECT_TRUE(radio.sent.empty());
-  EXPECT_EQ(0u, bot.diagnostics().starts);
+  radio.busy=true; mesh.cad_max_duration=UINT32_MAX; begin(); tick(8100);
+  radio.incoming=command("Bob: !hillvue trace"); radio.busy=false; tick(8200);
+  for(const auto& bytes:radio.sent) EXPECT_NE(PAYLOAD_TYPE_TRACE,parse(bytes).getPayloadType());
+  EXPECT_EQ(0u,bot.diagnostics().starts);
 }
 
 TEST_F(TargetTrace, MissingReportCompletionCannotLeaveAllFutureTracesBusy) {
@@ -422,18 +410,12 @@ TEST_F(TargetTrace, MissingReportCompletionCannotLeaveAllFutureTracesBusy) {
   EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent.back()).getPayloadType());
 }
 
-TEST_F(TargetTrace, ThirtySecondBusyReplyExplainsDiscoveryAndStatusShowsItsAttempt) {
-  begin(); finish(200);
-  radio.incoming = command("Bob: !hillvue trace"); tick(30000);
-  tick(30100); tick(30101); finish(30200); tick(33000); finish(33100);
-  bool found = false;
-  for (size_t i = 0; i < radio.sent.size(); i++) if (parse(radio.sent[i]).getPayloadType() == PAYLOAD_TYPE_GRP_TXT) {
-    auto text = publicText(i);
-    if (text.find("already running; discovery") != std::string::npos) found = true;
-  }
-  EXPECT_TRUE(found);
-  radio.incoming = command("Bob: !hillvue trace status"); tick(34000); tick(37000); finish(37100);
-  EXPECT_NE(std::string::npos, publicText(radio.sent.size() - 1).find("Trace: discovery 2/2"));
+TEST_F(TargetTrace, DefiniteDiscoveryFailureDoesNotWaitForUnusedAdvertAllowance) {
+  begin(); finish(200); tick(3300); tick(3301); finish(3401); tick(6501); completeUntil(11000);
+  ASSERT_EQ(3u,radio.sent.size()); EXPECT_NE(std::string::npos,publicText(2).find("discovery timed out"));
+  radio.incoming=command("Bob: !hillvue trace status"); tick(12000); completeUntil(16000);
+  ASSERT_EQ(4u,radio.sent.size()); EXPECT_NE(std::string::npos,publicText(3).find("Trace: idle"));
+  EXPECT_EQ(32,pool.getFreeCount());
 }
 
 TEST_F(TargetTrace, CancellingQueuedDiscoveryUnblocksANewBareTraceWithoutReboot) {
@@ -491,11 +473,9 @@ TEST_F(TargetTrace, BareTraceCanBeCancelledAndOldResultsCannotRestartIt) {
 }
 
 TEST_F(TargetTrace, DiscoveryFailureEventuallyAdmitsANewTrace) {
-  begin(); finish(200); tick(13900); tick(13901); finish(14000);
-  tick(27700); tick(30000); finish(30100);
-  radio.incoming = command("Bob: !hillvue trace"); tick(64000);
-  ASSERT_EQ(4u, radio.sent.size());
-  EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+  begin(); finish(200); tick(3300); tick(3301); finish(3401); tick(6501); completeUntil(11000);
+  radio.incoming=command("Bob: !hillvue trace"); tick(12000);
+  ASSERT_EQ(4u,radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE,parse(radio.sent[3]).getPayloadType());
 }
 
 TEST(TargetDiscoveryState, NullCallbacksDoNotAdvanceAnUnsubmittedDiscovery) {
@@ -506,17 +486,15 @@ TEST(TargetDiscoveryState, NullCallbacksDoNotAdvanceAnUnsubmittedDiscovery) {
   EXPECT_EQ(1, discovery.attempt()); EXPECT_FALSE(discovery.owns(key, 0));
 }
 
-TEST_F(TargetTrace, SlowRadioDiscoveryBudgetNeverAdvertisesMoreThanSixtySeconds) {
-  radio.airtime = 1512;  // RadioLib max-frame airtime at shipped SF8/BW62.5/CR5 defaults.
-  begin(); finish(200);
-  radio.incoming = command("Bob: !hillvue trace status"); tick(30000); tick(33000); finish(33100);
-  ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_NE(std::string::npos, publicText(1).find("BME680 Sensor: Trace: discovery 2/2 queued"));
-  EXPECT_NE(std::string::npos, publicText(1).find("s overall left"));
-  radio.incoming = command("Bob: !hillvue trace cancel"); tick(34000); tick(37000); finish(37100);
-  EXPECT_EQ("BME680 Sensor: Trace: cancelled", publicText(2));
-  radio.incoming = command("Bob: !hillvue trace"); tick(40000);
-  ASSERT_EQ(4u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
+TEST_F(TargetTrace, SlowRadioUsesCalculatedBudgetUpToSafetyCeiling) {
+  radio.airtime=1512; mesh.complete_trace_ack_immediately=false; begin();
+  ASSERT_EQ(1u,radio.sent.size()); EXPECT_GT(bot.timing().seconds(),60u); EXPECT_LE(bot.timing().seconds(),120u);
+  finish(1700); tick(1701); finish(3301);
+  radio.incoming=command("Bob: !hillvue trace status"); tick(4000); completeUntil(8000);
+  ASSERT_EQ(3u,radio.sent.size()); EXPECT_NE(std::string::npos,publicText(2).find("discovery 1/2"));
+  radio.incoming=command("Bob: !hillvue trace cancel"); tick(8100); completeUntil(12000);
+  radio.incoming=command("Bob: !hillvue trace"); tick(13000);
+  EXPECT_NE(std::string::npos,publicText(radio.sent.size()-1).find("Trace requested"));
 }
 
 TEST_F(TargetTrace, CancelReplyUsesTheOperatorsChannelAndScopeRatherThanTheOldTraceScope) {
@@ -547,13 +525,13 @@ TEST_P(TraceTerminalRecovery, EveryTerminalPathAllowsAnotherTraceAndReturnsAllPo
       tick(5000); finish(5100); next_at = 6000; break;
     case 1:
       begin(); finish(200); tick(13900); tick(13901); finish(14000);
-      tick(27700); tick(30000); finish(30100); next_at = 64000; break;
+      tick(55100); tick(55400); finish(55500); next_at = 64000; break;
     case 2:
       radio.busy = true; begin(); tick(10100); tick(20100);
-      radio.busy = false; tick(24000); finish(24100); next_at = 25000; break;
+      radio.busy = false; tick(55100); tick(55400); finish(55500); next_at = 56000; break;
     case 3:
       radio.fail = true; begin(); tick(200); radio.fail = false;
-      tick(3000); finish(3100); next_at = 4000; break;
+      tick(55100); tick(55400); finish(55500); next_at = 56000; break;
     case 4:
       begin(); finish(200); discover(); finish(600);
       tick(9000); tick(12000); finish(12100); tick(20000); tick(23000);
@@ -617,21 +595,18 @@ TEST_F(TargetTrace, RadioChangeDuringResultTransmissionCannotQueueAContradictory
   ASSERT_EQ(4u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_TRACE, parse(radio.sent[3]).getPayloadType());
 }
 
-TEST_F(TargetTrace, DiscoveryAtWorkCutoffReportsItsStageAndReleasesBySixtySeconds) {
-  mesh.complete_trace_ack_immediately = false;
-  radio.busy = true; mesh.cad_max_duration = UINT32_MAX;
-  begin();
-  tick(55100);
-  radio.busy = false; tick(55400); finish(55500);
-  ASSERT_EQ(1u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace: discovery timed out", publicText(0));
-  EXPECT_EQ(0u, bot.diagnostics().starts);
-  radio.incoming = command("Bob: !hillvue trace"); tick(60100);
-  ASSERT_EQ(2u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested, please wait up to 60 seconds.", publicText(1));
+TEST_F(TargetTrace, DiscoveryAtCalculatedWorkCutoffReportsAndAllowsRestart) {
+  mesh.complete_trace_ack_immediately=false; begin(); finish(200); tick(201); finish(301);
+  auto end=bot.traceDeadline(); auto work_end=end-bot.timing().report_reserve;
+  tick(work_end); tick(work_end+1); finish(work_end+101);
+  ASSERT_EQ(3u,radio.sent.size()); EXPECT_EQ("BME680 Sensor: Trace: discovery timed out",publicText(2));
+  EXPECT_EQ(0u,bot.diagnostics().starts); tick(end); EXPECT_EQ(32,pool.getFreeCount());
+  radio.incoming=command("Bob: !hillvue trace"); tick(end+1);
+  ASSERT_EQ(4u,radio.sent.size()); EXPECT_NE(std::string::npos,publicText(3).find("Trace requested"));
 }
 
-class TargetRoutes : public TargetTrace, public ::testing::WithParamInterface<std::tuple<int, int>> {};
+class TargetRoutes : public TargetTrace, public ::testing::WithParamInterface<std::tuple<int,int>> {};
+
 TEST_P(TargetRoutes, DiscoveredRouteIncludesTargetAndBothWidthsThroughTenRepeaters) {
   int width = std::get<0>(GetParam()), hops = std::get<1>(GetParam());
   begin(width); finish(200);
@@ -663,7 +638,7 @@ TEST_F(TargetTrace, NamedAcknowledgementUsesFullIdentityRatherThanNameOrPrefixFo
   auto other = mesh::LocalIdentity(&random); advertise(other,"Hilltop Repeater");
   begin(2,1,true);
   ASSERT_EQ(1u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0,&channel.channel(1)));
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to " + std::to_string(bot.timing().seconds()) + " seconds.",publicText(0,&channel.channel(1)));
   finish(200); tick(201);
   ASSERT_EQ(2u, radio.sent.size()); EXPECT_GE(requestTag(1),1800000000u);
   auto req = parse(radio.sent[1]);
@@ -676,7 +651,7 @@ TEST_F(TargetTrace, MissingDisplayNameFallsBackToPrefixButStillAuthenticatesWith
   mesh.complete_trace_ack_immediately = false; advertise(target,"   ",2);
   begin(1,0,true);
   ASSERT_EQ(1u,radio.sent.size());
-  char expected[120]; snprintf(expected,sizeof(expected),"BME680 Sensor: Trace requested to %02x%02x, please wait up to 60 seconds.",target.pub_key[0],target.pub_key[1]);
+  char expected[120]; snprintf(expected,sizeof(expected),"BME680 Sensor: Trace requested to %02x%02x, please wait up to %lu seconds.",target.pub_key[0],target.pub_key[1],(unsigned long)bot.timing().seconds());
   EXPECT_EQ(expected,publicText(0)); finish(200); tick(201);
   ASSERT_EQ(2u,radio.sent.size()); EXPECT_GE(requestTag(1),1800000000u); finish(301);
 }
@@ -686,13 +661,13 @@ TEST_F(TargetTrace, NamedAckAndDiscoveryStayFrozenAcrossQueueRetryAndCacheRename
   advertise(target,"Hilltop Repeater",2); begin(); EXPECT_TRUE(radio.sent.empty());
   advertise(target,"Renamed Repeater",3); mesh.node_name = "Renamed Sensor";
   tick(350); tick(351); ASSERT_EQ(1u,radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0));
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to " + std::to_string(bot.timing().seconds()) + " seconds.",publicText(0));
   finish(451); tick(452); ASSERT_EQ(2u,radio.sent.size());
   EXPECT_GE(requestTag(1),1800000000u); finish(552); EXPECT_EQ(32,pool.getFreeCount());
   radio.incoming = command("Bob: !hillvue trace cancel"); tick(600); tick(3000); finish(3100);
   radio.incoming = command(text(target).c_str()); tick(4000);
   ASSERT_EQ(4u,radio.sent.size());
-  EXPECT_EQ("Renamed Sensor: Trace requested to Renamed Repeater, please wait up to 60 seconds.",publicText(3));
+  EXPECT_EQ("Renamed Sensor: Trace requested to Renamed Repeater, please wait up to " + std::to_string(bot.timing().seconds()) + " seconds.",publicText(3));
   finish(4100); tick(4101); finish(4201); EXPECT_EQ(32,pool.getFreeCount());
 }
 
@@ -704,7 +679,7 @@ TEST_F(TargetTrace, AcceptedDestinationSurvivesEvictionDuringAckRetry) {
     advertise(other,"Replacement");
   }
   tick(350); tick(351); ASSERT_EQ(1u,radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0));
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to " + std::to_string(bot.timing().seconds()) + " seconds.",publicText(0));
   finish(451); tick(452); ASSERT_EQ(2u,radio.sent.size());
   EXPECT_GE(requestTag(1),1800000000u); finish(552); EXPECT_EQ(32,pool.getFreeCount());
 }

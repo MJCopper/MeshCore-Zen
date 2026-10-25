@@ -296,7 +296,9 @@ against the native ACL runtime.
 The packet-medium tests include a known-client/replay-protected repeater
 responder: targeted discovery and the complete loop cross real forwarding
 nodes, both channels, both hash widths and relays rejecting unscoped floods.
-Unknown remote clients time out without automatic login or ACL changes. The
+Unknown remote clients can use public guest login. A valid authenticated
+login-return path supplies the TRACE candidate without a second ordinary
+discovery request; local management ACL routes remain unchanged. The
 sensor's peer binding consumes RESPONSE/PATH packets without applying them to
 management routes; ordinary management PATHs retain their existing callback.
 A generic Mesh PATH decoder guard rejects a path that does not fit in the
@@ -308,31 +310,51 @@ for the commands, measured resource changes and separate physical acceptance.
 
 ## Trace request acknowledgement and overall deadline
 
-`TraceTransactionBudget` defines a fixed 60,000 ms transaction and a 5,000 ms
-terminal-report reserve. Acceptance freezes the deadline and acknowledgement
-text at 60 seconds. At 55 seconds, unfinished discovery/probing becomes a
-stage-specific failure report; at 60 seconds, cleanup releases trace ownership.
-Timers use wrap-safe monotonic millisecond comparisons.
+`TraceTransactionBudget` freezes a calculated request maximum and airtime-derived
+report reserve at acceptance. The safety ceiling is 120,000 ms; there is no
+fixed 60-second duration, five-second reserve or 40-second control cutoff.
+The maximum is the longest reachable branch, including bounded queueing,
+acknowledgement, control exchanges, probe windows, settling, backoff, grace and
+up to two report parts. Unknown routes reserve one maximum supported probe;
+further attempts require full-window live admission. Timers remain wrap-safe.
 
-Discovery and probe windows are clamped at actual TX start using cached airtime
-policy and live remaining work time. First/second discovery divide that time by
-four/three; first/retry probes divide it by two/one. This leaves opportunities
-for the later stages without requiring the old maximum ten-hop windows to fit.
-Admissions check estimated TX watchdog plus scheduled delay against remaining
-work time. No retry or response restarts either deadline. TX-start observers do
-only timer arithmetic and never query the radio.
+Flood waits use 1500+16*A ms. TRACE uses 1500+(6*A+250)*(N+1), where N is the
+actual round-trip path entry count and A includes its accumulated SNR bytes.
+These are companion formulas with an explicit one-second sensor margin.
+The old hop-based minimum and TX-start truncation are removed. Discovery/login
+waits begin at successful local TX completion; TRACE retains its TX-start clock.
+Three login attempts share the original operation, durable timestamps and
+absolute budget. A valid late login can cancel a queued retry; in-flight
+allocations remain Dispatcher-owned. Pure helpers never query hardware.
+
+The service freezes an airtime lookup before receiving work and refreshes it
+outside radio callbacks when an idle profile changes. TX callbacks use cached
+estimates. Work queueing shares eight cumulative seconds; reporting has two
+separate queue seconds, excluding scheduled delays. Reporting reserve includes
+both TX watchdogs, maximum initial delay, inter-part gap and reporting queueing.
+Admission retains at least one probe/report opportunity. A started receive
+window is not reduced to squeeze in an optional retry.
+
+For bare traces the frozen two-probe budget prices both attempts using the
+accepted incoming route. A passive alternate may be longer and is unavailable
+when X is calculated. At retry selection, require its full airtime timeout,
+scheduled delay and remaining shared queue allowance to fit. If it does not,
+fall back to the incoming route only if that full exchange fits; otherwise skip
+the retry through the `RETRY_NOT_SENT` terminal path. `TraceTransactionBudget::fitsProbe`
+keeps this policy testable without changing the acknowledgement deadline.
 
 `TraceRequestAcknowledgement` owns a single immutable message independently of
 `TraceReportDelivery`. Its admission lease is ten seconds, followed by a cached
 actual-packet TX watchdog, bounded by the maximum-frame allowance, if transmission starts. Only definitely unsent failures
 can retry. The acknowledgement prelude suspends discovery and probe queue clocks;
-a failure to acknowledge does not fail the trace. Queued expiry is checked before
+failure to acknowledge can leave time for tracing, but shared queue exhaustion
+ends the work rather than creating a fresh admission lease. Queued expiry is checked before
 Dispatcher polling; TX observer expiry is checked after completion callbacks have
 had their normal opportunity. Deadline cleanup never frees a Dispatcher-owned
 in-flight allocation. Ordinary public reply processing continues during the
 acknowledgement stage.
 
-`test_sensor_trace_ack` covers fixed deadlines, report reservation and budget sharing, all route lengths and both hash
+`test_sensor_trace_ack` covers frozen calculated deadlines, report reservation and budget sharing, all route lengths and both hash
 widths, rollover and exact deadline boundaries, real Dispatcher acknowledgement
 ordering and failure recovery, slow TX, allocation pressure, cancellation, status,
 duplicates, targeted discovery, and both channels/widths/scopes. Older exact-phase
@@ -343,7 +365,8 @@ transmission. Network tests separately capture acknowledgements and terminal
 reports; the added flood can cause contention and consume the second allowed
 probe attempt.
 
-See the [60-second cap validation record](../../upgrades/validation/sensor-trace-60-second-cap.md).
+See the [current companion timing validation](../../upgrades/validation/sensor-trace-companion-timing.md).
+The [60-second cap validation](../../upgrades/validation/sensor-trace-60-second-cap.md) is historical.
 The earlier [acknowledgement plan](../../upgrades/sensor-trace-request-ack-plan.md)
 and [initial validation](../../upgrades/validation/sensor-trace-request-ack.md)
 record the superseded conservative timeout policy.
@@ -362,11 +385,53 @@ The complete message is copied at acceptance. Its existing buffer size is
 unchanged; bounded destination-only UTF-8 truncation keeps the fixed timeout
 suffix. Tests cover exact fit, overflow, invalid UTF-8/fallback, mutable input,
 queue retry/cache rename/eviction, full-key authenticated discovery, both public
-channels and scoped network replies. Bare acknowledgement, compact hop names and
-the 60-second cap remain unchanged.
+channels and scoped network replies. Compact hop labels remain unchanged;
+both acknowledgement forms now display the frozen calculated maximum.
 
 See the [implementation plan](../../upgrades/sensor-trace-destination-ack-plan.md)
 and [validation record](../../upgrades/validation/sensor-trace-destination-ack.md).
+
+## First contact, durable timestamps and advert-route fallback
+
+`TraceDiscovery` now owns the initial request, public guest login, final request
+and passive advert wait as separate bounded phases, with one control-packet
+owner. This folds the planned first-contact/login components into the existing
+controller to avoid competing owners. Login uses the stock 1.18 response shape
+and server timestamp; only a fresh-tag ordinary PATH supplies an authenticated
+route. A delayed login is advisory and cannot commit a route or change clocks.
+
+`TraceRequestClock` reserves 256 values in two independently committed,
+identity-bound CRC records and verifies both before issuing a timestamp. Reboot
+starts beyond the highest surviving reserved bound. Faults fail closed for
+authenticated requests; advert fallback remains possible. No journal/cache I/O
+occurs in RX/TX observers. `TraceGuestPolicy` persists public/off independently
+of upstream NodePrefs and fails closed on a corrupt existing policy record.
+
+`TraceAdvertRouteCache` stores compact verified-advert route hints in less than
+10 KiB, with 48 full-key entries and two alternatives each. It reverses outgoing
+intermediates, appends the target and constructs the return loop. Observations
+are scope/profile/width-bound, known-age hints expire at 24 hours, and restored
+unknown-age hints are explicitly probationary. Atomic sidecar replacement with
+backup recovery coalesces changes for 30 seconds and throttles routine saves to
+ten minutes. Disk records contain only populated entries and replacement keeps
+at most two route files, important for the XIAO's 28 KiB internal filesystem. Stored hints/outcomes never replace a fresh round-trip result.
+
+The scope binding captures outgoing default scope separately from public reply
+context, and dispatches owned login PATH/RESPONSE without installing management
+routes. Authenticated current-tag replies can return on a different scope,
+matching Zen's eligibility; mismatches are counted. TX observers use cached
+budgets and record control timing. Discovery diagnostics retain stage counters,
+clock health, peer clock regression, role, rejection and route provenance.
+
+The stock repeater login/replay helpers were extracted into generic
+`RepeaterLogin.h` and are used by both production and the native network target.
+The runtime sensor adds only a protected default-scope value accessor, while the
+RTC adapter exposes hardware-clock presence. No custom bot policy enters core
+Mesh/Dispatcher. Tests no longer seed an ACL for the essential first-contact
+success case and cover protected guest and persisted login-free fallback.
+
+See the [repair plan](../../upgrades/sensor-trace-discovery-repair-plan.md) and
+[implementation validation](../../upgrades/validation/sensor-trace-discovery-repair.md).
 
 ## Trace lifecycle recovery review
 
@@ -416,3 +481,22 @@ No XIAO serial device was attached during this implementation. Hardware and
 phone-app acceptance must therefore be recorded separately from automated
 test/build results. Zen version and OLED/E-ink build instructions apply to the
 Zen application; those sources/environments are absent on this sensor branch.
+
+### Trace request-clock recovery
+
+The durable request floor is separate from calendar time. Use existing local or
+trusted administrator `clock`, `clock sync`, or `time <epoch-seconds>` commands
+to inspect/synchronize the actual RTC when needed; only move it forward from a
+trusted source. A valid journal still prevents issued values from being reused
+if the RTC restarts behind that floor. Inspect `diagnostics().clock_healthy` and
+control tags to distinguish local journal failure from an unexplained remote
+silence. A missing login/response is not proof of replay rejection.
+
+One surviving valid replica is recovered on begin. After a transient filesystem
+failure, repair available storage and reboot so the allocator reloads its safe
+bounds. If both records are damaged, retain advert fallback and restore a known
+safe journal pair through local maintenance before re-enabling authenticated
+requests. Do not delete both records or invent a timestamp to bypass remote
+replay checks. Without a safe backup or a demonstrably higher trusted bound,
+explicit operator recovery/re-provisioning is needed. No destructive journal
+reset or remote ACL reset is performed automatically.

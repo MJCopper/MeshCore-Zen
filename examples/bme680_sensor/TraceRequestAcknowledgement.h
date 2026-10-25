@@ -34,6 +34,7 @@ public:
     _state = WAITING; _began = _due = now; _watchdog = _tx_budget = watchdog;
     return true;
   }
+  uint32_t due() const { return _due; }
   bool active() const { return _state != IDLE; }
   bool ready(uint32_t now) const { return _state == WAITING && (int32_t)(now - _due) >= 0; }
   bool inFlight() const { return _state == TRANSMITTING; }

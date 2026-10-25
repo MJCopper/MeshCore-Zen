@@ -89,6 +89,7 @@ public:
   void sendFloodReply(mesh::Packet* packet, unsigned long delay_millis, uint8_t path_hash_size);
 
 protected:
+  TransportKey captureDefaultScope() const { return default_scope; }
   mesh::PacketScope captureRequestScope(const mesh::Packet& packet) {
     return mesh::resolvePacketScope(packet, region_map);
   }

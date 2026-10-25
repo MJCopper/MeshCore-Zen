@@ -1,0 +1,918 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Named destination in trace acknowledgement - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#named-destination-in-trace-acknowledgement" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Named destination in trace acknowledgement
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-implementation-and-design-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current implementation and design decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-length-and-encoding-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Message length and encoding policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-expected-to-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files expected to change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation gates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/sensor-trace-destination-ack-plan.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="named-destination-in-trace-acknowledgement">Named destination in trace acknowledgement</h1>
+<p>Status: software implemented and tested; physical acceptance pending. Date: 2026-10-25.</p>
+<p>See the <a href="../validation/sensor-trace-destination-ack/">validation record</a>.</p>
+<h2 id="required-behaviour">Required behaviour</h2>
+<p>For a uniquely known target with prefix <code>7188</code> and name <code>Hilltop Repeater</code>:</p>
+<pre><code class="language-text">Command: !hillvue trace 7188
+Body: Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+On air: BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+</code></pre>
+<p>For a known full identity with no usable name:</p>
+<pre><code class="language-text">Trace requested to 7188, please wait up to 60 seconds.
+</code></pre>
+<p>Preserve bare trace exactly:</p>
+<pre><code class="language-text">Trace requested, please wait up to 60 seconds.
+</code></pre>
+<p>Preserve current errors, including the normal sensor-name prefix:</p>
+<pre><code class="language-text">BME680 Sensor: Trace: unknown repeater 7188
+BME680 Sensor: Trace: ambiguous repeater 7188
+</code></pre>
+<p>An unknown or ambiguous target starts neither acknowledgement nor discovery.
+The fallback label applies only to an already resolved full identity; four hex
+characters alone cannot supply the authenticated discovery public key.</p>
+<p>The existing 60-second transaction deadline and 55-second work cutoff remain
+in force. Displaying a name does not alter discovery, permissions, scope, retry
+counts, trace routing, averaged SNR, final result formatting or command-rate rules.</p>
+<h2 id="current-implementation-and-design-decision">Current implementation and design decision</h2>
+<p><code>RepeaterNameCache</code> stores up to 48 entries containing a full public key and a
+32-byte name buffer. <code>resolvePrefix</code> currently returns the unique full key but
+no name. <code>formatLabel</code> is intended for compact hop labels: it resolves short
+hashes, removes words such as <code>Repeater</code>, and truncates to its destination buffer.
+It must not be reused for this acknowledgement, since that would change
+<code>Hilltop Repeater</code> to <code>Hilltop</code>.</p>
+<p><code>TraceRequestAcknowledgement</code> already copies the entire formatted message,
+including sensor-name prefix, into a bounded buffer before admission. Keep that
+ownership model: no pointer into the mutable cache survives acceptance.</p>
+<h2 id="implementation-sequence">Implementation sequence</h2>
+<ol>
+<li>Extend the cache lookup with a compatible overload returning the unique full
+   key and a bounded destination display label together. Preserve existing
+   callers and compact path/hop formatting. Resolve both outputs from the same
+   entry in the same lookup; do not look the name up again by a shorter hash.</li>
+<li>Clear output key/label on unknown or ambiguous resolution so neither can be
+   accidentally used as a successful lookup. Prefix comparison remains exactly
+   two bytes and uniqueness is based on full identities, not names.</li>
+<li>Build the destination display label from the stored full name. Preserve
+   meaningful words, punctuation, case and valid UTF-8, including <code>Repeater</code>.
+   Normalize control characters to spaces, trim leading/trailing whitespace and
+   collapse repeated whitespace for a single-line acknowledgement. Respect the
+   existing stored name limit. Do not change the cache file format or stored
+   names. A name consisting only of whitespace/unsafe or unusable text falls
+   back to the four-character lowercase hex prefix.</li>
+<li>In the targeted command branch, complete existing identity/path-width
+   validation before accepting. Pass the local label snapshot into
+   <code>beginAcknowledgement</code>; keep <code>discovery.begin</code> supplied with the full resolved
+   public key. Do not derive protocol identity from a name or fallback label.</li>
+<li>Extend acknowledgement formatting with an optional destination argument.
+   Named starts use <code>Trace requested to Y, please wait up to 60 seconds.</code>;
+   absence of that argument preserves the exact bare message. Copy the final
+   text immediately, including destination and sensor prefixes.</li>
+<li>Retain zero added application jitter, separate acknowledgement ownership,
+   bounded definitely-unsent retries, and no duplicate after possible emission.
+   Cache rename/eviction, new adverts and sensor rename during queue retry must
+   not change accepted text, identity, reply context or deadline.</li>
+<li>Update public bot/developer documentation with named and fallback examples,
+   and record software validation separately from physical acceptance.</li>
+</ol>
+<h2 id="message-length-and-encoding-policy">Message length and encoding policy</h2>
+<p>The complete text, including <code>sensor-name:</code>, must fit the existing single-part
+public response limit (160 bytes). Use byte counts and bounded formatting;
+the terminator requires its own byte. Do not split the acknowledgement.</p>
+<p>Preserve the entire fixed message and timeout suffix. If space is constrained,
+shorten only the destination label at a valid UTF-8 boundary. Prefer the full
+stored name whenever it fits. If no meaningful destination text fits, try the
+four-character key-prefix fallback. If even that cannot fit, fail before
+acceptance through the existing bounded formatting-error path; do not silently
+omit the destination, produce an empty label or send a truncated timeout.</p>
+<p>Normal 31-byte cached names should fit with the normal sensor prefix. Test
+extreme sensor-prefix lengths explicitly rather than assuming this arithmetic.
+An entirely unknown nameless advert must retain current cache admission
+behaviour: the cache currently ignores adverts without a name field. Do not
+silently expand cache admission merely to exercise the unnamed fallback.</p>
+<h2 id="files-expected-to-change">Files expected to change</h2>
+<table>
+<thead>
+<tr>
+<th>File/area</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RepeaterNameCache.h/.cpp</code></td>
+<td>Full-identity lookup with full destination label and fallback</td>
+</tr>
+<tr>
+<td><code>TraceRequestAcknowledgement.h</code></td>
+<td>Optional named destination and bounded one-part formatting</td>
+</tr>
+<tr>
+<td><code>SensorBotService.h/.cpp</code></td>
+<td>Pass the acceptance snapshot through the targeted start path</td>
+</tr>
+<tr>
+<td><code>test_sensor_storage</code></td>
+<td>Cache resolution/name/encoding tests</td>
+</tr>
+<tr>
+<td><code>test_sensor_trace_ack</code></td>
+<td>Exact text, message length, immutability and acknowledgement ownership</td>
+</tr>
+<tr>
+<td><code>test_sensor_target_trace</code></td>
+<td>Full-key authenticated discovery and unchanged errors</td>
+</tr>
+<tr>
+<td><code>test_sensor_network</code> where assertions need extension</td>
+<td>Named acknowledgement over real simulated links</td>
+</tr>
+<tr>
+<td>Public bot/development docs and validation record</td>
+<td>User behaviour and evidence</td>
+</tr>
+</tbody>
+</table>
+<p>No changes are expected in core Mesh/Dispatcher, repeater ACL/authentication,
+cache persistence schema, parser syntax or the 60-second timing policy.</p>
+<h2 id="test-matrix">Test matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Required assertion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unique <code>7188</code>, <code>Hilltop Repeater</code></td>
+<td>Exact named body and ordinary sensor-name prefix</td>
+</tr>
+<tr>
+<td>Name contains <code>Repeater</code> or <code>RPT</code></td>
+<td>Preserve those words in destination acknowledgement; old hop formatting stays unchanged</td>
+</tr>
+<tr>
+<td>Uppercase hex input</td>
+<td>Same full identity/name; canonical lowercase prefix on fallback</td>
+</tr>
+<tr>
+<td>Two full keys share <code>7188</code></td>
+<td>Exact ambiguous error; no acknowledgement, discovery or selected identity</td>
+</tr>
+<tr>
+<td>Two devices share a name but not key prefix</td>
+<td>Resolve the requested full key; names do not determine identity</td>
+</tr>
+<tr>
+<td>Unknown <code>7188</code></td>
+<td>Exact unknown error; no fallback discovery</td>
+</tr>
+<tr>
+<td>Known identity, empty/whitespace name</td>
+<td>Use <code>7188</code>; discovery still uses all 32 key bytes</td>
+</tr>
+<tr>
+<td>Advert without a name field</td>
+<td>Existing cache admission/unknown behaviour is preserved</td>
+</tr>
+<tr>
+<td>Stored name with controls/repeated whitespace</td>
+<td>Single-line normalized label; no injected response line</td>
+</tr>
+<tr>
+<td>UTF-8 and emoji names</td>
+<td>Preserve valid characters; no split code point at storage/display/message boundaries</td>
+</tr>
+<tr>
+<td>Invalid/incomplete UTF-8</td>
+<td>Bounded usable label or hex fallback; never malformed/truncated output</td>
+</tr>
+<tr>
+<td>Maximum stored name</td>
+<td>Full name shown when it fits, rather than the shorter hop-label limit</td>
+</tr>
+<tr>
+<td>Exact 160-byte message and one-byte overflow</td>
+<td>Exact-fit succeeds; overflow shortens only label on valid boundary</td>
+</tr>
+<tr>
+<td>Very long sensor-name prefix</td>
+<td>Prefix fallback if it fits; otherwise bounded pre-acceptance failure</td>
+</tr>
+<tr>
+<td>Cache or sensor renamed during allocation/queue retries</td>
+<td>Byte-identical acknowledgement snapshot and unchanged full target key</td>
+</tr>
+<tr>
+<td>Cache entry evicted after acceptance</td>
+<td>Snapshot remains valid; no pointer into replaced cache memory</td>
+</tr>
+<tr>
+<td>Definitely-unsent rejection and retry</td>
+<td>Same named text; at most one emitting acknowledgement</td>
+</tr>
+<tr>
+<td>Uncertain start/completion, lost callback</td>
+<td>Existing no-repeat/recovery behaviour preserved</td>
+</tr>
+<tr>
+<td>Duplicate, busy, rate-limited, status or cancel</td>
+<td>No new named acknowledgement; no deadline reset</td>
+</tr>
+<tr>
+<td>Bare trace</td>
+<td>Exact existing acknowledgement, routing and final output</td>
+</tr>
+<tr>
+<td>Both channels, hash widths and scopes</td>
+<td>Frozen destination text and correct reply context</td>
+</tr>
+<tr>
+<td>55/60-second boundaries and rollover</td>
+<td>Existing report reserve, expiry and busy release remain intact</td>
+</tr>
+</tbody>
+</table>
+<p>For identity-sensitive tests, decrypt the actual outgoing discovery request with
+the selected full target's shared secret and verify the RTC replay tag. Include
+another identity with a different remaining key suffix so a name-only or partial
+key implementation cannot pass. Unknown/ambiguous tests should observe packet
+types/counts and pool ownership, not merely the returned label.</p>
+<p>For immutability, force a queue rejection or allocation retry, then rename or
+evict the cache entry before transmission. Inspect emitted text and the actual
+discovery identity. Retain the existing real Dispatcher tests; do not rely only
+on the legacy immediate-acknowledgement seam.</p>
+<h2 id="validation-gates">Validation gates</h2>
+<ol>
+<li>Run focused storage, acknowledgement, targeted trace and network tests.</li>
+<li>Run <code>pio test -e native -e native_sensor -e native_kiss_modem</code>.</li>
+<li>Run the sensor AddressSanitizer suite using the existing working host
+   configuration; record its leak-check setting/runtime setup.</li>
+<li>Build <code>Xiao_nrf52_bme680_sensor</code>, <code>Xiao_nrf52_sensor_baseline</code>,
+   <code>Xiao_nrf52_companion_radio_usb</code>, <code>Xiao_nrf52_repeater</code>, and
+   <code>Xiao_nrf52_room_server</code>; generate applicable DFU and UF2 artifacts.</li>
+<li>Run <code>bin/check-sensor-boundaries.sh</code>, whitespace checks and strict MkDocs.</li>
+<li>Compare static RAM/flash with the pre-change build. Keep bounded stack/static
+   storage and avoid a per-request heap allocation or new persistence writes.</li>
+<li>Record exact results, revision/working-tree status and artifact checksums.
+   Produce a uniquely named sensor OTA if packaging is requested; do not flash
+   or publish automatically.</li>
+</ol>
+<p>Physical acceptance, when hardware is available: advertise a known named
+repeater, request it by prefix, verify the exact named acknowledgement and usual
+trace result, then repeat after a rename and with an unusable name. Confirm a
+pending request retains its original label while a later accepted request uses
+the updated name. Check unknown/ambiguous errors, both channels and the unchanged
+60-second ceiling. Mark physical evidence pending until actually performed.</p>
+<h2 id="completion-criteria">Completion criteria</h2>
+<p>Every accepted targeted trace names the same full identity used for discovery,
+using a frozen full-name label or the defined prefix fallback. All rejection
+paths and bare trace behaviour remain unchanged. Messages remain single-part,
+UTF-8 safe and bounded. Ownership, retry, scope and timing regressions pass, with
+hardware results explicitly distinguished from software tests.</p>
+<p>This change concerns acknowledgement text. It does not resolve or diagnose the
+existing sensor-versus-Zen discovery failure.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

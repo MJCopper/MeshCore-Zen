@@ -52,7 +52,8 @@ public:
   bool accept(uint8_t type, uint8_t* data, size_t len, uint32_t now_millis,
               bool trace_busy, uint8_t& metric_mask, bool& busy_trace,
               uint8_t channel_index = 0, uint8_t* trace_prefix = NULL, bool* targeted = NULL,
-              TraceAction* trace_action = NULL);
+              TraceAction* trace_action = NULL, char* requester_name = NULL,
+              size_t requester_name_size = 0);
   int channelIndex(const mesh::GroupChannel& source) const;
   const mesh::GroupChannel& channel(uint8_t index = 0) const {
     return index == 1 ? _public_channel : _channel;

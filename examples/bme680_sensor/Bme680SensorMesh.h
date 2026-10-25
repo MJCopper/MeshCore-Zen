@@ -47,6 +47,7 @@ protected:
     return 1;
   }
   bool handleCustomCommand(uint32_t, char* command, char* reply) override {
+    if(_bot.tracePolicyCommand(command,reply)) return true;
     if (strcmp(command, "get repeat") == 0) { strcpy(reply, "> off"); return true; }
     if (strncmp(command, "set repeat ", 11) == 0) {
       strcpy(reply, "OK - repeat is fixed OFF"); return true;
@@ -138,7 +139,29 @@ private:
   uint32_t uniqueTime() override { return getRTCClock()->getCurrentTimeUnique(); }
   const char* nodeName() override { return getNodeName(); }
   mesh::RNG& rng() override { return *getRNG(); }
+  void describeTraceRadio(char* dest,size_t size) override {
+    const auto& p=*getNodePrefs();
+    snprintf(dest,size,"configured MHz=%.3f SF=%u BW=%.1f CR=%u temporary=%u; airtime uses active PHY",
+        p.freq,p.sf,p.bw,p.cr,_trace_revert_pending);
+  }
   uint32_t estimateAirtime(uint8_t length) override { return _radio->getEstAirtimeFor(length); }
+  uint32_t wallTime() override { return getRTCClock()->getCurrentTime(); }
+  bool trustedWallTime() override { return rtc_clock.hasHardwareRTC(); }
+  bool stableRadioConfiguration() override { return !_trace_revert_pending; }
+  SensorReplyContext controlContext(const SensorReplyContext& request) override {
+    SensorReplyContext context=request;
+    auto outbound_scope=captureDefaultScope();
+    if(!outbound_scope.isNull()) memcpy(context.scope_key,outbound_scope.key,16);
+    context.hash_size=getNodePrefs()->path_hash_mode+1;
+    return context;
+  }
+  uint32_t stableRadioProfile() override {
+    uint32_t hash=2166136261UL;
+    const auto& p=*getNodePrefs();
+    auto add=[&](const void* v,size_t n) {auto b=(const uint8_t*)v;while(n--) hash=(hash^*b++)*16777619UL;};
+    add(&p.freq,sizeof(p.freq)); add(&p.bw,sizeof(p.bw)); add(&p.sf,sizeof(p.sf));
+    add(&p.cr,sizeof(p.cr)); add(&p.tx_power_dbm,sizeof(p.tx_power_dbm)); return hash;
+  }
   uint32_t radioProfile() override {
     // Temporary CLI changes leave NodePrefs untouched. Generation changes also
     // invalidate history when that temporary configuration is applied/reverted.

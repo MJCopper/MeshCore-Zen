@@ -1,3 +1,4 @@
+#include <helpers/RepeaterLogin.h>
 #include "MyMesh.h"
 #include <algorithm>
 
@@ -88,60 +89,18 @@ void MyMesh::putNeighbour(const mesh::Identity &id, uint32_t timestamp, float sn
 }
 
 uint8_t MyMesh::handleLoginReq(const mesh::Identity& sender, const uint8_t* secret, uint32_t sender_timestamp, const uint8_t* data, bool is_flood) {
-  ClientInfo* client = NULL;
-  if (data[0] == 0) {   // blank password, just check if sender is in ACL
-    client = acl.getClient(sender.pub_key, PUB_KEY_SIZE);
-    if (client == NULL) {
-    #if MESH_DEBUG
-      MESH_DEBUG_PRINTLN("Login, sender not in ACL");
-    #endif
-    }
-  }
-  if (client == NULL) {
-    uint8_t perms;
-    if (strcmp((char *)data, _prefs.password) == 0) { // check for valid admin password
-      perms = PERM_ACL_ADMIN;
-    } else if (strcmp((char *)data, _prefs.guest_password) == 0) { // check guest password
-      perms = PERM_ACL_GUEST;
-    } else {
-#if MESH_DEBUG
-      MESH_DEBUG_PRINTLN("Invalid password: %s", data);
-#endif
-      return 0;
-    }
-
-    client = acl.putClient(sender, 0);  // add to contacts (if not already known)
-    if (sender_timestamp <= client->last_timestamp) {
-      MESH_DEBUG_PRINTLN("Possible login replay attack!");
-      return 0;  // FATAL: client table is full -OR- replay attack
-    }
-
-    MESH_DEBUG_PRINTLN("Login success!");
-    client->last_timestamp = sender_timestamp;
-    client->last_activity = getRTCClock()->getCurrentTime();
-    client->permissions &= ~0x03;
-    client->permissions |= perms;
-    memcpy(client->shared_secret, secret, PUB_KEY_SIZE);
-
-    if (perms != PERM_ACL_GUEST) {   // keep number of FS writes to a minimum
-      dirty_contacts_expiry = futureMillis(LAZY_CONTACTS_WRITE_DELAY);
-    }
-  }
+  bool persist=false;
+  auto client=authenticateRepeaterClient(acl,sender,secret,sender_timestamp,getRTCClock()->getCurrentTime(),
+      (const char*)data,_prefs.password,_prefs.guest_password,persist);
+  if(!client) return 0;
+  if(persist) dirty_contacts_expiry=futureMillis(LAZY_CONTACTS_WRITE_DELAY);
 
   if (is_flood) {
     client->out_path_len = OUT_PATH_UNKNOWN;  // need to rediscover out_path
   }
 
-  uint32_t now = getRTCClock()->getCurrentTimeUnique();
-  memcpy(reply_data, &now, 4);   // response packets always prefixed with timestamp
-  reply_data[4] = RESP_SERVER_LOGIN_OK;
-  reply_data[5] = 0;  // Legacy: was recommended keep-alive interval (secs / 16)
-  reply_data[6] = client->isAdmin() ? 1 : 0;
-  reply_data[7] = client->permissions;
-  getRNG()->random(&reply_data[8], 4);   // random blob to help packet-hash uniqueness
-  reply_data[12] = FIRMWARE_VER_LEVEL;  // New field
-
-  return 13;  // reply length
+  uint8_t nonce[4]; getRNG()->random(nonce,sizeof(nonce));
+  return encodeRepeaterLoginReply(reply_data,*client,getRTCClock()->getCurrentTimeUnique(),nonce,FIRMWARE_VER_LEVEL);
 }
 
 uint8_t MyMesh::handleAnonRegionsReq(const mesh::Identity& sender, uint32_t sender_timestamp, const uint8_t* data) {
@@ -673,12 +632,11 @@ void MyMesh::onPeerDataRecv(mesh::Packet *packet, uint8_t type, int sender_idx, 
     uint32_t timestamp;
     memcpy(&timestamp, data, 4);
 
-    if (timestamp > client->last_timestamp) { // prevent replay attacks
+    if (isFreshRepeaterRequest(*client,timestamp)) { // prevent replay attacks
       int reply_len = handleRequest(client, timestamp, &data[4], len - 4);
       if (reply_len == 0) return; // invalid command
 
-      client->last_timestamp = timestamp;
-      client->last_activity = getRTCClock()->getCurrentTime();
+      commitRepeaterRequest(*client,timestamp,getRTCClock()->getCurrentTime());
 
       if (packet->isRouteFlood()) {
         // let this sender know path TO here, so they can use sendDirect(), and ALSO encode the response

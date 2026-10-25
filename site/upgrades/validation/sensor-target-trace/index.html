@@ -1,0 +1,809 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Destination trace implementation and validation - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#destination-trace-implementation-and-validation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Destination trace implementation and validation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-and-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State and ownership
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automated-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firmware-and-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firmware and artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#physical-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Physical acceptance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/validation/sensor-target-trace.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="destination-trace-implementation-and-validation">Destination trace implementation and validation</h1>
+<p>Date: 25 October 2026 (Australia/Sydney).
+Working tree based on <code>99dc1448</code>, extending the
+<a href="../sensor-trace-average-snr/">average SNR implementation</a>.</p>
+<h2 id="behaviour">Behaviour</h2>
+<p><code>!hillvue trace 4df5</code> resolves exactly four case-insensitive hexadecimal
+characters against full public keys in the verified, named repeater-advert
+cache. One match selects that identity; no match or multiple matches produce
+an unknown/ambiguous repeater error without transmitting discovery. Invalid
+syntax is ignored like other invalid bot commands. Bare trace is preserved.</p>
+<p>The sensor originates a standard authenticated flooded base-telemetry request.
+It discovers a fresh outbound path, appends the selected target and reverses the
+intermediate path to construct the loop back to itself. Direct neighbours and
+one through ten repeaters including the target are supported, with one- or
+two-byte path hashes. Unsupported request widths fail before discovery;
+unsupported/oversized returned paths are never probed.</p>
+<p>The public report remains <code>Trace: &lt;elapsed&gt; ms RTT (avg SNR)</code>, with each node
+listed once from sensor to target, paired directional averages, and no separate
+return-node list. RTT begins at actual loop TX start; discovery, settling and
+queue time are excluded. Retry and original-route fallback reuse the existing
+probe and immutable report-delivery policies.</p>
+<p>The target must already recognise/permit the sensor identity. The bot does not
+log in, add ACL entries or grant permissions. Missing responses report discovery
+timeout, not that the target is unreachable. Unknown remote identity, permissions,
+clock replay checks, congestion and RF conditions may all prevent discovery.</p>
+<h2 id="state-and-ownership">State and ownership</h2>
+<ul>
+<li>One transaction remains busy through discovery, tracing and bounded reporting.
+  There are at most two discovery submissions and two trace submissions.
+  Discovery admission is bounded to ten seconds per attempt, with the existing
+  250/500/1000 ms backoff and bounded jitter. Its receive timeout uses the
+  ten-repeater airtime allowance, starting at TX start (at least 30 seconds).</li>
+<li>Discovery tags come from <code>getCurrentTimeUnique()</code>, independently of random
+  trace identifiers. Authenticated PATH data must match the selected full key,
+  a transmitted discovery tag and the captured discovery scope.</li>
+<li>Radio profile changes cancel queued targeted work before Dispatcher can start
+  it. In-flight ownership remains with Dispatcher. A late first discovery can
+  cancel an unsent discovery retry. Matching late PATHs cannot restart a closed
+  transaction or create reciprocal traffic.</li>
+<li>The production scope/peer adapter is instantiated by native tests too. It
+  adds at most three transient full-key peer contexts to the baseline bounded
+  ACL search: current transaction and two retired contexts, all RAM-only. It
+  does not change the sensor ACL or management route arrays.</li>
+<li>The sensor has no other outbound RESPONSE/PATH request owner. Its custom
+  binding consumes unowned RESPONSE/PATH messages rather than installing them
+  as management routes, including responses older than the transient peer ring.
+  Normal non-response management PATH and authenticated request callbacks keep
+  their existing runtime owner. This policy is confined to the custom adapter.</li>
+<li>The generic Mesh PATH decoder now checks that the encoded path plus its
+  extra-type byte fits inside the authenticated decrypted payload before
+  reading either extra fields or invoking a callback. A valid encoding with
+  truncated content is rejected; no bot policy was added to core.</li>
+<li>Reports/discovery keep their original channel, scope key and hash width.
+  Intervening traffic or default-scope changes do not redirect the transaction.
+  Candidate routes must come from fresh authenticated responses; recent
+  four-entry history ranks them but cannot invent a route. Targeted history
+  includes the full target key, full scope key, channel and radio profile, and
+  cannot borrow bare-trace evidence. History expires after fifteen minutes.</li>
+</ul>
+<p>Short routing hashes remain hints rather than proof of per-hop identity.
+Cached ambiguity still displays a hash rather than a confident repeater name.</p>
+<h2 id="automated-validation">Automated validation</h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pio test -e native -e native_sensor -e native_kiss_modem</code></td>
+<td>329/329 passed</td>
+</tr>
+<tr>
+<td><code>native_sensor_asan</code></td>
+<td>223/223 passed, no address-sanitizer findings</td>
+</tr>
+<tr>
+<td>Targeted suite after refining the truncated-content regression</td>
+<td>49/49 passed in both native and ASan environments</td>
+</tr>
+<tr>
+<td><code>bash bin/check-sensor-boundaries.sh</code></td>
+<td>Passed</td>
+</tr>
+<tr>
+<td><code>git diff --check</code></td>
+<td>Passed</td>
+</tr>
+<tr>
+<td><code>mkdocs build --strict</code></td>
+<td>Passed</td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="../sensor-target-trace-checks.txt">recorded summaries</a> retain the full-suite
+and firmware results.</p>
+<p>The new suite has 49 cases covering parser rejection, case folding, unknown and
+ambiguous prefixes, actual request/response cryptography, colliding peer hashes
+and full ACL search capacity, RTC tags, all route lengths/hash widths, bounded
+queue/start/allocation failures, wrong tag/MAC/scope, configuration cancellation,
+late replies and new-target ownership, alternate retries, paired-SNR fallback,
+management ACL preservation and ordinary admin request callbacks. It also checks
+wrap-safe discovery clocks and separation of full-target history.</p>
+<p>Six additional packet-medium cases exercise actual forwarding plus a
+known-client/replay-protected repeater responder: selected-target discovery,
+loop and report on both channels and both widths through scoped-only relays;
+unknown-client timeout without login; and correct RTC replay-counter handling.
+The existing bare trace, scope, averaged SNR, storage and policy suites pass.</p>
+<p>The existing CI <code>test_sensor_*</code> filter and sanitizer inheritance select the new
+suite automatically. ASan uses the same temporary local Fedora runtime and
+isolated configuration described in the
+<a href="../sensor-trace-scope/#automated-validation">scope validation</a>:</p>
+<pre><code class="language-sh">ASAN_OPTIONS=detect_leaks=0 pio test \
+  -c /tmp/meshcore-scope-asan.ini -e native_sensor_asan
+</code></pre>
+<p>No repository sanitizer flags were changed. These are local CI-equivalent runs,
+not a claim of remote CI execution. Firmware keeps its existing <code>-w</code> flag;
+MkDocs retains the existing FAQ missing-anchor INFO notice without failing
+strict validation.</p>
+<h2 id="firmware-and-artifacts">Firmware and artifacts</h2>
+<p>All five firmware regression environments compiled, generated DFU ZIPs, and
+converted to UF2 successfully:</p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Compile / UF2</th>
+<th>Static RAM bytes</th>
+<th>Flash bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Xiao_nrf52_bme680_sensor</code></td>
+<td>Passed / Passed</td>
+<td>37,156</td>
+<td>353,876</td>
+</tr>
+<tr>
+<td><code>Xiao_nrf52_sensor_baseline</code></td>
+<td>Passed / Passed</td>
+<td>31,116</td>
+<td>315,700</td>
+</tr>
+<tr>
+<td><code>Xiao_nrf52_companion_radio_usb</code></td>
+<td>Passed / Passed</td>
+<td>143,408</td>
+<td>372,464</td>
+</tr>
+<tr>
+<td><code>Xiao_nrf52_repeater</code></td>
+<td>Passed / Passed</td>
+<td>34,596</td>
+<td>360,880</td>
+</tr>
+<tr>
+<td><code>Xiao_nrf52_room_server</code></td>
+<td>Passed / Passed</td>
+<td>38,284</td>
+<td>353,312</td>
+</tr>
+</tbody>
+</table>
+<p>Compared with the immediately preceding average-SNR sensor build on the same
+Nordic nRF52 10.12.0 / ARM GCC 14.2.1 toolchain, static RAM increased from
+36,852 to <strong>37,156 bytes</strong> (+304); flash increased from 343,588 to <strong>353,876 bytes</strong>
+(+10,288). Usage is 15.8% of the RAM budget and 43.6% of the flash budget.</p>
+<p>The newly rebuilt artifacts supersede the binaries at the same paths in the
+previous records. SHA-256 checksums:</p>
+<ul>
+<li><code>.pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2</code> (708,096 bytes):
+  <code>591daf20573c8015ab001696616691eb15a04a5a7a7fcd11738e02adc274f0d7</code></li>
+<li><code>.pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.zip</code> (354,679 bytes):
+  <code>188248efca00b5f8b88789242cd20efba10073b80c0d598b5c2351d918383c89</code></li>
+<li><code>.pio/build/Xiao_nrf52_bme680_sensor/firmware.hex</code> (995,422 bytes):
+  <code>905abd60c84b6418bd8f3a0b550a742aa15a5c10ed8eaa02fe0b215cbca51b76</code></li>
+</ul>
+<h2 id="physical-acceptance">Physical acceptance</h2>
+<p>Not run. No device was flashed. Verify on a controlled mesh with the sensor
+registered as a permitted client on the selected repeater: direct neighbour,
+multi-hop target, both hash widths/channels, scoped relay delivery, congestion,
+retry and fallback, RTC replay handling after reboot, average-SNR pairing and
+actual TX-start RTT. Include unknown-client and ambiguous-prefix controls, and
+confirm existing administrator routes/access survive tracing and UF2/OTA
+updates. Deterministic forwarding tests do not establish physical RF behaviour.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

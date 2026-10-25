@@ -106,32 +106,62 @@ identify an unknown node. An absent prefix reports `Trace: unknown repeater
 case starts discovery. Malformed prefixes or combined trace/measurement commands
 are ignored. Both trace forms are standalone commands.
 
-For a selected destination, the sensor sends a standard authenticated, flooded
-base-telemetry request and uses the returned PATH to build a loop through the
-selected repeater and back to the sensor. The selected repeater is included as
-the final outward entry, even for a direct neighbour. The output format and
-average-SNR rules are the same as bare trace. The ten-repeater limit includes
-the target; one- and two-byte path hashes are supported. Unsupported request
-hash widths are rejected before discovery; unsupported returned paths are not
-probed. Settings are never silently changed.
+For a selected destination, the sensor first tries standard authenticated path
+discovery. If the repeater does not yet recognise the sensor, the default
+`public` first-contact policy makes an anonymous login with the empty public
+guest credential, allowing two retries (three transmissions total). A valid
+authenticated login-return path leads straight to TRACE. A successful login
+without a usable path may use the one remaining ordinary discovery request. No administrator
+password is needed or guessed. A target with protected guest access may ignore
+that login; lack of a reply does not establish that the repeater is unreachable.
+Private/local administration can select `get trace.login` or
+`set trace.login public|off`. A successful login may create a transient client
+entry on the target. An unexpected administrator grant is not used by this
+workflow; tracing falls back instead.
 
-The target must recognise and permit the **sensor's identity**, not merely the
-phone or node that sent the channel command. Being present in the advert cache
-does not establish remote permissions. The bot does not log in, add ACL entries
-or change permissions automatically. `Trace: discovery timed out` can mean
-missing permissions, a replay-clock mismatch, congestion or RF loss; it does not
-prove the repeater is unreachable. Local failures instead report discovery radio
-busy or discovery transmit failed.
+If discovery cannot obtain a path, the stationary sensor can use a reversed
+route from that repeater's previously verified flooded adverts. It retains up
+to two candidate routes for each of 48 identities in a separate persisted cache.
+Known-age hints expire after 24 hours. Restored hints without reliable calendar
+age are probationary candidates, never freshly discovered routes. Every attempt
+sends a new round-trip TRACE: old RTT/SNR/results are never returned as current.
+If one route fails, a distinct alternate may use the one remaining probe.
+Advert fallback can succeed with no login and no target ACL entry. On first
+installation, the route cache is empty even if old stored names are present:
+allow the sensor to receive genuine flooded adverts before relying on fallback.
+After collection and a deferred save, those hints can survive reboot.
 
-A busy reply after thirty seconds can be normal: discovery has not necessarily
-finished its first attempt. At the shipped SF8/BW62.5/CR5 settings with a
-32-symbol preamble, the current conservative maximum-packet allowance is about
-187 seconds per discovery attempt. Two unanswered attempts can therefore take
-about six minutes fourteen seconds, plus queue and report time. Saved radio
-settings can change this estimate. `!hillvue trace status` shows the current
-attempt and its remaining time; a busy discovery reply includes that information
-too. These countdowns are captured when the command is processed, before reply
-queueing. They do not promise successful delivery.
+The selected repeater remains the final outward entry, including a direct
+neighbour. Final output and average-SNR rules match bare trace. Ten repeaters
+includes the target; one/two-byte hashes are supported. Unsupported paths are
+never probed. An advert authenticates the originating identity/data, not its
+mutable flood path or reverse reachability, so a candidate can still fail if
+links are asymmetric or topology changes. Ambiguous short-hash labels remain
+ambiguous.
+
+Discovery/login reply waits use the companion flood estimate: 500 ms plus
+16 times request airtime, with an explicit one-second sensor margin. Their
+receive clocks start at successful local TX completion. Queueing and own TX
+airtime do not consume the receive allowance. Control admission reserves enough
+remaining time for a probe and terminal reporting. There is no fixed six/eight
+second reply wait or fixed 40-second control cutoff. Status includes login
+attempt N/3 and whether it is queued, transmitting or awaiting a reply.
+
+The target must recognise the **sensor's identity** to answer authenticated
+discovery; a phone's or Zen's earlier login does not register the sensor.
+Authenticated discovery replies are matched by full identity, MAC and fresh
+request tag even if a target's return scope differs; the difference is recorded.
+Outgoing control uses the configured default transport scope (otherwise the
+resolved command scope or unscoped), and the local configured discovery hash
+width. Public replies retain the original command's captured context. Cached
+advert hints must match the selected control scope and radio configuration.
+
+Durable request timestamps prevent ordinary reboot/clock rollback from reusing
+already issued trace login/discovery timestamps. Storage/clock failure disables
+further authenticated requests and still permits advert fallback. Failures such
+as `Trace: guest login not acknowledged`, `Trace: request clock unavailable`,
+radio busy, transmit failed or discovery timed out describe the known stage;
+they do not prove RF unreachability or permission denial from silence alone.
 
 Use `!hillvue trace cancel` to stop waiting without rebooting. Cancellation acts
 on the sensor's shared trace from either watched channel. It removes queued
@@ -143,18 +173,24 @@ limit still applies to starts and status requests. Cancelling an active trace
 is allowed even when those slots are exhausted, with one acknowledgement for
 the cancelled operation; idle cancel requests use the normal limit.
 
-Every accepted bare or destination trace first schedules one message with no
-application jitter:
+Every accepted trace first schedules one message with no application jitter. For
+bare `!hillvue trace`, Y is the sender label parsed from the channel message:
 
 ```text
-BME680 Sensor: Trace requested, please wait up to 60 seconds.
+BME680 Sensor: Trace requested to Alice, please wait up to X seconds.
 ```
+
+That label is copied from the message's `Name: !hillvue trace` prefix, with
+whitespace normalized and UTF-8 kept intact. It is display text supplied in the
+group message, not a cryptographically verified companion identity; the trace
+route still comes from the packet path. If no usable label is present, the
+acknowledgement says `requester`.
 
 For `!hillvue trace 7188`, if the known repeater is named `Hilltop Repeater`,
 the acknowledgement is instead:
 
 ```text
-BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to X seconds.
 ```
 
 The four-character prefix must resolve to exactly one known full public key.
@@ -165,34 +201,40 @@ normalized and UTF-8 is kept intact. A known identity without a usable name uses
 `7188` as its label. An unknown or ambiguous identity retains the existing error
 and starts neither acknowledgement nor discovery.
 
-Destination, sensor prefix and reply context are frozen when the request is
-accepted, including during allocation/queue retries. A later rename or cache
-eviction cannot change that pending request. The acknowledgement stays within
-one 160-byte public message; if necessary, only the destination label is shortened
-at a UTF-8 boundary. Bare trace acknowledgement and final result formatting are
-unchanged.
+Destination/requester label, sensor prefix and reply context are frozen when the
+request is accepted, including during allocation/queue retries. A later rename
+or cache eviction cannot change that pending request. The acknowledgement stays
+within one 160-byte public message; if necessary, only its label is shortened at
+a UTF-8 boundary. Final result formatting is unchanged.
 
-The entire operation has a fixed **60-second maximum**, starting when the command
-is accepted. It includes acknowledgement, discovery, settling, probes, retries
-and final reporting. A successful trace finishes early. The final five seconds
-are reserved for reporting: discovery/probing stops at 55 seconds, and unfinished
-work becomes `Trace: discovery timed out` or `Trace: no result before timeout`.
-At 60 seconds, remaining queued work is cancelled and the trace slot is released.
+The acknowledgement's X is the rounded-up calculated maximum for that request,
+starting at acceptance. It includes acknowledgement, discovery/login attempts,
+settling, TRACE probes, queueing and terminal reporting. Sixty seconds is not a
+minimum or expected wait. The calculated maximum may exceed 60 seconds when
+justified by radio airtime and route size, with an absolute **120-second safety
+ceiling**. A successful trace or definite failure finishes early.
 
-Discovery and probe receive windows share the remaining work budget. At actual
-TX start, the first discovery can use at most one quarter of the remaining work
-time, the second one third; the first probe can use at most half, and its retry
-the remaining work time. Each window is also limited by the ordinary airtime/hop
-policy below. Queue waits, acknowledgement and retries consume the same fixed
-budget. A retry is skipped if its estimated transmission cannot fit. These
-limits apply to both bare and destination traces, all supported route lengths,
-and all radio profiles. Slow/congested links can time out despite being reachable.
+For bare trace, the same budget calculator uses the incoming route and its
+permitted probe/retry branch; discovery and login allowances are omitted. Since
+a future passive alternate is not known at acceptance, X reserves both probes at
+the incoming route's size. At retry time, the sensor uses a longer observed
+alternate only when its complete airtime window fits the frozen deadline. If
+not, it retries the original route when that full window fits; if neither fits,
+it omits the retry and reports `Trace: retry not sent`. X is never extended and
+a receive window is never clipped to fit an alternate. For a destination trace,
+known routes size the budget from compatible candidates. Without a route, the sensor reserves one
+conservative supported ten-repeater probe; a second is conditional on available
+time after discovery. An airtime-derived terminal
+reporting reserve replaces the old fixed five seconds. Optional attempts are
+omitted when a full exchange cannot fit, rather than shortening a started reply
+window. High contention or a larger discovered route can still prevent success.
 
-The acknowledgement has its own bounded stage. If it cannot be sent, tracing
-still proceeds after that stage expires. Discovery and probe queue clocks start
-after the acknowledgement stage. At most one acknowledgement can emit; it does
-not use another command-rate slot. Invalid requests, duplicates, busy requests,
-status and cancellation do not create this message.
+Acknowledgement/control/probes share at most eight seconds of cumulative local
+queue wait. Reporting has two cumulative queue seconds of its own, excluding
+scheduled send delays and the inter-part gap. The acknowledgement has at most
+one possible emission. It does not consume another command-rate slot. If it
+cannot be sent, later tracing can proceed only within the shared remaining
+queue/work allowance; exhaustion does not create a fresh lease.
 
 The overall deadline is fixed when the request is accepted. Replies, retries,
 status requests and newly observed routes cannot extend it. `trace status`
@@ -205,15 +247,13 @@ Channel access and duty limits still apply: neither immediate scheduling nor the
 advertised maximum guarantees over-air receipt. A blocked application loop also
 cannot perform cleanup until it runs again.
 
-At most two discovery submissions precede the existing maximum of two trace
-submissions. Discovery tags use the unique RTC request timestamp; random trace
-identifiers are separate. Discovery queue admission is bounded to ten seconds
-per attempt with the existing local backoff. A transmitted discovery's timeout
-uses the ten-repeater airtime allowance described below, clamped to its share
-of the remaining work time starting at actual TX start. Discovery uses the captured reply scope and hash
-width; it does not silently retry in another scope. A short settling window
-uses the discovered loop's estimated maximum packet airtime. Discovery, settling
-and queue wait are all excluded from reported RTT.
+At most two ordinary discovery requests, three public guest login attempts, and two TRACE
+probes may emit. The two-probe limit is shared by authenticated and advert
+routes. Acknowledgement and up to two terminal report parts give at most ten
+application-originated emitting packets per targeted trace. Discovery/login
+use durable forward-only request timestamps; random TRACE identifiers remain
+separate. A short settling window uses the selected loop's estimated airtime.
+Acknowledgement, discovery/login, settling and queue wait are excluded from RTT.
 
 Transient peer contexts exist only in RAM. Discovery responses do not replace
 saved management routes or trigger reciprocal PATH traffic. Late and ownerless
@@ -236,25 +276,22 @@ probe lets the command flood finish. For bare trace, its earliest start is twice
 extend a quiet interval of 150-750 milliseconds, but cannot extend settling past
 2.5 seconds. Unrelated messages do not extend it. Settling is excluded from RTT.
 
-Temporary allocation and queue rejections are retried with 250-millisecond,
-500-millisecond, then one-second backoff and bounded jitter. Admission is limited
-to ten seconds per attempt, excluding the initial settling window. A rejected
-radio start may use the remaining probe attempt, but there are never more than
-two potentially emitting probe submissions. Local failures do not count as
-evidence against a route. Once transmission begins, the
-timeout is the larger of the existing hop allowance and an airtime estimate,
-rounded up to whole seconds:
+Temporary allocation and queue rejections use bounded backoff and jitter within
+the shared queue/work allowance. A rejected radio start may use the remaining
+probe attempt; at most two potentially emitting probes are allowed. Local
+failures do not count as evidence against a route. After actual TRACE TX start,
+the timeout uses the companion direct estimate plus a one-second sensor margin:
 
 ```text
-Hop allowance:     5000 + 2500 × repeater count
-Airtime allowance: 500 + (6 × maximum packet airtime + 250) × (2 × repeater count)
+1500 + (6 × maximum packet airtime + 250) × (2 × repeater count)
 ```
 
 All values are milliseconds. Maximum packet airtime includes the SNR bytes
-accumulated during the loop. The base minimum is ten seconds for two repeaters,
-13 seconds for three, and 30 seconds for ten. Slower radio settings can increase
-that base allowance; the actual wait is always clamped to the remaining shared
-work time. Remote repeater congestion cannot be predicted exactly.
+accumulated during the loop, configured hash width and actual PHY settings.
+There is no separate ten-second minimum for a two-repeater route. A new probe
+is admitted only if its full calculated window fits the remaining work time;
+its receive timer is not shortened at TX start. Remote repeater congestion
+cannot be predicted exactly.
 
 After the first trace timeout, if time remains, the sensor makes one silent retry following a
 random one-to-two-second pause. Bare trace passively watches additional copies
@@ -288,12 +325,13 @@ retry takes precedence. Fallback names and SNRs always describe the first route,
 even if the retry used another route.
 
 When both probes expire without a result, a three-second final grace period
-allows either result to arrive, within the 55-second work cutoff. Valid late
+allows either result to arrive, within the calculated work cutoff. Valid late
 results before that cutoff can also replace an unsent failure report. Once failure transmission starts, the outcome is committed and
 late results are ignored, preventing contradictory reports. Failure-report
-queueing is bounded to ten seconds, including the normal random send delay,
-and always ends by the original 60-second deadline.
-The node reports `Trace: no result after retry`, not that no route exists.
+queueing shares the separate two-second report queue allowance, excluding
+scheduled send delay, and always ends by the original advertised deadline.
+The node reports `Trace: no result after retry` or the applicable timeout stage;
+it does not claim that no route exists.
 Radio-busy, transmit-failure and unsent-retry conditions have separate messages.
 Local recovery never increases the two-probe budget.
 
@@ -302,7 +340,7 @@ Both report parts, including the node-name prefix and cleaned repeater labels,
 are frozen together. Temporary packet allocation or confirmed queue rejection
 does not discard a result. Each part has a ten-second admission allowance, and
 the base success-report allowance is thirty seconds or longer for slow radio
-airtime, always shortened by the original 60-second transaction deadline.
+airtime, always shortened by the original advertised transaction deadline.
 Remaining multipart delivery is best effort within that deadline. The second part remains eligible only three seconds after
 the first finishes transmitting. An active transmission is left to MeshCore's
 existing completion/watchdog handling, never freed by the application.
@@ -384,3 +422,54 @@ the second ends with `...truncated`; no further parts are sent.
   repeat other mesh traffic.
 
 Unknown command options are ignored without a response.
+
+### Private trace diagnostics
+
+After a failed targeted trace, private/local CLI commands expose the last
+transaction without transmitting packets or writing storage:
+
+- `get trace.diag`: candidate PATH/RESPONSE frames addressed to the sensor with
+  the target's short hash (`rx`), authenticated response-handler calls
+  (`decrypted`), accepted login replies (`login_reply`), recognizable login
+  replies ignored by the state machine, role and route/tag/scope counters.
+- `get trace.control 0`, `get trace.control 1`, `get trace.control 2`: initial
+  discovery, first guest login and final discovery. `get trace.control 3` and
+  `get trace.control 4` show the two guest-login retries. Each exposes timestamps, request tag and
+  transmission flags. Millisecond timestamps are local uptime. `sent=1` means
+  radio TX started; completion without failure is local completion, not an
+  acknowledgement from the repeater.
+- `get trace.timing`: calculated maximum/report/probe reserves, reply windows,
+  queue use, cap status and whether a login-return path supplied the route.
+- `get trace.airtime`: request/probe/report airtimes and remaining overall time.
+- `get trace.radio`: the captured configured PHY description and temporary-mode
+  flag; airtime estimates always come from the active radio.
+- `get trace.peer`: full target public key, outgoing transport scope key and
+  hash width. An all-zero scope denotes an unscoped flood.
+
+Short-hash candidate matches do not authenticate the remote node. The decrypted
+counter counts handler calls, not necessarily unique packets. Accepted login
+replies include unexpected-role replies; consult `role` and the final failure.
+A new trace clears these counters. These commands contain no shared secrets,
+passwords or private keys. They are not public bot commands.
+
+Guest login stops immediately after an accepted reply. An unanswered login or
+failed transmission may retry, using a fresh durable timestamp each time.
+Retries are bounded by the frozen calculated work/reporting deadlines, so less than three attempts may fit after long queue delays. Queue
+expiry, invalid/unexpected granted role, cancellation and clock failure do not
+start another login. Local allocation/queue admission retries do not count as
+additional over-air transmissions.
+
+Successful TRACE routes enter volatile route history for 15 minutes. They do
+not automatically become persistent advert-route entries. An existing matching
+advert hint can be marked validated in RAM; that outcome alone does not schedule
+an immediate cache write. Advert-originated paths are persisted through the
+normal deferred advert-cache save mechanism.
+
+The generated [companion timing table](../../upgrades/validation/sensor-trace-companion-timing-table.md)
+shows worst-case request allowances, not normal completion times. For unscoped
+Australia Narrow SF7/BW62.5/CR7 with a known two-repeater one-byte route, the
+login reply window is 6.62 seconds, one TRACE window is 6.724 seconds, and the
+maximum including the permitted retry branches and reporting is 81 seconds.
+An unknown route advertises 109 seconds (117 with two-byte hashes), reserving
+one conservative ten-repeater probe. A healthy request completes without waiting
+through those unused attempts or maximum-route allowances.

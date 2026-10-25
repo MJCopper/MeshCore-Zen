@@ -11,6 +11,9 @@
 #include "TraceRouteHistory.h"
 #include "TraceDiagnostics.h"
 #include "TraceDiscovery.h"
+#include "TraceRequestClock.h"
+#include "TraceGuestPolicy.h"
+#include "TraceAdvertRouteCache.h"
 #include "TraceRequestAcknowledgement.h"
 #include "TraceTransactionBudget.h"
 
@@ -21,11 +24,19 @@ class SensorBotTransport {
 public:
   virtual void bindDiscovery(SensorBotService* service) = 0;
   virtual mesh::Packet* queueDiscovery(const uint8_t* key, uint32_t tag, const SensorReplyContext& context) = 0;
+  virtual mesh::Packet* queueGuestLogin(const uint8_t* key, uint32_t tag, const SensorReplyContext& context) = 0;
+  virtual const uint8_t* identityKey() const = 0;
+  virtual uint32_t wallTime() { return 0; }
+  virtual bool trustedWallTime() { return false; }
+  virtual uint32_t stableRadioProfile() { return radioProfile(); }
+  virtual bool stableRadioConfiguration() { return true; }
+  virtual SensorReplyContext controlContext(const SensorReplyContext& request) { return request; }
   virtual uint32_t now() = 0;
   virtual uint32_t uniqueTime() = 0;
   virtual const char* nodeName() = 0;
   virtual mesh::RNG& rng() = 0;
   virtual uint32_t estimateAirtime(uint8_t length) = 0;
+  virtual void describeTraceRadio(char* dest,size_t size) { snprintf(dest,size,"PHY unavailable"); }
   virtual uint32_t radioProfile() { return 0; }
   // RadioLib's Boolean error cannot rule out an emitted frame after a failed SPI command.
   virtual bool failedStartDefinitelyNotSent() const { return false; }
@@ -48,6 +59,11 @@ public:
   // Settling can be suppressed by exact-boundary characterization tests only.
   SensorBotService(SensorBotTransport& transport, Bme680Telemetry& telemetry, bool settle = true)
       : _transport(transport), _telemetry(telemetry), _settle_enabled(settle) { _transport.bindDiscovery(this); }
+  bool tracePolicyCommand(const char* command, char* reply);
+  bool onLoginResponse(const uint8_t* key, const uint8_t* data, size_t length, const mesh::Packet* packet = nullptr,
+                       const uint8_t* path = nullptr, uint8_t encoded = 0);
+  const TraceTransactionBudget& timing() const { return _budget; }
+  uint32_t traceDeadline() const { return _deadline; }
   const TraceDiagnostics& diagnostics() const { return trace_diagnostics; }
 
   void begin(FILESYSTEM* fs);
@@ -94,7 +110,27 @@ private:
   TraceRouteHistory trace_history;
   TraceDiagnostics trace_diagnostics;
   TraceDiscovery discovery;
+  TraceRequestClock request_clock;
+  TraceGuestPolicy guest_policy;
+  TraceAdvertRouteCache advert_routes;
+  SensorReplyContext control_context;
+  const mesh::Packet* _control_packets[5]{};
+  bool _advert_route = false, _attempt_advert[2]{};
+  bool useAdvertRoute(uint32_t now);
   TraceRequestAcknowledgement trace_ack;
+  TraceTransactionBudget _budget;
+  uint32_t _airtime[MAX_TRANS_UNIT+1]{},_air_profile=0;
+  char _trace_radio[96]{};
+  bool _radio_tx_active=false;
+  uint32_t _accepted_at=0,_queue_sample=0,_work_queue_used=0,_report_queue_used=0;
+  bool _count_work_queue=false,_count_report_queue=false;
+  TraceRoute _login_route{};
+  bool _login_route_pending=false;
+  bool cancelQueued(mesh::Packet* packet);
+  void refreshAirtime();
+  uint32_t cachedAirtime(uint8_t length) const { return _airtime[length]; }
+  uint32_t workRemaining(uint32_t now) const { return _budget.work(now,_deadline); }
+  void sampleQueues(uint32_t now);
   uint32_t _deadline = 0;
   bool _transaction = false, _prelude = false;
   bool _targeted = false;
@@ -107,8 +143,8 @@ private:
   SensorReplyContext trace_context;
   mesh::PacketScope trace_scope;
 
-  bool traceBusy() const { return _prelude || discovery.pending() || trace_probe.isActive() || trace_report.active(); }
-  bool beginAcknowledgement(uint32_t now, const char* destination = nullptr, const char* fallback = nullptr);
+  bool traceBusy() const { return _prelude || _login_route_pending || discovery.pending() || trace_probe.isActive() || trace_report.active(); }
+  bool beginAcknowledgement(uint32_t now, const char* destination = nullptr, const char* fallback = nullptr, const uint8_t* target_key = nullptr);
   void endTraceWork(uint32_t now);
   void pumpAcknowledgement(uint32_t now);
   bool expireTransaction(uint32_t now);

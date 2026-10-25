@@ -1,6 +1,7 @@
 #include "PublicChannelSensorBot.h"
 
 #include <ctype.h>
+#include <helpers/UTF8Helpers.h>
 #include <string.h>
 
 PublicChannelSensorBot::PublicChannelSensorBot(const char* channel_name)
@@ -53,10 +54,13 @@ int PublicChannelSensorBot::channelIndex(const mesh::GroupChannel& source) const
 bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
                                     uint32_t now_millis, bool trace_busy,
                                     uint8_t& metric_mask, bool& busy_trace,
-                                    uint8_t channel_index, uint8_t* trace_prefix, bool* targeted, TraceAction* trace_action) {
+                                    uint8_t channel_index, uint8_t* trace_prefix, bool* targeted,
+                                    TraceAction* trace_action, char* requester_name,
+                                    size_t requester_name_size) {
   metric_mask = 0;
   busy_trace = false;
   if (targeted) *targeted = false;
+  if (requester_name && requester_name_size) requester_name[0] = 0;
   uint8_t prefix[2]{};
   bool has_target = false;
   TraceAction action = TRACE_START;
@@ -68,6 +72,29 @@ bool PublicChannelSensorBot::accept(uint8_t type, uint8_t* data, size_t len,
   char* text = reinterpret_cast<char*>(&data[5]);
   char* body = strstr(text, ": ");
   if (!body) return false;
+  if (requester_name && requester_name_size) {
+    char normalized[MAX_PACKET_PAYLOAD]{};
+    size_t source_length = (size_t)(body - text);
+    size_t valid_length = mesh::validUtf8PrefixLength(text, source_length);
+    size_t used = 0;
+    bool pending_space = false;
+    for (size_t i = 0; i < valid_length; ++i) {
+      unsigned char ch = (unsigned char)text[i];
+      if (ch <= 0x20 || ch == 0x7F) {
+        pending_space = used != 0;
+        continue;
+      }
+      if (pending_space && used < sizeof(normalized) - 1) normalized[used++] = ' ';
+      pending_space = false;
+      if (used < sizeof(normalized) - 1) normalized[used++] = (char)ch;
+    }
+    size_t copy_length = mesh::validUtf8PrefixLength(normalized, used);
+    if (copy_length >= requester_name_size) {
+      copy_length = mesh::validUtf8PrefixLength(normalized, requester_name_size - 1);
+    }
+    if (copy_length) memcpy(requester_name, normalized, copy_length);
+    requester_name[copy_length] = 0;
+  }
   body += 2;
   while (*body == ' ') body++;
 

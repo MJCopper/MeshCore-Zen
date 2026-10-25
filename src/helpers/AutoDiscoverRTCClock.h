@@ -12,6 +12,7 @@ public:
   AutoDiscoverRTCClock(mesh::RTCClock& fallback) : _fallback(&fallback) { }
 
   void begin(TwoWire& wire);
+  bool hasHardwareRTC() const;
   uint32_t getCurrentTime() override;
   void setCurrentTime(uint32_t time) override;
 

@@ -25,6 +25,13 @@ protected:
   }
   void onPeerDataRecv(mesh::Packet* packet, uint8_t type, int index, const uint8_t* secret,
                        uint8_t* data, size_t length) override {
+    if (type == PAYLOAD_TYPE_RESPONSE && _discovery_service) {
+      for (uint8_t slot=0;slot<3;slot++) {
+        auto key=_discovery_service->discoveryPeer(slot); if(!key) continue;
+        uint8_t expected[32]; this->self_id.calcSharedSecret(expected,key);
+        if(!memcmp(expected,secret,32) && _discovery_service->onLoginResponse(key,data,length,packet)) return;
+      }
+    }
     if (index < _base_peers) Runtime::onPeerDataRecv(packet, type, index, secret, data, length);
   }
   bool onPeerPathRecv(mesh::Packet* packet, int index, const uint8_t* secret, uint8_t* path,
@@ -37,7 +44,8 @@ protected:
         if (!key) continue;
         uint8_t expected[32]; this->self_id.calcSharedSecret(expected, key);
         if (memcmp(expected, secret, sizeof(expected)) == 0 &&
-            _discovery_service->onDiscoveryPath(key, packet, path, encoded, extra, length)) break;
+            (_discovery_service->onLoginResponse(key,extra,length,packet,path,encoded) ||
+             _discovery_service->onDiscoveryPath(key, packet, path, encoded, extra, length))) break;
       }
       return false;  // no reciprocal PATH and no saved management-route mutation
     }
@@ -57,6 +65,15 @@ public:
     if (!packet) return NULL;
     sendReply(packet, 0, context);
     return this->isQueuedPacket(packet) ? packet : NULL;
+  }
+  const uint8_t* identityKey() const override { return this->self_id.pub_key; }
+  mesh::Packet* queueGuestLogin(const uint8_t* key,uint32_t tag,const SensorReplyContext& context) override {
+    uint8_t data[4]; memcpy(data,&tag,4);
+    uint8_t secret[32]; this->self_id.calcSharedSecret(secret,key);
+    auto packet=this->createAnonDatagram(PAYLOAD_TYPE_ANON_REQ,this->self_id,mesh::Identity(key),secret,data,sizeof(data));
+    if(!packet) return nullptr;
+    sendReply(packet,0,context);
+    return this->isQueuedPacket(packet)?packet:nullptr;
   }
   mesh::PacketScope requestScope(const mesh::Packet& packet) override {
     return this->captureRequestScope(packet);

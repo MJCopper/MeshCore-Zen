@@ -1,0 +1,1027 @@
+Processing Xiao_nrf52_bme680_sensor (board: seeed-xiao-afruitnrf52-nrf52840; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Removing Adafruit AHTX0 @ 2.0.6
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit Unified Sensor @ 1.1.15
+Library Manager: Adafruit Unified Sensor@1.1.15 has been removed!
+Library Manager: Removing Adafruit BusIO @ 1.17.4
+Library Manager: Adafruit BusIO@1.17.4 has been removed!
+Library Manager: Removing Adafruit SH110X @ 2.1.15
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit GFX Library @ 1.12.6
+Library Manager: Removing dependencies...
+Library Manager: Adafruit GFX Library@1.12.6 has been removed!
+Library Manager: Adafruit SH110X@2.1.15 has been removed!
+Library Manager: Adafruit AHTX0@2.0.6 has been removed!
+Library Manager: Removing Adafruit INA260 Library @ 1.5.3
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit NeoPixel @ 1.15.5
+Library Manager: Adafruit NeoPixel@1.15.5 has been removed!
+Library Manager: Adafruit INA260 Library@1.5.3 has been removed!
+Library Manager: Removing Adafruit BMP085 Library @ 1.2.4
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BMP085 Library@1.2.4 has been removed!
+Library Manager: Removing Arduino_LPS22HB @ 1.0.3
+Library Manager: Arduino_LPS22HB@1.0.3 has been removed!
+Library Manager: Removing MicroNMEA @ 2.0.6
+Library Manager: MicroNMEA@2.0.6 has been removed!
+Library Manager: Removing Adafruit MLX90614 Library @ 2.1.6
+Library Manager: Removing dependencies...
+Library Manager: Adafruit MLX90614 Library@2.1.6 has been removed!
+Library Manager: Removing Adafruit BME280 Library @ 2.3.0
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BME280 Library@2.3.0 has been removed!
+Library Manager: Removing Adafruit_VL53L0X @ 1.2.5
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit SSD1306 @ 2.5.17
+Library Manager: Removing dependencies...
+Library Manager: Adafruit SSD1306@2.5.17 has been removed!
+Library Manager: Adafruit_VL53L0X@1.2.5 has been removed!
+Library Manager: Removing Adafruit SHTC3 Library @ 1.0.2
+Library Manager: Removing dependencies...
+Library Manager: Adafruit SHTC3 Library@1.0.2 has been removed!
+Library Manager: Removing Adafruit INA3221 Library @ 1.0.1
+Library Manager: Removing dependencies...
+Library Manager: Adafruit INA3221 Library@1.0.1 has been removed!
+Library Manager: Removing base64 @ 1.4.0
+Library Manager: base64@1.4.0 has been removed!
+Library Manager: Removing INA226 @ 0.6.6
+Library Manager: INA226@0.6.6 has been removed!
+Library Manager: Removing Adafruit BMP280 Library @ 2.6.8
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BMP280 Library@2.6.8 has been removed!
+Library Manager: Removing NonBlockingRTTTL @ 1.4.0
+Library Manager: NonBlockingRTTTL@1.4.0 has been removed!
+Library Manager: Removing Sensirion I2C SHT4x @ 1.1.2
+Library Manager: Removing dependencies...
+Library Manager: Removing Sensirion Core @ 0.7.3
+Library Manager: Sensirion Core@0.7.3 has been removed!
+Library Manager: Sensirion I2C SHT4x@1.1.2 has been removed!
+Library Manager: Removing Adafruit INA219 @ 1.2.3
+Library Manager: Removing dependencies...
+Library Manager: Adafruit INA219@1.2.3 has been removed!
+Library Manager: Installing Adafruit BusIO
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit BusIO@1.17.4 has been installed!
+Library Manager: Installing Adafruit Unified Sensor
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70%
+Library Manager: Adafruit Unified Sensor@1.1.15 has been installed!
+Library Manager: Installing Adafruit GFX Library
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit GFX Library@1.12.6 has been installed!
+Library Manager: Resolving dependencies...
+Library Manager: Installing Adafruit SSD1306
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit SSD1306@2.5.17 has been installed!
+Library Manager: Resolving dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-xiao-afruitnrf52-nrf52840.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Studio XIAO nRF52840
+HARDWARE: NRF52840 64MHz, 230KB RAM, 792KB Flash
+DEBUG: Current (jlink) External (blackmagic, cmsis-dap, jlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 28 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+Building in release mode
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_TinyUSB_API.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Device.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Interface.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBH_Host.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/cdc/Adafruit_USBH_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/hid/Adafruit_USBD_HID.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/midi/Adafruit_USBD_MIDI.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBD_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBH_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/ch32/Adafruit_TinyUSB_ch32.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/esp32/Adafruit_TinyUSB_esp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/nrf/Adafruit_TinyUSB_nrf.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/rp2040/Adafruit_TinyUSB_rp2040.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/samd/Adafruit_TinyUSB_samd.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/video/Adafruit_USBD_Video.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/arduino/webusb/Adafruit_USBD_WebUSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/audio/audio_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/bth/bth_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_host.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_rt_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_host.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_host.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_host.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/net/ecm_rndis_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/net/ncm_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/usbtmc/usbtmc_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/vendor/vendor_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/class/video/video_device.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/common/tusb_fifo.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/device/usbd.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/device/usbd_control.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/host/hub.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/host/usbh.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/analog/max3421/hcd_max3421.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/microchip/samd/dcd_samd.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/nordic/nrf5x/dcd_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/dcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/hcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/hcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/rp2040_usb.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/st/stm32_fsdev/dcd_stm32_fsdev.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dwc2_common.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/hcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbfs.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbhs.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libee6/Adafruit_TinyUSB_Arduino/tusb.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/BME680AirQuality.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/Bme680Telemetry.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/PublicChannelSensorBot.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/PublicResponseQueue.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/RepeaterNameCache.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/RepeaterTraceProbe.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/SensorBotService.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/SensorManagementPolicy.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/TraceRouteCandidates.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/bme680_sensor/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/simple_sensor/SensorMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/simple_sensor/TimeSeriesData.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/examples/simple_sensor/UITask.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/variants/xiao_nrf52/XiaoNrf52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/variants/xiao_nrf52/target.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/variants/xiao_nrf52/variant.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/Dispatcher.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/Identity.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/Mesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/Packet.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/armstubs.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/AdvertDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ArduinoSerialInterface.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/AutoDiscoverRTCClock.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/BaseChatMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ClientACL.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/CommonCLI.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/CommonRadioPrefs.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/DynamicConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ESP32Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/IdentityStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/NRF52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/RTC_RX8130CE.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/RegionMap.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/StaticPoolPacketManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/TransportKeyStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/TxtDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/bridges/BridgeBase.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/radiolib/RadioLibWrappers.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/sensors/EnvironmentSensorManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/sensors/RAK12035_SoilMoisture.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ui/MomentaryButton.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/src/helpers/ui/NullDisplayDriver.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libd52/SPI/SPI.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libd52/SPI/SPI_nrf52832.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/liba54/Wire/Wire_nRF52.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/Hal.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/Module.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/hal/Arduino/ArduinoHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/hal/ESP-IDF/EspHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/hal/RPiPico/PicoHal.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libd52/libSPI.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libd52/libSPI.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/hal/Stm32duino/Stm32wlHal.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/liba54/libWire.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/liba54/libWire.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/CC1101/CC1101.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LLCC68/LLCC68.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR1110.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR1120.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR1121.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR11x0.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR11x0_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR11x0_crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR11x0_gnss.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR11x0_wifi.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR11x0/LR_common.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_chip_control.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_flrc.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_gfsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_lora.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_misc.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_ook.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_oqpsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_radio.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_cmds_ranging.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/LR2021/LR2021_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/RF69/RF69.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX123x/SX1231.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX123x/SX1233.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/STM32WLx.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX1261.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX1262.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX1268.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX126x.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX126x_LR_FHSS.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX126x_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX126x/SX126x_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1272.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1273.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1276.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1277.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1278.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX1279.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX127x/SX127x.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX128x/SX1280.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX128x/SX1281.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX128x/SX1282.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/SX128x/SX128x.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/Si443x/Si4430.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/Si443x/Si4431.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/Si443x/Si4432.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/Si443x/Si443x.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/modules/nRF24/nRF24.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/ADSB/ADSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/AFSK/AFSK.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/APRS/APRS.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/AX25/AX25.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/BellModem/BellModem.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/ExternalRadio/ExternalRadio.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/FSK4/FSK4.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/Hellschreiber/Hellschreiber.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/LoRaWAN/LoRaWAN.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/LoRaWAN/LoRaWANBands.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/LoRaWAN/LoRaWANPacMan.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS003.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS009.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/Morse/Morse.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/Pager/Pager.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/PhysicalLayer/PhysicalLayer.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/Print/ITA2String.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/Print/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/RTTY/RTTY.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/protocols/SSTV/SSTV.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/utils/BCH.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/utils/CRC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/utils/ConvCode.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/utils/Cryptography.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/RadioLib/utils/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AES128.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AES192.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AES256.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AESCommon.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AESEsp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/AuthenticatedCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/BLAKE2b.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/BLAKE2s.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/BigNumberUtil.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/BlockCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/CTR.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/ChaCha.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/ChaChaPoly.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Cipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Curve25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/EAX.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Ed25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/GCM.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/GF128.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/GHASH.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/HKDF.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/KeccakCore.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/NoiseSource.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/OMAC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/P521.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/Poly1305.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/RNG.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHA224.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHA256.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHA3.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHA384.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHA512.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/SHAKE.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/XOF.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/Crypto/XTS.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib06c/Adafruit BusIO/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib06c/Adafruit BusIO/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib06c/Adafruit BusIO/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib06c/Adafruit BusIO/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_DS1307.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_DS3231.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_Micros.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_Millis.cpp.o
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib2d3/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_PCF8523.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTC_PCF8563.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib52a/RTClib/RTClib.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libc14/Melopero RV3028/Melopero_RV3028.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libede/CayenneLPP/CayenneLPP.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libede/CayenneLPP/CayenneLPPPolyline.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libb8c/Adafruit_LittleFS/Adafruit_LittleFS.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib06c/libAdafruit BusIO.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib06c/libAdafruit BusIO.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libb8c/Adafruit_LittleFS/Adafruit_LittleFS_File.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libb8c/Adafruit_LittleFS/littlefs/lfs.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/libb8c/Adafruit_LittleFS/littlefs/lfs_util.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib05e/InternalFileSytem/InternalFileSystem.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libc14/libMelopero RV3028.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libc14/libMelopero RV3028.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib05e/InternalFileSytem/flash/flash_cache.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib05e/InternalFileSytem/flash/flash_nrf5x.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib52a/libRTClib.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib52a/libRTClib.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/liba1f/CustomLFS/CustomLFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/liba1f/CustomLFS/CustomLFS_QSPIFlash.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/liba1f/CustomLFS/CustomLFS_SPIFlash.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib05e/libInternalFileSytem.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib05e/libInternalFileSytem.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib2b0/Adafruit Unified Sensor/Adafruit_Sensor.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib8b0/Adafruit BME680 Library/Adafruit_BME680.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib2b0/libAdafruit Unified Sensor.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib2b0/libAdafruit Unified Sensor.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib8b0/Adafruit BME680 Library/bme68x.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libb8c/libAdafruit_LittleFS.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libb8c/libAdafruit_LittleFS.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/Adafruit_nRFCrypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PrivateKey.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/liba1f/libCustomLFS.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/liba1f/libCustomLFS.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PublicKey.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/nRFCrypto_Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/nRFCrypto_Hmac.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib672/Adafruit_nRFCrypto/nRFCrypto_Random.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/add_scalar.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/fe.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/ge.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/key_exchange.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/keypair.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib672/libAdafruit_nRFCrypto.a
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib8b0/libAdafruit BME680 Library.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/sc.c.o
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib672/libAdafruit_nRFCrypto.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib8b0/libAdafruit BME680 Library.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/seed.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/sha512.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/sign.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/ed25519/verify.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEAdvertising.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLECentral.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLECharacteristic.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEClientCharacteristic.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEClientService.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/libed25519.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib1cd/libed25519.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEConnection.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEDiscovery.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEGatt.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEPeriph.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEScanner.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLESecurity.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEService.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/BLEUuid.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/bluefruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEAncs.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientCts.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientHidAdafruit.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/libCrypto.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib0dd/libCrypto.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientIas.cpp.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libede/libCayenneLPP.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libede/libCayenneLPP.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/clients/BLEClientUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEBeacon.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEDfu.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEHidGamepad.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEHidGeneric.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEMidi.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/BLEUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/services/EddyStone.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/utility/AdaMsg.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/utility/bonding.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/lib17e/Bluefruit52Lib/utility/bootloader_util.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libFrameworkArduinoVariant.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libFrameworkArduinoVariant.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/HardwarePWM.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/RingBuffer.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/Uart.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/WInterrupts.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/abi.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/avr/dtostrf.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/delay.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/croutine.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/lib17e/libBluefruit52Lib.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/event_groups.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/list.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/portable/MemMang/heap_3.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/queue.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/stream_buffer.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/tasks.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/Source/timers.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/freertos/portable/GCC/nrf52/port.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/hooks.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/itoa.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/linker/gcc_startup_nrf52.S.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/linker/gcc_startup_nrf52833.S.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/linker/gcc_startup_nrf52840.S.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/new.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_gpiote.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_power.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_pwm.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_qspi.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spim.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spis.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_temp.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_timer.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/mdk/system_nrf52.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/mdk/system_nrf52833.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/nordic/nrfx/mdk/system_nrf52840.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/pulse.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/pulse_asm.S.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/rtos.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/SEGGER/SEGGER_RTT.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_ASM_ARMv7M.S.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_printf.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/SEGGER/SEGGER_SYSVIEW.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/sysview/SEGGER_SYSVIEW_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/utility/AdaCallback.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/utility/SoftwareTimer.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/utility/adafruit_fifo.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/utility/debug.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/utility/utilities.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring_analog.cpp.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring_analog_nRF52.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring_digital.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring_private.c.o
+Compiling .pio/build/Xiao_nrf52_bme680_sensor/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/Xiao_nrf52_bme680_sensor/libFrameworkArduino.a
+Indexing .pio/build/Xiao_nrf52_bme680_sensor/libFrameworkArduino.a
+Linking .pio/build/Xiao_nrf52_bme680_sensor/firmware.elf
+Checking size .pio/build/Xiao_nrf52_bme680_sensor/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [==        ]  15.6% (used 36636 bytes from 235520 bytes)
+Flash: [====      ]  41.7% (used 338196 bytes from 811008 bytes)
+Building .pio/build/Xiao_nrf52_bme680_sensor/firmware.hex
+Building .pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
+Zip created at .pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
+copy_dfu_zip([".pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.zip"], [".pio/build/Xiao_nrf52_bme680_sensor/firmware.zip"])
+========================= [SUCCESS] Took 60.65 seconds =========================
+
+Processing Xiao_nrf52_sensor_baseline (board: seeed-xiao-afruitnrf52-nrf52840; platform: nordicnrf52; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Library Manager: Removing Adafruit AHTX0 @ 2.0.6
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit Unified Sensor @ 1.1.15
+Library Manager: Adafruit Unified Sensor@1.1.15 has been removed!
+Library Manager: Removing Adafruit BusIO @ 1.17.4
+Library Manager: Adafruit BusIO@1.17.4 has been removed!
+Library Manager: Removing Adafruit SH110X @ 2.1.15
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit GFX Library @ 1.12.6
+Library Manager: Removing dependencies...
+Library Manager: Adafruit GFX Library@1.12.6 has been removed!
+Library Manager: Adafruit SH110X@2.1.15 has been removed!
+Library Manager: Adafruit AHTX0@2.0.6 has been removed!
+Library Manager: Removing Adafruit INA260 Library @ 1.5.3
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit NeoPixel @ 1.15.5
+Library Manager: Adafruit NeoPixel@1.15.5 has been removed!
+Library Manager: Adafruit INA260 Library@1.5.3 has been removed!
+Library Manager: Removing Adafruit BMP085 Library @ 1.2.4
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BMP085 Library@1.2.4 has been removed!
+Library Manager: Removing Arduino_LPS22HB @ 1.0.3
+Library Manager: Arduino_LPS22HB@1.0.3 has been removed!
+Library Manager: Removing MicroNMEA @ 2.0.6
+Library Manager: MicroNMEA@2.0.6 has been removed!
+Library Manager: Removing Adafruit MLX90614 Library @ 2.1.6
+Library Manager: Removing dependencies...
+Library Manager: Adafruit MLX90614 Library@2.1.6 has been removed!
+Library Manager: Removing Adafruit BME280 Library @ 2.3.0
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BME280 Library@2.3.0 has been removed!
+Library Manager: Removing Adafruit_VL53L0X @ 1.2.5
+Library Manager: Removing dependencies...
+Library Manager: Removing Adafruit SSD1306 @ 2.5.17
+Library Manager: Removing dependencies...
+Library Manager: Adafruit SSD1306@2.5.17 has been removed!
+Library Manager: Adafruit_VL53L0X@1.2.5 has been removed!
+Library Manager: Removing Adafruit SHTC3 Library @ 1.0.2
+Library Manager: Removing dependencies...
+Library Manager: Adafruit SHTC3 Library@1.0.2 has been removed!
+Library Manager: Removing Adafruit INA3221 Library @ 1.0.1
+Library Manager: Removing dependencies...
+Library Manager: Adafruit INA3221 Library@1.0.1 has been removed!
+Library Manager: Removing base64 @ 1.4.0
+Library Manager: base64@1.4.0 has been removed!
+Library Manager: Removing INA226 @ 0.6.6
+Library Manager: INA226@0.6.6 has been removed!
+Library Manager: Removing Adafruit BMP280 Library @ 2.6.8
+Library Manager: Removing dependencies...
+Library Manager: Adafruit BMP280 Library@2.6.8 has been removed!
+Library Manager: Removing NonBlockingRTTTL @ 1.4.0
+Library Manager: NonBlockingRTTTL@1.4.0 has been removed!
+Library Manager: Removing Sensirion I2C SHT4x @ 1.1.2
+Library Manager: Removing dependencies...
+Library Manager: Removing Sensirion Core @ 0.7.3
+Library Manager: Sensirion Core@0.7.3 has been removed!
+Library Manager: Sensirion I2C SHT4x@1.1.2 has been removed!
+Library Manager: Removing Adafruit INA219 @ 1.2.3
+Library Manager: Removing dependencies...
+Library Manager: Adafruit INA219@1.2.3 has been removed!
+Library Manager: Installing Adafruit BusIO
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit BusIO@1.17.4 has been installed!
+Library Manager: Installing Adafruit Unified Sensor
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70%
+Library Manager: Adafruit Unified Sensor@1.1.15 has been installed!
+Library Manager: Installing Adafruit GFX Library
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit GFX Library@1.12.6 has been installed!
+Library Manager: Resolving dependencies...
+Library Manager: Installing Adafruit SSD1306
+Unpacking 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Library Manager: Adafruit SSD1306@2.5.17 has been installed!
+Library Manager: Resolving dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/nordicnrf52/seeed-xiao-afruitnrf52-nrf52840.html
+PLATFORM: Nordic nRF52 (10.12.0) > Seeed Studio XIAO nRF52840
+HARDWARE: NRF52840 64MHz, 230KB RAM, 792KB Flash
+DEBUG: Current (jlink) External (blackmagic, cmsis-dap, jlink)
+PACKAGES:
+ - framework-arduinoadafruitnrf52 @ 1.10701.0+sha.d5413016
+ - framework-cmsis @ 2.50700.210515 (5.7.0)
+ - tool-adafruit-nrfutil @ 1.503.0 (5.3)
+ - tool-sreccat @ 1.164.0 (1.64)
+ - toolchain-gccarmnoneeabi @ 1.140201.0 (14.2.1)
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 28 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- SPI @ 1.0
+|-- Wire @ 1.0
+|-- RadioLib @ 7.7.1+sha.6d8934836
+|-- Crypto @ 0.4.0
+|-- RTClib @ 2.1.4
+|-- Melopero RV3028 @ 1.2.0
+|-- CayenneLPP @ 1.6.1
+|-- CustomLFS @ 0.2.1+sha.b3928ea
+|-- Adafruit BME680 Library @ 2.0.6
+|-- Adafruit nRFCrypto
+|-- ed25519
+|-- Adafruit Bluefruit nRF52 Libraries @ 0.21.0
+|-- nrf52
+|-- Adafruit Little File System Libraries @ 0.11.0
+|-- Adafruit Internal File System on Bluefruit nRF52 @ 0.11.0
+Building in release mode
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_TinyUSB_API.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Device.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBD_Interface.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/Adafruit_USBH_Host.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/cdc/Adafruit_USBH_CDC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/hid/Adafruit_USBD_HID.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/midi/Adafruit_USBD_MIDI.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBD_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/msc/Adafruit_USBH_MSC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/ch32/Adafruit_TinyUSB_ch32.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/esp32/Adafruit_TinyUSB_esp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/nrf/Adafruit_TinyUSB_nrf.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/rp2040/Adafruit_TinyUSB_rp2040.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/ports/samd/Adafruit_TinyUSB_samd.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/video/Adafruit_USBD_Video.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/arduino/webusb/Adafruit_USBD_WebUSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/audio/audio_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/bth/bth_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/cdc/cdc_host.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/dfu/dfu_rt_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/hid/hid_host.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/midi/midi_host.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/msc/msc_host.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/net/ecm_rndis_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/net/ncm_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/usbtmc/usbtmc_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/vendor/vendor_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/class/video/video_device.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/common/tusb_fifo.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/device/usbd.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/device/usbd_control.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/host/hub.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/host/usbh.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/analog/max3421/hcd_max3421.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/microchip/samd/dcd_samd.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/nordic/nrf5x/dcd_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/dcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/pio_usb/hcd_pio_usb.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/hcd_rp2040.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/raspberrypi/rp2040/rp2040_usb.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/st/stm32_fsdev/dcd_stm32_fsdev.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/dwc2_common.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/synopsys/dwc2/hcd_dwc2.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbfs.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/portable/wch/dcd_ch32_usbhs.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libee6/Adafruit_TinyUSB_Arduino/tusb.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/examples/simple_sensor/SensorMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/examples/simple_sensor/TimeSeriesData.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/examples/simple_sensor/UITask.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/examples/simple_sensor/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/variants/xiao_nrf52/XiaoNrf52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/variants/xiao_nrf52/target.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/variants/xiao_nrf52/variant.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/Dispatcher.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/Identity.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/Mesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/Packet.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/armstubs.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/AdvertDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ArduinoSerialInterface.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/AutoDiscoverRTCClock.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/BaseChatMesh.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ClientACL.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/CommonCLI.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/CommonRadioPrefs.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/DynamicConfigSerializer.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ESP32Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/IdentityStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/NRF52Board.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/RTC_RX8130CE.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/RegionMap.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/StaticPoolPacketManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/TransportKeyStore.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/TxtDataHelpers.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/bridges/BridgeBase.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/radiolib/RadioLibWrappers.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/sensors/EnvironmentSensorManager.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/sensors/RAK12035_SoilMoisture.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ui/MomentaryButton.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/src/helpers/ui/NullDisplayDriver.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd52/SPI/SPI.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd52/SPI/SPI_nrf52832.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba54/Wire/Wire_nRF52.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/Hal.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/Module.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/hal/Arduino/ArduinoHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/hal/ESP-IDF/EspHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/hal/RPiPico/PicoHal.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/hal/Stm32duino/Stm32wlHal.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libd52/libSPI.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libd52/libSPI.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/CC1101/CC1101.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LLCC68/LLCC68.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR1110.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/liba54/libWire.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/liba54/libWire.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR1120.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR1121.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR11x0.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR11x0_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR11x0_crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR11x0_gnss.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR11x0_wifi.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR11x0/LR_common.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_chip_control.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_flrc.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_gfsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_lora.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_misc.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_ook.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_oqpsk.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_radio.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_cmds_ranging.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/LR2021/LR2021_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/RF69/RF69.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX123x/SX1231.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX123x/SX1233.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/STM32WLx.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX1261.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX1262.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX1268.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX126x.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX126x_LR_FHSS.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX126x_commands.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX126x/SX126x_config.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1272.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1273.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1276.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1277.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1278.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX1279.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX127x/SX127x.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX128x/SX1280.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX128x/SX1281.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX128x/SX1282.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/SX128x/SX128x.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/Si443x/Si4430.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/Si443x/Si4431.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/Si443x/Si4432.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/Si443x/Si443x.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/modules/nRF24/nRF24.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/ADSB/ADSB.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/AFSK/AFSK.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/APRS/APRS.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/AX25/AX25.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/BellModem/BellModem.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/ExternalRadio/ExternalRadio.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/FSK4/FSK4.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/Hellschreiber/Hellschreiber.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/LoRaWAN/LoRaWAN.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/LoRaWAN/LoRaWANBands.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/LoRaWAN/LoRaWANPacMan.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS003.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/LoRaWAN/LoRaWANPackageTS009.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/Morse/Morse.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/Pager/Pager.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/PhysicalLayer/PhysicalLayer.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/Print/ITA2String.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/Print/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/RTTY/RTTY.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/protocols/SSTV/SSTV.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/utils/BCH.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/utils/CRC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/utils/ConvCode.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/utils/Cryptography.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/RadioLib/utils/Utils.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AES128.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AES192.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AES256.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AESCommon.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AESEsp32.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/AuthenticatedCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/BLAKE2b.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/BLAKE2s.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/BigNumberUtil.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/BlockCipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/CTR.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/ChaCha.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/ChaChaPoly.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Cipher.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Crypto.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Curve25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/EAX.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Ed25519.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/GCM.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/GF128.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/GHASH.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/HKDF.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/KeccakCore.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/NoiseSource.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/OMAC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/P521.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/Poly1305.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/RNG.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHA224.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHA256.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHA3.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHA384.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHA512.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/SHAKE.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/XOF.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/Crypto/XTS.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/Adafruit BusIO/Adafruit_BusIO_Register.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/Adafruit BusIO/Adafruit_GenericDevice.cpp.o
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib9cb/libRadioLib.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/Adafruit BusIO/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/Adafruit BusIO/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_DS1307.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_DS3231.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_Micros.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_Millis.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_PCF8523.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTC_PCF8563.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/liba5f/RTClib/RTClib.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd95/Melopero RV3028/Melopero_RV3028.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libf56/CayenneLPP/CayenneLPP.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libf56/CayenneLPP/CayenneLPPPolyline.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libb8c/Adafruit_LittleFS/Adafruit_LittleFS.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/libAdafruit BusIO.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib5f4/libAdafruit BusIO.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libb8c/Adafruit_LittleFS/Adafruit_LittleFS_File.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libb8c/Adafruit_LittleFS/littlefs/lfs.c.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/liba5f/libRTClib.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/liba5f/libRTClib.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libb8c/Adafruit_LittleFS/littlefs/lfs_util.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib05e/InternalFileSytem/InternalFileSystem.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libd95/libMelopero RV3028.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libd95/libMelopero RV3028.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib05e/InternalFileSytem/flash/flash_cache.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib05e/InternalFileSytem/flash/flash_nrf5x.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd38/CustomLFS/CustomLFS.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd38/CustomLFS/CustomLFS_QSPIFlash.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/libd38/CustomLFS/CustomLFS_SPIFlash.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib05e/libInternalFileSytem.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib05e/libInternalFileSytem.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib3e9/Adafruit Unified Sensor/Adafruit_Sensor.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9d7/Adafruit BME680 Library/Adafruit_BME680.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib3e9/libAdafruit Unified Sensor.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib3e9/libAdafruit Unified Sensor.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib9d7/Adafruit BME680 Library/bme68x.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/Adafruit_nRFCrypto.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libd38/libCustomLFS.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libd38/libCustomLFS.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PrivateKey.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libb8c/libAdafruit_LittleFS.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libb8c/libAdafruit_LittleFS.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/ecc/nRFCrypto_ECC_PublicKey.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/nRFCrypto_Hash.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/nRFCrypto_Hmac.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib672/Adafruit_nRFCrypto/nRFCrypto_Random.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/add_scalar.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/fe.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/ge.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/key_exchange.c.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib672/libAdafruit_nRFCrypto.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib672/libAdafruit_nRFCrypto.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/keypair.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/sc.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/seed.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/sha512.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/sign.c.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib9d7/libAdafruit BME680 Library.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib9d7/libAdafruit BME680 Library.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/ed25519/verify.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEAdvertising.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLECentral.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLECharacteristic.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEClientCharacteristic.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/libed25519.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib1cd/libed25519.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEClientService.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEConnection.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEDiscovery.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEGatt.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEPeriph.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEScanner.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLESecurity.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEService.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/libCrypto.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib4bf/libCrypto.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/BLEUuid.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/bluefruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEAncs.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientCts.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/clients/BLEClientUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEBas.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEBeacon.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libf56/libCayenneLPP.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libf56/libCayenneLPP.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEDfu.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEDis.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEHidAdafruit.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEHidGamepad.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEHidGeneric.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEIas.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEMidi.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/BLEUart.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/services/EddyStone.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/utility/AdaMsg.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/utility/bonding.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/lib17e/Bluefruit52Lib/utility/bootloader_util.c.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libFrameworkArduinoVariant.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libFrameworkArduinoVariant.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/HardwarePWM.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/RingBuffer.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/Uart.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/WInterrupts.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/WString.cpp.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/abi.cpp.o
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/lib17e/libBluefruit52Lib.a
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/avr/dtostrf.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/delay.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/croutine.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/event_groups.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/list.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/portable/MemMang/heap_3.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/queue.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/stream_buffer.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/tasks.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/Source/timers.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/freertos/portable/GCC/nrf52/port.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/hooks.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/itoa.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/linker/gcc_startup_nrf52.S.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/linker/gcc_startup_nrf52833.S.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/linker/gcc_startup_nrf52840.S.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/main.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/new.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_gpiote.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_power.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_pwm.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_qspi.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spim.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_spis.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_temp.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/drivers/src/nrfx_timer.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/mdk/system_nrf52.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/mdk/system_nrf52833.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/nordic/nrfx/mdk/system_nrf52840.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/pulse.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/pulse_asm.S.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/rtos.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/SEGGER/SEGGER_RTT.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_ASM_ARMv7M.S.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/SEGGER/SEGGER_RTT_printf.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/SEGGER/SEGGER_SYSVIEW.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/sysview/SEGGER_SYSVIEW_FreeRTOS.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/utility/AdaCallback.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/utility/SoftwareTimer.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/utility/adafruit_fifo.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/utility/debug.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/utility/utilities.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring_analog.cpp.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring_analog_nRF52.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring_digital.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring_private.c.o
+Compiling .pio/build/Xiao_nrf52_sensor_baseline/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/Xiao_nrf52_sensor_baseline/libFrameworkArduino.a
+Indexing .pio/build/Xiao_nrf52_sensor_baseline/libFrameworkArduino.a
+Linking .pio/build/Xiao_nrf52_sensor_baseline/firmware.elf
+Building .pio/build/Xiao_nrf52_sensor_baseline/firmware.hex
+Checking size .pio/build/Xiao_nrf52_sensor_baseline/firmware.elf
+Building .pio/build/Xiao_nrf52_sensor_baseline/firmware.zip
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]  13.2% (used 31116 bytes from 235520 bytes)
+Flash: [====      ]  38.9% (used 315684 bytes from 811008 bytes)
+Zip created at .pio/build/Xiao_nrf52_sensor_baseline/firmware.zip
+========================= [SUCCESS] Took 52.43 seconds =========================
+
+Environment                 Status    Duration
+--------------------------  --------  ------------
+Xiao_nrf52_bme680_sensor    SUCCESS   00:01:00.651
+Xiao_nrf52_sensor_baseline  SUCCESS   00:00:52.432
+========================= 2 succeeded in 00:01:53.084 =========================

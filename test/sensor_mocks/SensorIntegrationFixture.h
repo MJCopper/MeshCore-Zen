@@ -24,7 +24,17 @@ protected:
     mesh.begin();
     bot.begin(&fs);
   }
-  void tick(uint32_t now) { g_mock_millis = now; mesh.loop(); bot.loop(); }
+  void tick(uint32_t now) {
+    auto acknowledgements=mesh.isolated_acknowledgements.size();
+    g_mock_millis=now; mesh.loop(); bot.loop();
+    // Only legacy immediate-ACK acceptance gets the extra admission poll.
+    if(mesh.isolated_acknowledgements.size()!=acknowledgements) mesh.loop();
+  }
+  void completeUntil(uint32_t end) {
+    for(uint32_t now=g_mock_millis+50;now<=end;now+=50) {
+      if(radio.transmitting) radio.complete=true; tick(now);
+    }
+  }
   void finish(uint32_t now) { radio.complete = true; tick(now); }
   std::vector<uint8_t> command(const char* text, uint8_t hops = 2,
                               const mesh::GroupChannel* selected = nullptr, uint8_t width = 1) {

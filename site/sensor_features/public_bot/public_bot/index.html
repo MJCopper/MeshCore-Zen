@@ -1,0 +1,1132 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+        <link rel="prev" href="../../telemetry/telemetry/">
+      
+      
+        <link rel="next" href="../../access/access/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Public-channel Commands - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#public-channel-commands" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Public-channel Commands
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mesh-traffic-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh traffic controls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Mesh traffic controls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#private-trace-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Private trace diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mesh-traffic-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh traffic controls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Mesh traffic controls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#private-trace-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Private trace diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/sensor_features/public_bot/public_bot.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="public-channel-commands">Public-channel Commands</h1>
+<p><a href="https://github.com/MJCopper/MeshCore-Zen/blob/meshcore/sensor/README.md">Back to README</a></p>
+<p>The node listens on MeshCore's built-in Public channel and <code>#hillvue</code> for
+messages beginning with the exact command word <code>!hillvue</code>. Matching is
+case-insensitive. Each response stays on the requesting channel, including
+delayed message parts, trace results, fallback results and error notices.
+Both channels share the same four-command-per-minute limit and active trace.</p>
+<p>Replies retain the request's transport scope through delayed and multipart
+messages, trace results, fallback results and error notices. A recognised scope
+is mirrored; an explicitly unscoped request receives an unscoped reply. If a
+transport scope cannot be resolved, the sensor uses its configured default
+scope, or replies unscoped if no usable default exists. The selection is captured
+when the command is accepted, so later traffic or default-scope changes do not
+redirect a pending reply. A busy notice follows the new request's scope while
+the running trace keeps its original scope.</p>
+<p>Hashtag channels are not private: anyone who knows the name can derive the key.</p>
+<h2 id="commands">Commands</h2>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!hillvue</code></td>
+<td>All measurements</td>
+</tr>
+<tr>
+<td><code>!hillvue all</code></td>
+<td>All measurements</td>
+</tr>
+<tr>
+<td><code>!hillvue t</code></td>
+<td>Temperature</td>
+</tr>
+<tr>
+<td><code>!hillvue h</code></td>
+<td>Humidity</td>
+</tr>
+<tr>
+<td><code>!hillvue p</code></td>
+<td>Pressure</td>
+</tr>
+<tr>
+<td><code>!hillvue a</code></td>
+<td>Air quality</td>
+</tr>
+<tr>
+<td><code>!hillvue v</code></td>
+<td>XIAO battery voltage</td>
+</tr>
+<tr>
+<td><code>!hillvue ping</code></td>
+<td><code>Pong</code> reachability reply</td>
+</tr>
+<tr>
+<td><code>!hillvue path</code></td>
+<td>Repeater path taken by this request</td>
+</tr>
+<tr>
+<td><code>!hillvue trace</code></td>
+<td>Incoming command route RTT and average bidirectional link SNR</td>
+</tr>
+<tr>
+<td><code>!hillvue trace 4df5</code></td>
+<td>Discover and trace to the known repeater with public-key prefix <code>4df5</code></td>
+</tr>
+<tr>
+<td><code>!hillvue trace status</code></td>
+<td>Current discovery/probe/report phase, attempt and receive/queue time remaining</td>
+</tr>
+<tr>
+<td><code>!hillvue trace cancel</code></td>
+<td>Stop the active trace and cancel its queued work</td>
+</tr>
+</tbody>
+</table>
+<p>An option is selected by its first letter, so forms such as <code>temp</code>,
+<code>Temperature</code> and <code>T</code> all select temperature. Likewise, <code>v</code>, <code>volt</code> and
+<code>voltage</code> select voltage. Multiple space-separated options
+can be combined:</p>
+<pre><code class="language-text">!hillvue t air
+!hillvue Temperature Humidity
+!hillvue p h a
+!hillvue voltage t
+</code></pre>
+<p><code>!hillvue ping</code> is standalone and cannot be combined with measurements. It
+uses the same traffic limits as other commands and does not require sensor data.
+<code>Pong</code> confirms that the node received the command, but does not measure mesh
+round-trip time in milliseconds.</p>
+<p><code>!hillvue path</code> is also standalone. It reports the repeaters traversed by the
+request on its way to the sensor, using names from verified repeater adverts
+where available. Unknown or ambiguous names are shown as path hashes. This is
+the first received route, not necessarily the best route or the return path.
+The sensor retains up to 48 repeater names in its internal flash filesystem;
+unchanged adverts do not cause writes. The reply appears on the requesting channel,
+not as a private message to the requester.
+Long paths use at most two messages, labelled <code>1/2</code> and <code>2/2</code>, with a three-second
+gap after the first transmission completes. Replies split between repeaters,
+preserving their order and using the same short names as trace replies. Paths
+that exceed both messages end with <code>...truncated</code>. Short paths remain one message;
+the shared four-requests-per-minute limit is unchanged.</p>
+<p>Path and trace display names omit the whole words <code>repeater</code> and <code>rptr</code>, ignoring
+case, before applying the existing 12-byte UTF-8-safe name limit. For example,
+<code>Hillvue Repeater</code> becomes <code>Hillvue</code>, and <code>Tamworth rptr</code> becomes <code>Tamworth</code>.
+Whitespace is tidied; stored advert names are unchanged. If removal leaves an
+empty name, the repeater's path hash is displayed instead.</p>
+<p><code>!hillvue trace</code> without a destination sends one direct MeshCore trace out
+through the repeaters in the received request path and back to itself, then
+reports the elapsed milliseconds as a <strong>round-trip</strong> measurement and the average
+of both directional SNR readings for each link. Nodes are listed once, starting
+with the nearest repeater to the sensor and proceeding towards the requester.
+Each node's displayed SNR describes its link to the preceding node (the sensor
+for the first entry). For example:</p>
+<pre><code class="language-text">Trace: 1540 ms RTT (avg SNR)
+1 Ridge -4.0 dB
+2 Valley +1.0 dB
+</code></pre>
+<p>For the first entry, sensor-to-repeater -6 dB and repeater-to-sensor -2 dB
+produce -4.0 dB. This is the arithmetic mean of the two dB readings from the
+selected trace attempt, not an average over time. Values are averaged before
+rounding to one decimal place. Retry and late fallback reports use their own
+route's samples; the first link includes the sensor's final received SNR.
+An average can hide a weaker direction, so it is not a weakest-link score.
+The final repeater-to-requester link is outside the trace measurement.</p>
+<p>To choose a destination instead of using the command's incoming route, send
+<code>!hillvue trace 4df5</code>. The four hexadecimal characters select the first two bytes
+of a full public key in the sensor's verified repeater-advert cache (up to 48
+named repeaters, including persisted adverts). Uppercase hexadecimal is accepted.
+The sensor must already know the full identity; four characters alone cannot
+identify an unknown node. An absent prefix reports <code>Trace: unknown repeater
+4df5</code>; multiple cached matches report <code>Trace: ambiguous repeater 4df5</code>. Neither
+case starts discovery. Malformed prefixes or combined trace/measurement commands
+are ignored. Both trace forms are standalone commands.</p>
+<p>For a selected destination, the sensor first tries standard authenticated path
+discovery. If the repeater does not yet recognise the sensor, the default
+<code>public</code> first-contact policy makes an anonymous login with the empty public
+guest credential, allowing two retries (three transmissions total), then sends a fresh authenticated request. No administrator
+password is needed or guessed. A target with protected guest access may ignore
+that login; lack of a reply does not establish that the repeater is unreachable.
+Private/local administration can select <code>get trace.login</code> or
+<code>set trace.login public|off</code>. A successful login may create a transient client
+entry on the target. An unexpected administrator grant is not used by this
+workflow; tracing falls back instead.</p>
+<p>If discovery cannot obtain a path, the stationary sensor can use a reversed
+route from that repeater's previously verified flooded adverts. It retains up
+to two candidate routes for each of 48 identities in a separate persisted cache.
+Known-age hints expire after 24 hours. Restored hints without reliable calendar
+age are probationary candidates, never freshly discovered routes. Every attempt
+sends a new round-trip TRACE: old RTT/SNR/results are never returned as current.
+If one route fails, a distinct alternate may use the one remaining probe.
+Advert fallback can succeed with no login and no target ACL entry. On first
+installation, the route cache is empty even if old stored names are present:
+allow the sensor to receive genuine flooded adverts before relying on fallback.
+After collection and a deferred save, those hints can survive reboot.</p>
+<p>The selected repeater remains the final outward entry, including a direct
+neighbour. Final output and average-SNR rules match bare trace. Ten repeaters
+includes the target; one/two-byte hashes are supported. Unsupported paths are
+never probed. An advert authenticates the originating identity/data, not its
+mutable flood path or reverse reachability, so a candidate can still fail if
+links are asymmetric or topology changes. Ambiguous short-hash labels remain
+ambiguous.</p>
+<p>Control traffic stops at 40 seconds from command acceptance, leaving time for
+route probing. Initial and final discovery each have a six-second stage lease, including
+queueing, transmission and reply waiting. Guest login instead has an eight-second
+queue allowance, an airtime-based transmission watchdog, then up to eight seconds
+for its reply starting at successful local TX completion. Queueing and airtime
+do not consume that reply window. Each phase is clipped to the original
+40-second control cutoff; a login completing close to that cutoff has less
+than eight seconds left. Failed or expired transmissions never start a reply
+window. The 55-second work and 60-second overall limits below always
+apply. <code>trace status</code> identifies guest login, waiting for adverts or advert-route
+probing, and shows remaining overall seconds. Timing changes never extend the
+original promise.</p>
+<p>The target must recognise the <strong>sensor's identity</strong> to answer authenticated
+discovery; a phone's or Zen's earlier login does not register the sensor.
+Authenticated discovery replies are matched by full identity, MAC and fresh
+request tag even if a target's return scope differs; the difference is recorded.
+Outgoing control uses the configured default transport scope (otherwise the
+resolved command scope or unscoped), and the local configured discovery hash
+width. Public replies retain the original command's captured context. Cached
+advert hints must match the selected control scope and radio configuration.</p>
+<p>Durable request timestamps prevent ordinary reboot/clock rollback from reusing
+already issued trace login/discovery timestamps. Storage/clock failure disables
+further authenticated requests and still permits advert fallback. Failures such
+as <code>Trace: guest login not acknowledged</code>, <code>Trace: request clock unavailable</code>,
+radio busy, transmit failed or discovery timed out describe the known stage;
+they do not prove RF unreachability or permission denial from silence alone.</p>
+<p>Use <code>!hillvue trace cancel</code> to stop waiting without rebooting. Cancellation acts
+on the sensor's shared trace from either watched channel. It removes queued
+discovery, probe and report packets and prevents further retries/parts. A packet
+already on air cannot be recalled and remains owned by Dispatcher; its late
+callbacks/results cannot restart the cancelled operation. The cancel reply uses
+the operator's requesting channel and scope. The normal four-command-per-minute
+limit still applies to starts and status requests. Cancelling an active trace
+is allowed even when those slots are exhausted, with one acknowledgement for
+the cancelled operation; idle cancel requests use the normal limit.</p>
+<p>Every accepted bare or destination trace first schedules one message with no
+application jitter:</p>
+<pre><code class="language-text">BME680 Sensor: Trace requested, please wait up to 60 seconds.
+</code></pre>
+<p>For <code>!hillvue trace 7188</code>, if the known repeater is named <code>Hilltop Repeater</code>,
+the acknowledgement is instead:</p>
+<pre><code class="language-text">BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+</code></pre>
+<p>The four-character prefix must resolve to exactly one known full public key.
+The full key is used for authenticated discovery; the name is only a display
+label. The acknowledgement preserves the full stored display name, including
+words such as <code>Repeater</code>, independently of compact hop labels. Whitespace is
+normalized and UTF-8 is kept intact. A known identity without a usable name uses
+<code>7188</code> as its label. An unknown or ambiguous identity retains the existing error
+and starts neither acknowledgement nor discovery.</p>
+<p>Destination, sensor prefix and reply context are frozen when the request is
+accepted, including during allocation/queue retries. A later rename or cache
+eviction cannot change that pending request. The acknowledgement stays within
+one 160-byte public message; if necessary, only the destination label is shortened
+at a UTF-8 boundary. Bare trace acknowledgement and final result formatting are
+unchanged.</p>
+<p>The entire operation has a fixed <strong>60-second maximum</strong>, starting when the command
+is accepted. It includes acknowledgement, discovery, settling, probes, retries
+and final reporting. A successful trace finishes early. The final five seconds
+are reserved for reporting: discovery/probing stops at 55 seconds, and unfinished
+work becomes <code>Trace: discovery timed out</code> or <code>Trace: no result before timeout</code>.
+At 60 seconds, remaining queued work is cancelled and the trace slot is released.</p>
+<p>Discovery/login stages share the absolute 40-second control cutoff. Probe
+receive windows share remaining work time: at actual TX start the first probe
+can use at most half, and the retry the remaining work time, also limited by the
+ordinary airtime/hop policy below. Queue/CAD/duty delays consume the same fixed
+budget. An estimated transmission that cannot fit is skipped. Slow/congested
+links can time out despite being reachable.</p>
+<p>The acknowledgement has its own bounded stage. If it cannot be sent, tracing
+still proceeds after that stage expires. Discovery and probe queue clocks start
+after the acknowledgement stage. At most one acknowledgement can emit; it does
+not use another command-rate slot. Invalid requests, duplicates, busy requests,
+status and cancellation do not create this message.</p>
+<p>The overall deadline is fixed when the request is accepted. Replies, retries,
+status requests and newly observed routes cannot extend it. <code>trace status</code>
+includes remaining overall seconds and identifies acknowledgement when that is
+the current stage. <code>trace cancel</code> removes an unsent acknowledgement as well as
+other queued trace work. On the first running service poll at the overall
+deadline, the sensor stops further trace work and releases the trace slot. A
+packet already on air remains under radio ownership until completion/recovery.
+Channel access and duty limits still apply: neither immediate scheduling nor the
+advertised maximum guarantees over-air receipt. A blocked application loop also
+cannot perform cleanup until it runs again.</p>
+<p>At most two ordinary discovery requests, three public guest login attempts, and two TRACE
+probes may emit. The two-probe limit is shared by authenticated and advert
+routes. Acknowledgement and up to two terminal report parts give at most ten
+application-originated emitting packets per targeted trace. Discovery/login
+use durable forward-only request timestamps; random TRACE identifiers remain
+separate. A short settling window uses the selected loop's estimated airtime.
+Acknowledgement, discovery/login, settling and queue wait are excluded from RTT.</p>
+<p>Transient peer contexts exist only in RAM. Discovery responses do not replace
+saved management routes or trigger reciprocal PATH traffic. Late and ownerless
+RESPONSE/PATH replies are ignored after the transaction closes. Normal management
+requests and non-response PATH handling retain their existing owners. Radio
+configuration changes cancel queued discovery/probes before further sends.
+Remaining result parts are stopped on a radio profile change, without issuing a
+conflicting failure after a result that may already have been transmitted.</p>
+<p>MeshCore TRACE does not record timestamps at each repeater, so individual
+per-node milliseconds cannot be reported from this single probe. The RTT excludes
+the final repeater-to-companion link, but includes the sensor-to-nearest-repeater
+link, radio airtime and forwarding delays. Time waiting in the sensor's transmit
+queue is excluded. It is not a
+one-way latency or a measurement to the companion. Only one trace runs at
+a time, including bounded report delivery; paths over ten repeaters are rejected.
+After acknowledgement, a short airtime-aware settling window before the first
+probe lets the command flood finish. For bare trace, its earliest start is twice the command airtime, clamped to
+300-2000 milliseconds, plus 0-250 milliseconds of jitter. Matching duplicates
+extend a quiet interval of 150-750 milliseconds, but cannot extend settling past
+2.5 seconds. Unrelated messages do not extend it. Settling is excluded from RTT.</p>
+<p>Temporary allocation and queue rejections are retried with 250-millisecond,
+500-millisecond, then one-second backoff and bounded jitter. Admission is limited
+to ten seconds per attempt, excluding the initial settling window. A rejected
+radio start may use the remaining probe attempt, but there are never more than
+two potentially emitting probe submissions. Local failures do not count as
+evidence against a route. Once transmission begins, the
+timeout is the larger of the existing hop allowance and an airtime estimate,
+rounded up to whole seconds:</p>
+<pre><code class="language-text">Hop allowance:     5000 + 2500 × repeater count
+Airtime allowance: 500 + (6 × maximum packet airtime + 250) × (2 × repeater count)
+</code></pre>
+<p>All values are milliseconds. Maximum packet airtime includes the SNR bytes
+accumulated during the loop. The base minimum is ten seconds for two repeaters,
+13 seconds for three, and 30 seconds for ten. Slower radio settings can increase
+that base allowance; the actual wait is always clamped to the remaining shared
+work time. Remote repeater congestion cannot be predicted exactly.</p>
+<p>After the first trace timeout, if time remains, the sensor makes one silent retry following a
+random one-to-two-second pause. Bare trace passively watches additional copies
+of the exact same command for up to three alternate flood paths. Destination
+trace instead collects additional authenticated PATH responses for the current
+target and transmitted discovery tags. The original received/discovered route
+is always tested first. Retry candidates are ranked using recent exact-route outcomes,
+directed-edge diversity per estimated airtime, freshness and last-hop SNR.
+Last-hop SNR is not an end-to-end score. Four RAM-only history records expire
+after fifteen minutes and are scoped to the full transport key, channel and radio
+configuration. Destination trace also requires the full target public key;
+bare and destination trace histories remain separate. Temporary radio changes
+and reversion invalidate old context too. Bare traces with unresolved transport
+scopes do not reuse history between commands. Destination traces use their
+selected discovery scope. Alternate
+copies must match the original command ciphertext and scope. For unresolved
+scopes, matching also requires the same transport route type and both transport
+codes; these short codes remain potentially ambiguous and are only conservative
+hints within that command. A transport-code match to multiple configured keys is
+treated as unresolved. Region names and IDs are not route-history identities.
+History only ranks routes observed for the current command: it never invents a
+route or supplies an old, unobserved path. Bare trace sends no discovery packets.
+Neither mode treats repeater advert names as network topology.
+An observed path is a routing hint, not proof that its links work in reverse.</p>
+<p>Each attempt has fresh identifiers and retains its own path, hash width and
+transmission-start time. After acknowledgement, one final result or failure is
+posted to the requesting channel. A first result received before retry transmission cancels
+the queued retry. During retry it is retained in RAM as fallback; a successful
+retry takes precedence. Fallback names and SNRs always describe the first route,
+even if the retry used another route.</p>
+<p>When both probes expire without a result, a three-second final grace period
+allows either result to arrive, within the 55-second work cutoff. Valid late
+results before that cutoff can also replace an unsent failure report. Once failure transmission starts, the outcome is committed and
+late results are ignored, preventing contradictory reports. Failure-report
+queueing is bounded to ten seconds, including the normal random send delay,
+and always ends by the original 60-second deadline.
+The node reports <code>Trace: no result after retry</code> or the applicable timeout stage;
+it does not claim that no route exists.
+Radio-busy, transmit-failure and unsent-retry conditions have separate messages.
+Local recovery never increases the two-probe budget.</p>
+<p>Completed results are retained while their reports are prepared and transmitted.
+Both report parts, including the node-name prefix and cleaned repeater labels,
+are frozen together. Temporary packet allocation or confirmed queue rejection
+does not discard a result. Each part has a ten-second admission allowance, and
+the base success-report allowance is thirty seconds or longer for slow radio
+airtime, always shortened by the original 60-second transaction deadline.
+Remaining multipart delivery is best effort within that deadline. The second part remains eligible only three seconds after
+the first finishes transmitting. An active transmission is left to MeshCore's
+existing completion/watchdog handling, never freed by the application.</p>
+<p>An uncertain report transmission is not repeated: it may already have reached
+other users. RadioLib start errors are conservatively uncertain because its
+Boolean result cannot prove that no frame was emitted. A report problem never
+turns a successful trace into a public trace-failure message. Local transmission
+completion is not confirmation that the companion received the channel reply.
+If the owner completion notification is lost, a report observer watchdog releases
+the trace slot after estimated TX airtime × 1.5 plus one second. It runs after
+Dispatcher has had its completion/watchdog poll and never frees an in-flight
+packet. Such delivery is classified as uncertain and is not repeated.</p>
+<p>Local diagnostics retain outward and return SNRs, the final received-link SNR,
+and the furthest matching trace progress overheard for each attempt. Partial
+progress never completes a trace, extends its timeout or identifies a failed
+repeater. These snapshots are available to tests/debugger inspection only;
+the public report averages paired directional readings, and no extra diagnostic
+traffic is sent.</p>
+<p>The original command counts once toward the unchanged
+four-command-per-minute limit, although a retry sends a second trace packet.
+Requests received while a trace is running do not use a rate-limit slot; the
+node sends at most one <code>Trace: already running</code> notice for that trace.
+Incoming 3-byte path hashes cannot be mirrored by MeshCore TRACE and are
+reported as unavailable.</p>
+<p>After a trace result arrives, its channel reply is scheduled with a
+one-second minimum plus the usual random 0.5–2-second transmit delay. This
+spacing does not guarantee a collision-free transmission. The RTT is measured
+when the trace returns; the reply delay is not included. Repeater labels retain
+their existing 12-byte UTF-8-safe limit. With the default <code>BME680 Sensor</code> name,
+all ten repeater lines fit in at most two replies. A longer sensor name may
+leave too little room; the second reply then ends with <code>...truncated</code>.</p>
+<p>Each selected value appears on its own line in a channel reply;
+<code>!hillvue</code> and <code>!hillvue all</code> include voltage. A voltage-only request works
+even when the BME680 is not ready. Before the first voltage sample, or for
+requested BME680 readings that are not ready, the reply says
+<code>Sensor data is not ready</code>.
+During air-quality calibration it reports, for example:</p>
+<pre><code class="language-text">Air Quality: Warming Up (4/10)
+</code></pre>
+<p>A reply that exceeds one message is divided at a line boundary where possible.
+Both parts carry the sensor's name and are labelled so they can be read in order:</p>
+<pre><code class="language-text">BME680 Sensor: 1/2
+Temperature: 22.4 C
+Humidity: 48.2%
+
+BME680 Sensor: 2/2
+Pressure: 1013.2 hPa
+Air Quality: 56/500 (Moderate)
+</code></pre>
+<p>Only two messages are sent for one command. If the reply still does not fit,
+the second ends with <code>...truncated</code>; no further parts are sent.</p>
+<h2 id="mesh-traffic-controls">Mesh traffic controls</h2>
+<ul>
+<li>Commands use the latest cached reading and never trigger an extra sample.</li>
+<li>The node accepts at most four commands in any rolling 60-second period,
+  shared across all users and commands. This limit is unchanged when a response
+  needs two messages.</li>
+<li>Responses that do not fit one message are split into at most two, marked
+  <code>1/2</code> and <code>2/2</code>. The second transmission is scheduled at least three seconds
+  after the first one's completed transmission. A busy radio may lengthen the
+  actual gap. Each message is a separate flood, so four accepted commands can
+  produce up to eight reply messages.</li>
+<li>Hashes for the eight most recent accepted commands are retained in RAM to
+  suppress duplicate packet delivery.</li>
+<li>The bot does not publish on a schedule and does not respond to its own output.</li>
+<li>Each response part is sent once as a normal MeshCore flood; the node does not
+  repeat other mesh traffic.</li>
+</ul>
+<p>Unknown command options are ignored without a response.</p>
+<h3 id="private-trace-diagnostics">Private trace diagnostics</h3>
+<p>After a failed targeted trace, private/local CLI commands expose the last
+transaction without transmitting packets or writing storage:</p>
+<ul>
+<li><code>get trace.diag</code>: candidate PATH/RESPONSE frames addressed to the sensor with
+  the target's short hash (<code>rx</code>), authenticated response-handler calls
+  (<code>decrypted</code>), accepted login replies (<code>login_reply</code>), recognizable login
+  replies ignored by the state machine, role and route/tag/scope counters.</li>
+<li><code>get trace.control 0</code>, <code>get trace.control 1</code>, <code>get trace.control 2</code>: initial
+  discovery, first guest login and final discovery. <code>get trace.control 3</code> and
+  <code>get trace.control 4</code> show the two guest-login retries. Each exposes timestamps, request tag and
+  transmission flags. Millisecond timestamps are local uptime. <code>sent=1</code> means
+  radio TX started; completion without failure is local completion, not an
+  acknowledgement from the repeater.</li>
+<li><code>get trace.peer</code>: full target public key, outgoing transport scope key and
+  hash width. An all-zero scope denotes an unscoped flood.</li>
+</ul>
+<p>Short-hash candidate matches do not authenticate the remote node. The decrypted
+counter counts handler calls, not necessarily unique packets. Accepted login
+replies include unexpected-role replies; consult <code>role</code> and the final failure.
+A new trace clears these counters. These commands contain no shared secrets,
+passwords or private keys. They are not public bot commands.</p>
+<p>Guest login stops immediately after an accepted reply. An unanswered login or
+failed transmission may retry, using a fresh durable timestamp each time.
+Retries are bounded by the original 40-second control and 60-second overall
+limits, so less than three attempts may fit after long queue delays. Queue
+expiry, invalid/unexpected granted role, cancellation and clock failure do not
+start another login. Local allocation/queue admission retries do not count as
+additional over-air transmissions.</p>
+<p>Successful TRACE routes enter volatile route history for 15 minutes. They do
+not automatically become persistent advert-route entries. An existing matching
+advert hint can be marked validated in RAM; that outcome alone does not schedule
+an immediate cache write. Advert-originated paths are persisted through the
+normal deferred advert-cache save mechanism.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

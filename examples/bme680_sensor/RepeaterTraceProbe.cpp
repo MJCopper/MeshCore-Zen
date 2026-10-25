@@ -73,7 +73,7 @@ void RepeaterTraceProbe::fail(Failure reason, uint32_t now) {
 }
 
 void RepeaterTraceProbe::queueFailed(uint32_t now) {
-  fail(_current ? RETRY_NOT_SENT : RADIO_BUSY, now);
+  fail(_current || _attempts[0].transmitted ? RETRY_NOT_SENT : RADIO_BUSY, now);
 }
 
 bool RepeaterTraceProbe::onTxStarted(const mesh::Packet* packet, uint32_t now) {

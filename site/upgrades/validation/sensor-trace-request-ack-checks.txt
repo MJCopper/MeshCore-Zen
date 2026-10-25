@@ -1,0 +1,30 @@
+Trace request acknowledgement validation, 2026-10-25
+Base: 69891ef8 + working-tree recovery and acknowledgement changes
+
+Native/native_sensor/native_kiss_modem: 410/410 PASS
+Sensor AddressSanitizer (detect_leaks=0): 303/303 PASS
+Five firmware builds + create_uf2: PASS
+All five DFU archives: valid CRC and root application manifest with bin/dat entries
+Sensor boundary script: PASS
+git diff --check: PASS
+Strict MkDocs build: PASS (existing FAQ anchor INFO notice)
+Sensor RAM: 37372 bytes (+208 over recovery build)
+Sensor flash: 359204 bytes (+4032 over recovery build)
+Physical radio validation: PENDING; no device flashed
+
+SHA256:
+2a3de836522e94a4a22b36580c0517813bb2713f13e622ef765a4d2941df87b9  .pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
+ae43e842389e08e50315b0ec6e5d8dd6cfe063116ec29e81220846d27d63a28b  .pio/build/Xiao_nrf52_bme680_sensor/firmware.hex
+cf6ed0a11174a6e2d979ed14cc71eaac838d9eafccc33135468ee335b6e500cf  .pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2
+77fe848073ed8c42db91000e7bfb71ea34edc0f15b271a8efc527a981b85b4ef  .pio/build/Xiao_nrf52_sensor_baseline/firmware.zip
+ddcee0630aa5542314ae9f2d7621905ca0695740f2240f113a28ce947e7b500f  .pio/build/Xiao_nrf52_sensor_baseline/firmware.hex
+f2e438bfe5cf7608b70b74118306c1d57203bc514d74c23788c8e8f48c9138f6  .pio/build/Xiao_nrf52_sensor_baseline/Xiao_nrf52_sensor_baseline.uf2
+99ca944d4be86f8c8294aa31e7f0b24b4fd12c3fe48b7a5c2cd2a63629480c67  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.zip
+0a878d59358c25dad07ac4af25ee9b2532dae7d0ed650aa4a1b461953d7b022f  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.hex
+20de8427fee3df20a2c40e1b70b7baf542e53c9893bfff0ef12ecf28db4a7a0f  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.uf2
+efde6a3ebc6a1fbf989774178a181807b19be7c41447875395a3b6b32f865fb8  .pio/build/Xiao_nrf52_repeater/firmware.zip
+566f465d56486fc4487dd78032610916ecd64e931355251870a49b68aeb9ce36  .pio/build/Xiao_nrf52_repeater/firmware.hex
+64aec9b8059a695b038aef6983232dd12952e2f44d2964b4d0c1faa69a3cb2ac  .pio/build/Xiao_nrf52_repeater/firmware.uf2
+cc1e91561378dce1f4f50e52c8e51226f8ef74c28fb842ef656db6a393dc1786  .pio/build/Xiao_nrf52_room_server/firmware.zip
+c2efd2a196a14e32be0101d95ae54f53d3ea21b4dbc9b67c338a7709ce05f740  .pio/build/Xiao_nrf52_room_server/firmware.hex
+b0db54cefe49bad13bccb48335c323ac19c04f71c84f9d33d682fd022b55e93f  .pio/build/Xiao_nrf52_room_server/firmware.uf2

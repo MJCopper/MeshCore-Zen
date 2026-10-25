@@ -1,0 +1,522 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 20 tests
+
+Processing test_companion_118 in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+Companion118.RadioCommandsUpdateRealPreferencesAndDirtyState	[PASSED]
+Companion118.DynamicFemKeysRemainIndependentAndRejectUnknownKeys	[PASSED]
+Companion118.InvalidRadioCommandDoesNotReplaceConfiguredRadio	[PASSED]
+------------- native:test_companion_118 [PASSED] Took 2.87 seconds -------------
+
+Processing test_utils in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UtilsToHex.ConvertSingleByte	[PASSED]
+UtilsToHex.ConvertMultipleBytes	[PASSED]
+UtilsToHex.ConvertZeroByte	[PASSED]
+UtilsToHex.ConvertMaxByte	[PASSED]
+UtilsToHex.NullTerminatesOnEmptyInput	[PASSED]
+----------------- native:test_utils [PASSED] Took 1.28 seconds -----------------
+
+Processing test_utf8_helpers in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+UTF8Helpers.KeepsCompleteNameWithinLimit	[PASSED]
+UTF8Helpers.StopsBeforeCodePointCrossingLimit	[PASSED]
+UTF8Helpers.RejectsMalformedAndTruncatedSequences	[PASSED]
+UTF8Helpers.RejectsUnexpectedContinuationByte	[PASSED]
+------------- native:test_utf8_helpers [PASSED] Took 1.28 seconds -------------
+
+Processing test_trace_path_bounds in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TracePathBounds.AcceptsNextHopAndExactEnd	[PASSED]
+TracePathBounds.RejectsPartialAndOverrunHashes	[PASSED]
+----------- native:test_trace_path_bounds [PASSED] Took 1.28 seconds -----------
+
+Processing test_routing_policy in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+FloodHopLimit.UnscopedFloodIsDroppedAtFirstHopWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.ScopedFloodIsForwardedWhenMaxUnscopedIsZero	[PASSED]
+FloodHopLimit.UnscopedFloodSurvivesUpToMaxUnscopedHops	[PASSED]
+FloodHopLimit.ScopedFloodStillHonoursFloodMaxAndAdvertMax	[PASSED]
+FloodHopLimit.UnscopedAdvertIsAlsoDroppedAtHopZero	[PASSED]
+ReplyRoute.FloodRequestGetsAPathReturn	[PASSED]
+ReplyRoute.DirectRequestWithSuppliedPathRepliesDirect	[PASSED]
+ReplyRoute.DirectRequestWithKnownOutPathRepliesDirect	[PASSED]
+ReplyRoute.SuppliedPathWinsOverStoredOutPath	[PASSED]
+ReplyRoute.DirectRequestWithNoReturnPathFallsBackToFlood	[PASSED]
+ReplyScope.MirrorsTheRequestScopeWhenKnown	[PASSED]
+ReplyScope.RepliesUnscopedToAnUnscopedFloodEvenWhenADefaultScopeExists	[PASSED]
+ReplyScope.FallsBackToDefaultScopeWhenRequestScopeUnknown	[PASSED]
+ReplyScope.SendsUnscopedOnlyWhenNoScopeIsAvailableAtAll	[PASSED]
+------------ native:test_routing_policy [PASSED] Took 1.41 seconds ------------
+
+Processing test_repeater_trace_probe in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+TraceProbeTest.MirrorsRouteAndRetainsExistingResultGeometry	[PASSED]
+TraceProbeTest.RejectsUnsupportedRequests	[PASSED]
+TraceProbeTest.SupportsTenRepeatersAndBothHashWidths	[PASSED]
+TraceProbeTest.MaintainsHopBasedMinimumForAllSupportedRoutes	[PASSED]
+TraceProbeTest.QueueWaitDoesNotStartTheRoundTripClock	[PASSED]
+TraceProbeTest.UntransmittedAttemptCannotProduceAResult	[PASSED]
+TraceProbeTest.FirstResultAfterDeadlineBeforeTimeoutTransitionIsAccepted	[PASSED]
+TraceProbeTest.FirstResultInRetryPendingStateIsAccepted	[PASSED]
+TraceProbeTest.FirstResultCanCancelAQueuedRetry	[PASSED]
+TraceProbeTest.FirstResultIsSavedWhileRetryIsInFlight	[PASSED]
+TraceProbeTest.SuccessfulRetryWinsAndClosingDiscardsFallback	[PASSED]
+TraceProbeTest.ChangedRouteDoesNotCorruptFirstAttemptFallback	[PASSED]
+TraceProbeTest.RetryTransmissionFailureRetainsFallback	[PASSED]
+TraceProbeTest.RetryQueueFailureStillAcceptsTheFirstResult	[PASSED]
+TraceProbeTest.RetryResultAfterDeadlineBeforeFinalTransitionIsAccepted	[PASSED]
+TraceProbeTest.EitherAttemptCanSucceedDuringFinalGrace	[PASSED]
+TraceProbeTest.EitherAttemptCanReplaceAnUncommittedFailure	[PASSED]
+TraceProbeTest.FailureReportHasABoundedDeadlineThatDoesNotMove	[PASSED]
+TraceProbeTest.RejectsWrongIdentityPathFlagsAndSnrCount	[PASSED]
+TraceProbeTest.RejectsNullDataAndUnrelatedTransmissionCallbacks	[PASSED]
+TraceProbeTest.TimersWorkAcrossMillisRollover	[PASSED]
+TraceProbeTest.RetryIdentifiersAreDistinctEvenWithRepeatedRandomInput	[PASSED]
+TraceProbeTest.CannotStartAThirdProbeOrANewTransactionBeforeClosing	[PASSED]
+TraceProbeTest.InvalidAlternateCannotReachTheRadio	[PASSED]
+TraceProbeTest.FinalGraceAndReportDeadlineWorkAcrossRollover	[PASSED]
+TraceTimingPolicy.AccountsForSlowRadioAndSaturatesSafely	[PASSED]
+--------- native:test_repeater_trace_probe [PASSED] Took 1.40 seconds ---------
+
+Processing test_public_response_queue in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PublicResponseQueue.KeepsShortRepliesInOneMessage	[PASSED]
+PublicResponseQueue.SplitsAtCompleteLines	[PASSED]
+PublicResponseQueue.MarksOverflowAfterTwoMessages	[PASSED]
+PublicResponseQueue.SchedulesFourIndependentSecondParts	[PASSED]
+PublicResponseQueue.StartsGapAfterFirstTransmissionCompletes	[PASSED]
+PublicResponseQueue.FailedFirstTransmissionReleasesSecondPart	[PASSED]
+PublicResponseQueue.TenFullTraceLabelsFitWithDefaultSensorName	[PASSED]
+PublicResponseQueue.LongSensorNameMarksOverflowWithoutPartialLine	[PASSED]
+PublicResponseQueue.PreservesChannelAcrossCompletionAndRescheduling	[PASSED]
+PublicResponseQueue.PathSplitsBetweenNamesRatherThanSpacesInNames	[PASSED]
+PublicResponseQueue.PathOverflowKeepsWholeEntriesAndMarksTruncation	[PASSED]
+PublicResponseQueue.PathExactBoundaryStaysSingleAndTinyBudgetKeepsNamesWhole	[PASSED]
+--------- native:test_public_response_queue [PASSED] Took 1.74 seconds ---------
+
+Processing test_public_channel_sensor_bot in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+PublicChannelSensorBot.BusyTraceDoesNotUseCommandRateSlots	[PASSED]
+PublicChannelSensorBot.ParsesMeasurementAliasesAndCombinations	[PASSED]
+PublicChannelSensorBot.RejectsInvalidCommandsAndDuplicates	[PASSED]
+PublicChannelSensorBot.RollingMinuteIsSharedAcrossUsersAndHandlesWraparound	[PASSED]
+PublicChannelSensorBot.PublicOnlyLookupDoesNotReturnDuplicateCandidates	[PASSED]
+------- native:test_public_channel_sensor_bot [PASSED] Took 1.47 seconds -------
+
+Processing test_mesh_tables in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SimpleMeshTables.WasSeen_ReturnsFalseForUnseen	[PASSED]
+SimpleMeshTables.WasSeen_IsPureQuery_DoesNotInsert	[PASSED]
+SimpleMeshTables.MarkSeen_MakesWasSeenReturnTrue	[PASSED]
+SimpleMeshTables.MarkSeen_DoesNotAffectOtherPackets	[PASSED]
+SimpleMeshTables.QueryThenMark_WorksCorrectly	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsFloodDupStat	[PASSED]
+SimpleMeshTables.WasSeen_IncrementsDirectDupStat	[PASSED]
+SimpleMeshTables.Clear_RemovesSeenPacket	[PASSED]
+-------------- native:test_mesh_tables [PASSED] Took 1.98 seconds --------------
+
+Processing test_config_serializer in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+ConfigSerializer.SaveSerial_Basic	[PASSED]
+ConfigSerializer.SaveSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_Basic	[PASSED]
+ConfigSerializer.LoadSerial_HandleWhitespace	[PASSED]
+ConfigSerializer.LoadSerial_EscChars	[PASSED]
+ConfigSerializer.LoadSerial_UnmatchedBraces	[PASSED]
+ConfigSerializer.LoadSerial_MissingCommas	[PASSED]
+ConfigSerializer.LoadSerial_IgnoreUnknowns	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObject	[PASSED]
+ConfigSerializer.LoadSerial_EmptyObjectWithWhitespace	[PASSED]
+DynamicConfigSerializer.GetSet_Basic	[PASSED]
+DynamicConfigSerializer.Set_Replaces	[PASSED]
+DynamicConfigSerializer.GetUnknown_Fail	[PASSED]
+DynamicConfigSerializer.SaveCustom_Basic	[PASSED]
+DynamicConfigSerializer.LoadCustom_Basic	[PASSED]
+----------- native:test_config_serializer [PASSED] Took 2.08 seconds -----------
+
+Processing test_companion_node_prefs in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+CompanionNodePrefs.RxGainSettingsRoundTripIndependently	[PASSED]
+--------- native:test_companion_node_prefs [PASSED] Took 2.45 seconds ---------
+
+Processing test_bme680_air_quality in native environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+BME680AirQuality.RequiresTenValidSamplesAndResetsAtBoot	[PASSED]
+BME680AirQuality.InvalidSamplesDoNotAdvanceWarmup	[PASSED]
+BME680AirQuality.DetectsFallingGasResistanceAndBoundsScore	[PASSED]
+---------- native:test_bme680_air_quality [PASSED] Took 2.42 seconds ----------
+
+Processing test_sensor_subscriptions in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorSubscriptions.HumidityKeepsOneByteEncodingAndHalfPercentUnits	[PASSED]
+SensorSubscriptions.RejectsTruncatedAndNonScalarThresholds	[PASSED]
+------ native_sensor:test_sensor_subscriptions [PASSED] Took 2.91 seconds ------
+
+Processing test_sensor_trace_reliability in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorTraceDelivery.RetainsFrozenTextUntilActualCompletion	[PASSED]
+SensorTraceDelivery.AllocationRetriesDoNotLoseTextOrMoveTheDeadline	[PASSED]
+SensorTraceDelivery.RetriesRejectedStartsButNeverRepeatsAnUncertainTransmission	[PASSED]
+SensorTraceDelivery.MultipartGapStartsAtCompletionAndHasNoUnsignedUnderflow	[PASSED]
+SensorTraceDelivery.ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap	[PASSED]
+SensorTraceDelivery.UnknownRejectedStartIsConservativelyUncertain	[PASSED]
+SensorTraceDelivery.SecondPartCanRecoverWithoutRepeatingTheFirstPart	[PASSED]
+SensorTraceDelivery.OverallDeadlineCannotBeExtendedByMultipartProgress	[PASSED]
+SensorTraceTiming.BoundedAirtimeSettlingBackoffAndReportAllowance	[PASSED]
+SensorTraceHistory.ExactContextExpiryLateSuccessAndCapacityAreBounded	[PASSED]
+SensorTraceHistory.RecentEvidenceWorksAcrossMillisWrap	[PASSED]
+SensorTraceDiagnostics.AllDirectionsAndProgressGeometryForEverySupportedSize	[PASSED]
+---- native_sensor:test_sensor_trace_reliability [PASSED] Took 2.64 seconds ----
+
+Processing test_sensor_storage in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorStorage.RepeaterNamesPersistWithoutWritingUnchangedAdverts	[PASSED]
+SensorStorage.RejectsNonRepeatersAndRecoversFromCorruptCache	[PASSED]
+SensorStorage.DisplayNamesRemoveWholeRepeaterWordsBeforeTruncation	[PASSED]
+SensorStorage.DisplayCleanupPreservesUtf8AndTinyBufferBoundaries	[PASSED]
+SensorStorage.FormattingNeverChangesStoredAdvertNamesOrWritesFlash	[PASSED]
+SensorStorage.GuestPressureDoesNotEvictAdministrators	[PASSED]
+SensorStorage.AmbiguousHashesUseHexAndLabelsPreserveUtf8	[PASSED]
+SensorStorage.CacheCapacityAndFailedReplacementKeepPreviousFile	[PASSED]
+SensorStorage.PathFormatterBoundsLongRoutesAndPreservesWholeShortLabels	[PASSED]
+SensorStorage.RealSignaturesAndSharedSecretsAreCompatible	[PASSED]
+--------- native_sensor:test_sensor_storage [PASSED] Took 3.04 seconds ---------
+
+Processing test_sensor_routes in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorTraceRoutes.KeepsThreeDistinctCandidatesAndUpdatesDuplicatesInPlace	[PASSED]
+SensorTraceRoutes.RejectsDifferentPayloadChannelAndUnsupportedRoutes	[PASSED]
+SensorTraceRoutes.StartingAnotherCommandDropsThePreviousCandidate	[PASSED]
+SensorTraceRoutes.BoundedCandidatesUseRecentSuccessBeforeLength	[PASSED]
+SensorTraceRoutes.DiversityAndAirtimeBreakUnprovenRouteTies	[PASSED]
+--------- native_sensor:test_sensor_routes [PASSED] Took 3.09 seconds ---------
+
+Processing test_sensor_policy in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorPolicy.BlankAndWrongPasswordGetReadOnlyTelemetryRole	[PASSED]
+SensorPolicy.AdminPasswordAndKnownBlankPasswordRetainAdminAccess	[PASSED]
+SensorPolicy.OnlyAdminSessionsAreSavedAndWireLayoutIsStable	[PASSED]
+SensorPolicy.OwnerInfoIsBoundedAndFormattedForApp	[PASSED]
+SensorTelemetry.DiscoversChannelAndAppliesAltitudeOffset	[PASSED]
+SensorTelemetry.CachedEncodingNeverAdvancesCalibration	[PASSED]
+SensorTelemetry.NonFiniteGasCannotAdvanceCalibration	[PASSED]
+SensorTelemetry.InvalidSamplesPreserveTheLastSuccessfulSnapshot	[PASSED]
+SensorTelemetry.BeforeFirstSampleOnlyValidCachedVoltageIsReturned	[PASSED]
+SensorChannels.DuplicateTrackingDistinguishesChannelsButSharesRateLimit	[PASSED]
+SensorChannels.HashCollisionReturnsBothKeysWithoutExceedingCapacity	[PASSED]
+--------- native_sensor:test_sensor_policy [PASSED] Took 2.97 seconds ---------
+
+Processing test_sensor_network in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorNetwork.ThreeRepeatersActuallyForwardTheOutwardAndReturnLegs	[PASSED]
+SensorNetwork.TwoRepeatersAndTwoByteHashesUseThePublicChannel	[PASSED]
+SensorNetwork.OneDroppedProbeIsRecoveredByOneSilentRetry	[PASSED]
+SensorNetwork.RetryUsesAlternateFloodPathWhenTheOriginalReverseLinkFails	[PASSED]
+SensorNetwork.WorkingFloodMessagingDoesNotImplyTheTraceLoopCanComplete	[PASSED]
+SensorNetwork.SlowAirtimeUsesTheCalculatedBudgetInsteadOfRetryingTooSoon	[PASSED]
+SensorNetwork.DelayedFirstLoopRemainsUsefulAfterTheRetryHasStarted	[PASSED]
+SensorNetwork.HiddenTerminalsCollideAndTheCaptureModelSelectsTheStrongerSignal	[PASSED]
+SensorNetwork.HalfDuplexTransmittingNodeCannotReceiveAnOverlappingFrame	[PASSED]
+SensorNetwork.BusyChannelDefersInitialProbeWithoutConsumingItsRttBudget	[PASSED]
+SensorNetwork.CorrelatedLossAcrossBothAttemptsStillProducesOneBoundedFailure	[PASSED]
+OneAndTwoBytes/SensorHashCollision.HashWidthControlsWhetherCompetingRepeatersForwardTheProbe/0	[PASSED]
+OneAndTwoBytes/SensorHashCollision.HashWidthControlsWhetherCompetingRepeatersForwardTheProbe/1	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/0	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/1	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/2	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/3	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/4	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/5	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/6	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/7	[PASSED]
+--------- native_sensor:test_sensor_network [PASSED] Took 2.81 seconds ---------
+
+Processing test_sensor_integration in native_sensor environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorIntegration.PublicPingRoundTripsThroughRealEncryptionAndPool	[PASSED]
+SensorIntegration.WatchesHillvueAndPublicAndRepliesOnTheRequestChannel	[PASSED]
+SensorIntegration.CombinedReadingsUseCachedValuesAndExistingFormatting	[PASSED]
+SensorIntegration.InvalidAndUnrelatedCommandsNeverTransmit	[PASSED]
+SensorIntegration.DuplicateOriginalCommandDoesNotPostBusyNotice	[PASSED]
+SensorIntegration.RetryIsSilentUntilOneFinalFailure	[PASSED]
+SensorIntegration.LateFirstCancelsRetryBeforeItTransmits	[PASSED]
+SensorIntegration.LateFirstIsUsedWhenRetryTimesOut	[PASSED]
+SensorIntegration.MultipartGapStartsAtFirstTxCompletion	[PASSED]
+SensorIntegration.LongPathUsesTwoMessagesOnItsSourceChannelWithCompletionGap	[PASSED]
+SensorIntegration.ShortUnknownAndDirectPathsRemainSingleReplies	[PASSED]
+SensorIntegration.PathAndTraceUseTheSameCleanedAdvertNames	[PASSED]
+SensorIntegration.UnknownLongPathIsBoundedToTwoMessagesWithExplicitOverflow	[PASSED]
+SensorIntegration.BothChannelsShareOneRollingCommandLimit	[PASSED]
+SensorIntegration.UnwatchedHashtagDoesNotGenerateAReply	[PASSED]
+SensorIntegration.MultipartRepliesKeepTheirOwnChannelsWhenInterleaved	[PASSED]
+SensorIntegration.PublicTraceResultSurvivesInterveningHillvueRequest	[PASSED]
+SensorIntegration.BusyNoticeUsesNewRequestChannelNotActiveTraceChannel	[PASSED]
+SensorIntegration.PublicTraceFallbackSurvivesInterveningHillvueRequest	[PASSED]
+SensorIntegration.AdvertTxTimeoutReleasesPacketAndRadioContinues	[PASSED]
+SensorIntegration.OnlyVerifiedRepeaterAdvertsEnterNameCache	[PASSED]
+SensorIntegration.FirstResultAfterDeadlineBeforePollingAvoidsRetry	[PASSED]
+SensorIntegration.RetryResultAfterDeadlineBeforePollingAvoidsFailure	[PASSED]
+SensorIntegration.LateRetryDuringGraceStillSucceeds	[PASSED]
+SensorIntegration.LateResultReplacesQueuedFailureWithoutLeakingItsPacket	[PASSED]
+SensorIntegration.CommittedFailureCannotBecomeASecondTerminalReply	[PASSED]
+SensorIntegration.OldResultDoesNotCompleteANewerTraceAfterPacketReuse	[PASSED]
+SensorIntegration.FailureAllocationExhaustionClosesWithinTheReportBudget	[PASSED]
+SensorIntegration.RetryUsesAPassivelyObservedAlternateRequestPath	[PASSED]
+SensorIntegration.AlternateRetryKeepsOriginalFallbackLabels	[PASSED]
+SensorIntegration.FailureThatNeverStartedCanStillBeReplacedAfterRadioError	[PASSED]
+SensorIntegration.UnsentFailureIsCancelledAtTheReportDeadline	[PASSED]
+SensorIntegration.RetryAllocationFailureStillAllowsLateFirstSuccess	[PASSED]
+SensorIntegration.RetryStartFailureDoesNotDiscardLateFirstSuccess	[PASSED]
+SensorIntegration.InitialSendFailureRecoversUsingTheRemainingProbe	[PASSED]
+SensorIntegration.CompletedResultSurvivesPoolExhaustionUntilReportingRecovers	[PASSED]
+SensorIntegration.CompletedResultExpiresWithoutReprobingOrLosingDiagnostics	[PASSED]
+SensorIntegration.InitialAllocationAndQueueRejectionRecoverWithinAdmissionBudget	[PASSED]
+SensorIntegration.TwoRejectedRadioStartsAreBoundedAndDoNotBecomeRouteTimeouts	[PASSED]
+SensorIntegration.RejectedReportQueueRecoversWithoutAThirdProbe	[PASSED]
+SensorIntegration.UncertainSuccessReportNeverRepeatsOrPostsFailure	[PASSED]
+SensorIntegration.UncertainRejectedReportStartNeverCreatesAnotherPublicOutcome	[PASSED]
+SensorIntegration.UnsentSuccessReportIsCancelledAtItsQueueDeadline	[PASSED]
+SensorIntegration.ExpiredQueuedSuccessCannotStartBeforeTheServiceGetsItsLoop	[PASSED]
+SensorIntegration.ActiveReportKeepsTraceBusyWithoutOverwritingSelectedResult	[PASSED]
+SensorSettling.ProductionSettlingDefersFirstProbeAndExcludesItFromRtt	[PASSED]
+SensorSettling.MatchingFloodTailExtendsQuietTimeButNeverPastHardLimit	[PASSED]
+SensorSettling.RadioProfileChangeCancelsAnOldQueuedRoute	[PASSED]
+SensorSettling.UnrelatedTrafficDoesNotExtendTheSettlingWindow	[PASSED]
+------- native_sensor:test_sensor_integration [PASSED] Took 2.75 seconds -------
+
+Processing test_sensor_subscriptions in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorSubscriptions.HumidityKeepsOneByteEncodingAndHalfPercentUnits	[PASSED]
+SensorSubscriptions.RejectsTruncatedAndNonScalarThresholds	[PASSED]
+--- native_sensor_asan:test_sensor_subscriptions [PASSED] Took 1.79 seconds ---
+
+Processing test_sensor_trace_reliability in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorTraceDelivery.RetainsFrozenTextUntilActualCompletion	[PASSED]
+SensorTraceDelivery.AllocationRetriesDoNotLoseTextOrMoveTheDeadline	[PASSED]
+SensorTraceDelivery.RetriesRejectedStartsButNeverRepeatsAnUncertainTransmission	[PASSED]
+SensorTraceDelivery.MultipartGapStartsAtCompletionAndHasNoUnsignedUnderflow	[PASSED]
+SensorTraceDelivery.ExpiryWaitsForAnActiveTransmissionAndWorksAcrossWrap	[PASSED]
+SensorTraceDelivery.UnknownRejectedStartIsConservativelyUncertain	[PASSED]
+SensorTraceDelivery.SecondPartCanRecoverWithoutRepeatingTheFirstPart	[PASSED]
+SensorTraceDelivery.OverallDeadlineCannotBeExtendedByMultipartProgress	[PASSED]
+SensorTraceTiming.BoundedAirtimeSettlingBackoffAndReportAllowance	[PASSED]
+SensorTraceHistory.ExactContextExpiryLateSuccessAndCapacityAreBounded	[PASSED]
+SensorTraceHistory.RecentEvidenceWorksAcrossMillisWrap	[PASSED]
+SensorTraceDiagnostics.AllDirectionsAndProgressGeometryForEverySupportedSize	[PASSED]
+- native_sensor_asan:test_sensor_trace_reliability [PASSED] Took 1.63 seconds -
+
+Processing test_sensor_storage in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorStorage.RepeaterNamesPersistWithoutWritingUnchangedAdverts	[PASSED]
+SensorStorage.RejectsNonRepeatersAndRecoversFromCorruptCache	[PASSED]
+SensorStorage.DisplayNamesRemoveWholeRepeaterWordsBeforeTruncation	[PASSED]
+SensorStorage.DisplayCleanupPreservesUtf8AndTinyBufferBoundaries	[PASSED]
+SensorStorage.FormattingNeverChangesStoredAdvertNamesOrWritesFlash	[PASSED]
+SensorStorage.GuestPressureDoesNotEvictAdministrators	[PASSED]
+SensorStorage.AmbiguousHashesUseHexAndLabelsPreserveUtf8	[PASSED]
+SensorStorage.CacheCapacityAndFailedReplacementKeepPreviousFile	[PASSED]
+SensorStorage.PathFormatterBoundsLongRoutesAndPreservesWholeShortLabels	[PASSED]
+SensorStorage.RealSignaturesAndSharedSecretsAreCompatible	[PASSED]
+------ native_sensor_asan:test_sensor_storage [PASSED] Took 1.66 seconds ------
+
+Processing test_sensor_routes in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorTraceRoutes.KeepsThreeDistinctCandidatesAndUpdatesDuplicatesInPlace	[PASSED]
+SensorTraceRoutes.RejectsDifferentPayloadChannelAndUnsupportedRoutes	[PASSED]
+SensorTraceRoutes.StartingAnotherCommandDropsThePreviousCandidate	[PASSED]
+SensorTraceRoutes.BoundedCandidatesUseRecentSuccessBeforeLength	[PASSED]
+SensorTraceRoutes.DiversityAndAirtimeBreakUnprovenRouteTies	[PASSED]
+------- native_sensor_asan:test_sensor_routes [PASSED] Took 1.61 seconds -------
+
+Processing test_sensor_policy in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorPolicy.BlankAndWrongPasswordGetReadOnlyTelemetryRole	[PASSED]
+SensorPolicy.AdminPasswordAndKnownBlankPasswordRetainAdminAccess	[PASSED]
+SensorPolicy.OnlyAdminSessionsAreSavedAndWireLayoutIsStable	[PASSED]
+SensorPolicy.OwnerInfoIsBoundedAndFormattedForApp	[PASSED]
+SensorTelemetry.DiscoversChannelAndAppliesAltitudeOffset	[PASSED]
+SensorTelemetry.CachedEncodingNeverAdvancesCalibration	[PASSED]
+SensorTelemetry.NonFiniteGasCannotAdvanceCalibration	[PASSED]
+SensorTelemetry.InvalidSamplesPreserveTheLastSuccessfulSnapshot	[PASSED]
+SensorTelemetry.BeforeFirstSampleOnlyValidCachedVoltageIsReturned	[PASSED]
+SensorChannels.DuplicateTrackingDistinguishesChannelsButSharesRateLimit	[PASSED]
+SensorChannels.HashCollisionReturnsBothKeysWithoutExceedingCapacity	[PASSED]
+------- native_sensor_asan:test_sensor_policy [PASSED] Took 1.58 seconds -------
+
+Processing test_sensor_network in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorNetwork.ThreeRepeatersActuallyForwardTheOutwardAndReturnLegs	[PASSED]
+SensorNetwork.TwoRepeatersAndTwoByteHashesUseThePublicChannel	[PASSED]
+SensorNetwork.OneDroppedProbeIsRecoveredByOneSilentRetry	[PASSED]
+SensorNetwork.RetryUsesAlternateFloodPathWhenTheOriginalReverseLinkFails	[PASSED]
+SensorNetwork.WorkingFloodMessagingDoesNotImplyTheTraceLoopCanComplete	[PASSED]
+SensorNetwork.SlowAirtimeUsesTheCalculatedBudgetInsteadOfRetryingTooSoon	[PASSED]
+SensorNetwork.DelayedFirstLoopRemainsUsefulAfterTheRetryHasStarted	[PASSED]
+SensorNetwork.HiddenTerminalsCollideAndTheCaptureModelSelectsTheStrongerSignal	[PASSED]
+SensorNetwork.HalfDuplexTransmittingNodeCannotReceiveAnOverlappingFrame	[PASSED]
+SensorNetwork.BusyChannelDefersInitialProbeWithoutConsumingItsRttBudget	[PASSED]
+SensorNetwork.CorrelatedLossAcrossBothAttemptsStillProducesOneBoundedFailure	[PASSED]
+OneAndTwoBytes/SensorHashCollision.HashWidthControlsWhetherCompetingRepeatersForwardTheProbe/0	[PASSED]
+OneAndTwoBytes/SensorHashCollision.HashWidthControlsWhetherCompetingRepeatersForwardTheProbe/1	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/0	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/1	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/2	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/3	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/4	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/5	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/6	[PASSED]
+DeterministicSeeds/SensorContention.SeededLossAndStandardRepeaterDelaysRemainBounded/7	[PASSED]
+------ native_sensor_asan:test_sensor_network [PASSED] Took 1.79 seconds ------
+
+Processing test_sensor_integration in native_sensor_asan environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+SensorIntegration.PublicPingRoundTripsThroughRealEncryptionAndPool	[PASSED]
+SensorIntegration.WatchesHillvueAndPublicAndRepliesOnTheRequestChannel	[PASSED]
+SensorIntegration.CombinedReadingsUseCachedValuesAndExistingFormatting	[PASSED]
+SensorIntegration.InvalidAndUnrelatedCommandsNeverTransmit	[PASSED]
+SensorIntegration.DuplicateOriginalCommandDoesNotPostBusyNotice	[PASSED]
+SensorIntegration.RetryIsSilentUntilOneFinalFailure	[PASSED]
+SensorIntegration.LateFirstCancelsRetryBeforeItTransmits	[PASSED]
+SensorIntegration.LateFirstIsUsedWhenRetryTimesOut	[PASSED]
+SensorIntegration.MultipartGapStartsAtFirstTxCompletion	[PASSED]
+SensorIntegration.LongPathUsesTwoMessagesOnItsSourceChannelWithCompletionGap	[PASSED]
+SensorIntegration.ShortUnknownAndDirectPathsRemainSingleReplies	[PASSED]
+SensorIntegration.PathAndTraceUseTheSameCleanedAdvertNames	[PASSED]
+SensorIntegration.UnknownLongPathIsBoundedToTwoMessagesWithExplicitOverflow	[PASSED]
+SensorIntegration.BothChannelsShareOneRollingCommandLimit	[PASSED]
+SensorIntegration.UnwatchedHashtagDoesNotGenerateAReply	[PASSED]
+SensorIntegration.MultipartRepliesKeepTheirOwnChannelsWhenInterleaved	[PASSED]
+SensorIntegration.PublicTraceResultSurvivesInterveningHillvueRequest	[PASSED]
+SensorIntegration.BusyNoticeUsesNewRequestChannelNotActiveTraceChannel	[PASSED]
+SensorIntegration.PublicTraceFallbackSurvivesInterveningHillvueRequest	[PASSED]
+SensorIntegration.AdvertTxTimeoutReleasesPacketAndRadioContinues	[PASSED]
+SensorIntegration.OnlyVerifiedRepeaterAdvertsEnterNameCache	[PASSED]
+SensorIntegration.FirstResultAfterDeadlineBeforePollingAvoidsRetry	[PASSED]
+SensorIntegration.RetryResultAfterDeadlineBeforePollingAvoidsFailure	[PASSED]
+SensorIntegration.LateRetryDuringGraceStillSucceeds	[PASSED]
+SensorIntegration.LateResultReplacesQueuedFailureWithoutLeakingItsPacket	[PASSED]
+SensorIntegration.CommittedFailureCannotBecomeASecondTerminalReply	[PASSED]
+SensorIntegration.OldResultDoesNotCompleteANewerTraceAfterPacketReuse	[PASSED]
+SensorIntegration.FailureAllocationExhaustionClosesWithinTheReportBudget	[PASSED]
+SensorIntegration.RetryUsesAPassivelyObservedAlternateRequestPath	[PASSED]
+SensorIntegration.AlternateRetryKeepsOriginalFallbackLabels	[PASSED]
+SensorIntegration.FailureThatNeverStartedCanStillBeReplacedAfterRadioError	[PASSED]
+SensorIntegration.UnsentFailureIsCancelledAtTheReportDeadline	[PASSED]
+SensorIntegration.RetryAllocationFailureStillAllowsLateFirstSuccess	[PASSED]
+SensorIntegration.RetryStartFailureDoesNotDiscardLateFirstSuccess	[PASSED]
+SensorIntegration.InitialSendFailureRecoversUsingTheRemainingProbe	[PASSED]
+SensorIntegration.CompletedResultSurvivesPoolExhaustionUntilReportingRecovers	[PASSED]
+SensorIntegration.CompletedResultExpiresWithoutReprobingOrLosingDiagnostics	[PASSED]
+SensorIntegration.InitialAllocationAndQueueRejectionRecoverWithinAdmissionBudget	[PASSED]
+SensorIntegration.TwoRejectedRadioStartsAreBoundedAndDoNotBecomeRouteTimeouts	[PASSED]
+SensorIntegration.RejectedReportQueueRecoversWithoutAThirdProbe	[PASSED]
+SensorIntegration.UncertainSuccessReportNeverRepeatsOrPostsFailure	[PASSED]
+SensorIntegration.UncertainRejectedReportStartNeverCreatesAnotherPublicOutcome	[PASSED]
+SensorIntegration.UnsentSuccessReportIsCancelledAtItsQueueDeadline	[PASSED]
+SensorIntegration.ExpiredQueuedSuccessCannotStartBeforeTheServiceGetsItsLoop	[PASSED]
+SensorIntegration.ActiveReportKeepsTraceBusyWithoutOverwritingSelectedResult	[PASSED]
+SensorSettling.ProductionSettlingDefersFirstProbeAndExcludesItFromRtt	[PASSED]
+SensorSettling.MatchingFloodTailExtendsQuietTimeButNeverPastHardLimit	[PASSED]
+SensorSettling.RadioProfileChangeCancelsAnOldQueuedRoute	[PASSED]
+SensorSettling.UnrelatedTrafficDoesNotExtendTheSettlingWindow	[PASSED]
+---- native_sensor_asan:test_sensor_integration [PASSED] Took 1.79 seconds ----
+
+Processing test_kiss_modem in native_kiss_modem environment
+--------------------------------------------------------------------------------
+Building...
+Testing...
+KissModemFixture.PingResponseShouldNotStallLoopUnderTxBackpressure	[PASSED]
+KissModemFixture.PingResponseKeepsStandardKissFraming	[PASSED]
+KissModemFixture.PingResponseKeepsFramingWithPartialBulkWrites	[PASSED]
+KissModemFixture.PacketAndMetaAreQueuedTogetherUnderBackpressure	[PASSED]
+KissModemFixture.RadioTxCompletionAdvancesWhileHostOutputIsBackedUp	[PASSED]
+KissModemFixture.QueueFullReportsBusyWithoutDroppingQueuedFrames	[PASSED]
+KissModemFixture.QueuedEncoderEscapesKissSpecialBytes	[PASSED]
+KissModemFixture.MaxPacketWorstCaseEscapingFitsQueuedFrame	[PASSED]
+--------- native_kiss_modem:test_kiss_modem [PASSED] Took 1.01 seconds ---------
+
+=================================== SUMMARY ===================================
+Environment         Test                            Status    Duration
+------------------  ------------------------------  --------  ------------
+native              test_companion_118              PASSED    00:00:02.874
+native              test_utils                      PASSED    00:00:01.284
+native              test_utf8_helpers               PASSED    00:00:01.279
+native              test_trace_path_bounds          PASSED    00:00:01.283
+native              test_routing_policy             PASSED    00:00:01.406
+native              test_repeater_trace_probe       PASSED    00:00:01.402
+native              test_public_response_queue      PASSED    00:00:01.737
+native              test_public_channel_sensor_bot  PASSED    00:00:01.470
+native              test_mesh_tables                PASSED    00:00:01.975
+native              test_config_serializer          PASSED    00:00:02.082
+native              test_companion_node_prefs       PASSED    00:00:02.447
+native              test_bme680_air_quality         PASSED    00:00:02.419
+native_sensor       test_sensor_subscriptions       PASSED    00:00:02.912
+native_sensor       test_sensor_trace_reliability   PASSED    00:00:02.639
+native_sensor       test_sensor_storage             PASSED    00:00:03.041
+native_sensor       test_sensor_routes              PASSED    00:00:03.092
+native_sensor       test_sensor_policy              PASSED    00:00:02.969
+native_sensor       test_sensor_network             PASSED    00:00:02.813
+native_sensor       test_sensor_integration         PASSED    00:00:02.754
+native_sensor_asan  test_sensor_subscriptions       PASSED    00:00:01.792
+native_sensor_asan  test_sensor_trace_reliability   PASSED    00:00:01.632
+native_sensor_asan  test_sensor_storage             PASSED    00:00:01.661
+native_sensor_asan  test_sensor_routes              PASSED    00:00:01.608
+native_sensor_asan  test_sensor_policy              PASSED    00:00:01.576
+native_sensor_asan  test_sensor_network             PASSED    00:00:01.793
+native_sensor_asan  test_sensor_integration         PASSED    00:00:01.789
+native_kiss_modem   test_kiss_modem                 PASSED    00:00:01.011
+================ 326 test cases: 326 succeeded in 00:00:54.740 ================

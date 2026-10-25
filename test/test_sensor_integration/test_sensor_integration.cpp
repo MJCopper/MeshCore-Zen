@@ -391,7 +391,7 @@ TEST_F(SensorIntegration, FirstResultAfterDeadlineBeforePollingAvoidsRetry) {
   tick(100);
   finish(200);
   traceReply(0, 10101);
-  tick(14000);
+  completeUntil(14000);
   ASSERT_EQ(2u, radio.sent.size());
   EXPECT_NE(std::string::npos, publicText(1).find("Trace: 10001 ms RTT"));
   finish(14100);
@@ -523,6 +523,62 @@ TEST_F(SensorIntegration, RetryUsesAPassivelyObservedAlternateRequestPath) {
   EXPECT_NE(std::string::npos, publicText(2).find("1 29 +0.5 dB"));
 }
 
+TEST_F(SensorIntegration, BareRetryKeepsFrozenBudgetWhenLongerAlternateCannotFit) {
+  auto original = command("Alice: !hillvue trace", 2);
+  radio.incoming = original;
+  tick(100);
+  finish(200);
+  ASSERT_EQ(1u, radio.sent.size());
+  const auto deadline = bot.traceDeadline();
+  mesh::Packet original_probe{};
+  ASSERT_TRUE(mesh.tryParsePacket(&original_probe, radio.sent[0].data(), radio.sent[0].size()));
+
+  mesh::Packet alternate{};
+  ASSERT_TRUE(mesh.tryParsePacket(&alternate, original.data(), original.size()));
+  alternate.setPathHashSizeAndCount(1, 10);
+  for (uint8_t i = 0; i < 10; ++i) alternate.path[i] = (uint8_t)(40 + i);
+  radio.incoming = {alternate.header, (uint8_t)alternate.path_len};
+  radio.incoming.insert(radio.incoming.end(), alternate.path,
+                        alternate.path + alternate.getPathByteLen());
+  radio.incoming.insert(radio.incoming.end(), alternate.payload,
+                        alternate.payload + alternate.payload_len);
+  tick(300);
+
+  tick(10100);
+  tick(12200);
+  ASSERT_EQ(2u, radio.sent.size());
+  mesh::Packet retry{};
+  ASSERT_TRUE(mesh.tryParsePacket(&retry, radio.sent[1].data(), radio.sent[1].size()));
+  EXPECT_EQ(original_probe.payload_len, retry.payload_len);
+  EXPECT_EQ(0, memcmp(original_probe.payload + 9, retry.payload + 9,
+                      original_probe.payload_len - 9));
+  EXPECT_EQ(deadline, bot.traceDeadline());
+  EXPECT_EQ(1u, bot.diagnostics().budget_omissions);
+}
+
+TEST_F(SensorIntegration, BareRetryIsOmittedWhenNeitherRouteFitsTheFrozenBudget) {
+  radio.incoming = command("Alice: !hillvue trace", 2);
+  tick(100);
+  finish(200);
+  tick(300);
+  ASSERT_EQ(1u, radio.sent.size());
+  const auto deadline = bot.traceDeadline();
+  const auto work_end = deadline - bot.timing().report_reserve;
+
+  tick(work_end - 5000);
+  EXPECT_EQ(1u, radio.sent.size());
+  EXPECT_EQ(1u, bot.diagnostics().budget_omissions);
+  tick(work_end - 2000);
+  completeUntil(work_end + 1000);
+
+  ASSERT_EQ(2u, radio.sent.size());
+  EXPECT_EQ(PAYLOAD_TYPE_GRP_TXT,
+            (radio.sent[1][0] >> PH_TYPE_SHIFT) & PH_TYPE_MASK);
+  EXPECT_NE(std::string::npos, publicText(1).find("Trace: retry not sent")) << publicText(1);
+  EXPECT_EQ(deadline, bot.traceDeadline());
+  EXPECT_EQ(32, pool.getFreeCount());
+}
+
 TEST_F(SensorIntegration, AlternateRetryKeepsOriginalFallbackLabels) {
   auto bytes = command("Alice: !hillvue trace");
   radio.incoming = bytes;
@@ -552,16 +608,16 @@ TEST_F(SensorIntegration, FailureThatNeverStartedCanStillBeReplacedAfterRadioErr
   tick(12200);
   finish(12300);
   tick(22200);
-  tick(25200);
+  tick(25000);
   radio.fail = true;
-  tick(28000);
+  tick(26000);
   ASSERT_EQ(2u, radio.sent.size());
   radio.fail = false;
-  traceReply(0, 28100);
-  tick(32000);
+  traceReply(0, 26100);
+  completeUntil(30000);
   ASSERT_EQ(3u, radio.sent.size());
-  EXPECT_NE(std::string::npos, publicText(2).find("Trace: 28000 ms RTT"));
-  finish(32100);
+  EXPECT_NE(std::string::npos, publicText(2).find("Trace: 26000 ms RTT"));
+  finish(30100);
   EXPECT_EQ(32, pool.getFreeCount());
 }
 
@@ -643,10 +699,10 @@ TEST_F(SensorIntegration, CompletedResultSurvivesPoolExhaustionUntilReportingRec
   ASSERT_TRUE(bot.diagnostics().has_result);
   EXPECT_GT(bot.diagnostics().allocations_failed, 0u);
   for (auto packet : held) pool.free(packet);
-  tick(5000); tick(5001);
+  tick(3500); tick(3501);
   ASSERT_EQ(2u, radio.sent.size());
   EXPECT_NE(std::string::npos, publicText(1).find("Trace: 900 ms RTT"));
-  finish(5100);
+  finish(3600);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, bot.diagnostics().delivery);
   EXPECT_EQ(32, pool.getFreeCount());
 }
@@ -709,10 +765,10 @@ TEST_F(SensorIntegration, RejectedReportQueueRecoversWithoutAThirdProbe) {
   tick(100); finish(200);
   mesh.reject_group = 1;
   traceReply(0, 1000);
-  tick(5000); tick(5001);
+  tick(3500); tick(3501);
   ASSERT_EQ(2u, radio.sent.size());
   EXPECT_NE(std::string::npos, publicText(1).find("Trace: 900 ms RTT"));
-  finish(5100);
+  finish(3600);
   EXPECT_EQ(TraceReportDelivery::DELIVERED, bot.diagnostics().delivery);
   EXPECT_EQ(1u, bot.diagnostics().starts);
 }
@@ -721,7 +777,7 @@ TEST_F(SensorIntegration, UncertainSuccessReportNeverRepeatsOrPostsFailure) {
   radio.incoming = command("Alice: !hillvue trace");
   tick(100); finish(200);
   traceReply(0, 1000);
-  tick(5000);
+  tick(3500);
   ASSERT_EQ(2u, radio.sent.size());
   tick(6000);  // No TX-complete interrupt: the dispatcher watchdog owns cleanup.
   tick(40000);
@@ -737,7 +793,7 @@ TEST_F(SensorIntegration, UncertainRejectedReportStartNeverCreatesAnotherPublicO
   tick(100); finish(200);
   traceReply(0, 1000);
   radio.fail = true;
-  tick(5000);
+  tick(3500);
   radio.fail = false;
   tick(40000);
   EXPECT_EQ(1u, radio.sent.size());

@@ -1,0 +1,31 @@
+Trace discovery repair validation, 2026-10-25
+Base: 5add24af + current working-tree first-contact/clock/advert/scope repair
+
+Native/native_sensor/native_kiss_modem: 467/467 PASS
+Sensor AddressSanitizer (detect_leaks=0): 360/360 PASS
+Five firmware builds + UF2: PASS
+Five DFU archives: CRC + root manifest/bin/dat PASS
+Sensor boundary script and git diff --check: PASS
+Strict MkDocs build: PASS (existing FAQ anchor INFO notice)
+Sensor RAM: 45308 bytes (+7944 from 5add24af)
+Sensor flash: 372388 bytes (+11856 from 5add24af)
+Full cache checkpoint pair: 15448 bytes before filesystem overhead
+Physical acceptance: PENDING; no device flashed
+
+SHA256:
+67218cad1e9773a323722d53bd5cad8565c2588fc313fc65f9198b5f97d7e59f  .pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
+82a4bf1cdd765719a562f057b761e0a06e8ee6424c1ad88d58c045861f059457  .pio/build/Xiao_nrf52_bme680_sensor/firmware.hex
+a8d943453eb91101084373e5dd5b7d17df1e2810f917ffd8a50996de346b18ec  .pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2
+c318162e14e805ca09166ea11022e91bcadd4caf715f0d1609b3761dd1e23d5f  .pio/build/Xiao_nrf52_sensor_baseline/firmware.zip
+fd11b8cf47df032a862e90598486faf2e4b55c85e67bc34dcdb63372828902f5  .pio/build/Xiao_nrf52_sensor_baseline/firmware.hex
+e4416b88b633c3a2f793812280cbc8ab5ae38534bf5ece9f307fcfc918983cd4  .pio/build/Xiao_nrf52_sensor_baseline/Xiao_nrf52_sensor_baseline.uf2
+2567b79ae1691be3dc6fdea12867429c55c10008fc5d6a415de0f4c8fb4ac411  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.zip
+e562058a418c6be86b9f21fd6b784c2d654a80e0f1e05087c68d10defe73567c  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.hex
+7f01db8e1c96d6e4e332e6075ff78bdb4b7c9d3076b56e88ff91817a6a4d72a8  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.uf2
+dbccecdc3b09a142c19caaca5f16c2096579ec91be12b305c670c0048768e615  .pio/build/Xiao_nrf52_repeater/firmware.zip
+d864e6b511aa13c671d3a2350856af03b9c4fa60832c70fd26290f413c2ab17d  .pio/build/Xiao_nrf52_repeater/firmware.hex
+5292919ff887add08ae9b7fb8b3f16ace5d205c83741087a2613e310d3990361  .pio/build/Xiao_nrf52_repeater/firmware.uf2
+bef1e449e82b9d1260e0e481c9f604c6bf35177cae91e66ccbe3f5999f4c3344  .pio/build/Xiao_nrf52_room_server/firmware.zip
+2b524d37cfd0b085cfb69cdb31c11c01dbb7acf7e9dd5ed8767647a6c343c9ba  .pio/build/Xiao_nrf52_room_server/firmware.hex
+bece0eda2d88fd91f9954260759ed799728e05da8d42af6093935a0b5412956a  .pio/build/Xiao_nrf52_room_server/firmware.uf2
+67218cad1e9773a323722d53bd5cad8565c2588fc313fc65f9198b5f97d7e59f  .pio/build/Xiao_nrf52_bme680_sensor/MeshCore_BME680_Sensor_Discovery_Repair_OTA_2026-10-25.zip

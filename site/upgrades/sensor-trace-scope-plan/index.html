@@ -1,0 +1,896 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Sensor trace scope and Dispatcher regression plan - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sensor-trace-scope-and-dispatcher-regression-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sensor trace scope and Dispatcher regression plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#objective-and-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objective and evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-establish-regression-coverage-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Establish regression coverage first
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-introduce-a-value-owned-reply-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Introduce a value-owned reply context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-propagate-context-through-every-reply-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Propagate context through every reply path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-isolate-request-candidates-and-route-history-by-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Isolate request candidates and route history by scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-test-the-production-binding-not-only-the-service-mock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Test the production binding, not only the service mock
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-validation-and-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Validation and documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-physical-acceptance-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Physical acceptance gate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-sequence-and-completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery sequence and completion criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/sensor-trace-scope-plan.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="sensor-trace-scope-and-dispatcher-regression-plan">Sensor trace scope and Dispatcher regression plan</h1>
+<p>Status: implemented; see <a href="../validation/sensor-trace-scope/">validation and physical acceptance status</a>.
+Date: 24 October 2026.</p>
+<h2 id="objective-and-evidence">Objective and evidence</h2>
+<p>Preserve the scope of bot replies through delayed delivery, isolate trace route
+evidence by scope, and add focused Dispatcher lifecycle tests. Keep the existing
+bounded two-attempt trace algorithm, RTT definition, radio ownership, report
+deadlines, channel behaviour and rate limits.</p>
+<p>Review found that <code>Bme680SensorMesh::sendFlood()</code> calls plain
+<code>Mesh::sendFlood()</code>, bypassing upstream request/default reply-scope selection.
+History currently distinguishes route, channel and radio profile, but not
+transport scope. Candidate matching uses the accepted command ciphertext without
+scope discrimination. These are implementation gaps; their RF consequences have
+not been demonstrated on hardware.</p>
+<p>The review ran 76 passing cases across <code>test_sensor_integration</code>,
+<code>test_sensor_storage</code>, <code>test_sensor_routes</code> and
+<code>test_sensor_trace_reliability</code>. This is a baseline, not the complete release
+validation suite.</p>
+<p>Authenticated discovery is absent from the sensor trace flow. Do not introduce
+discovery, RTC replay-protection changes, telemetry-permission diagnostics or
+requester identity as part of this work. Traces follow observed repeater hashes
+and return to the sensor. Full identities cannot be inferred from those hashes.
+Ambiguous cached names already fall back to hex and have regression coverage.</p>
+<h2 id="1-establish-regression-coverage-first">1. Establish regression coverage first</h2>
+<p>Add <code>test/test_sensor_dispatcher/test_sensor_dispatcher.cpp</code>, adapted from the
+five focused tests on local <code>zen/main:test/test_trace_dispatcher/</code>.
+Use real Dispatcher and StaticPoolPacketManager with controllable radio/clock
+fixtures, under <code>native_sensor</code> and its sanitizer environment. Avoid adding
+Dispatcher sources to the unrelated native environment just for these tests.</p>
+<p>Required assertions:</p>
+<ul>
+<li>Scheduled delay produces no TX-start callback until the radio accepts a send;
+  callback time equals the actual start, not enqueue time.</li>
+<li>A busy receiver/channel defers sending without starting the RTT clock.</li>
+<li>A rejected radio start calls failure once, never calls TX-start, and returns
+  exactly one allocation to the pool. A later allocation remains usable.</li>
+<li>Cancelling one queued packet leaves another queued packet untouched; repeated
+  cancellation is harmless. An in-flight packet cannot be cancelled through the
+  queued-packet API and remains owned by Dispatcher until completion/watchdog.</li>
+<li>A normal consumer with no TX-start override retains its baseline lifecycle.</li>
+</ul>
+<p>Keep existing service integration tests for queue expiry, pool reuse, late
+fallback and committed failure. Add service-level busy-channel coverage so that
+the Dispatcher callback and probe RTT are tested together, rather than relying
+only on separate unit tests.</p>
+<p>Acceptance: these tests pass before scope changes; any pre-existing failure is
+triaged separately instead of silently changing core timing behaviour.</p>
+<h2 id="2-introduce-a-value-owned-reply-context">2. Introduce a value-owned reply context</h2>
+<p>Add a small application reply-context value, carried explicitly through
+<code>SensorBotTransport</code>, <code>SensorBotService</code>, <code>PublicResponseQueue</code> and
+<code>TraceReportDelivery</code>. It contains the channel, selected reply scope key (or
+explicit unscoped state), and reply path-hash width. Keep request scope identity
+separate from the selected reply scope: an unresolved request may use the default
+for its reply without proving that its observed path belongs to that default.</p>
+<p>Capture context synchronously when an accepted command is handled. Store values,
+not Packet/RegionEntry pointers, mutable globals, region names, or packet-specific
+16-bit transport codes. Transport codes must be recalculated for each newly
+encrypted reply packet using its captured key. Do not persist or log keys.</p>
+<p>The selected reply scope follows existing <code>chooseReplyScope()</code> semantics:</p>
+<table>
+<thead>
+<tr>
+<th>Accepted request</th>
+<th>Reply selection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resolved transport scope A</td>
+<td>A, even if default is B</td>
+</tr>
+<tr>
+<td>Explicit unscoped flood</td>
+<td>Unscoped, even if a default exists</td>
+</tr>
+<tr>
+<td>Unresolved transport scope</td>
+<td>Current usable default, otherwise unscoped</td>
+</tr>
+<tr>
+<td>Direct request, if supported by a bot command</td>
+<td>Current usable default, otherwise unscoped</td>
+</tr>
+</tbody>
+</table>
+<p>Snapshot the selection at acceptance. A later default-region change or unrelated
+received packet must not redirect already pending replies. A new command uses
+the new configuration. Radio configuration cancellation/deadline behaviour stays
+as currently implemented; scope changes do not restart report budgets.</p>
+<p>The necessary region map and scope fields are private in <code>SensorMesh</code>. Add a
+minimal generic protected API to capture a value-owned reply scope and emit a
+packet with an explicit captured scope. Reuse existing resolution and
+<code>sendFloodScoped()</code> logic. Keep bot-specific types and policy out of upstream
+sensor and core code; do not expose mutable region-map internals. Prefer a
+shared generic scope-selection helper used by both the existing synchronous
+<code>sendFloodReply()</code> and the new capture API, preserving current behaviour.</p>
+<p>Acceptance: baseline consumers retain identical scope selection and wire
+format. Application code can capture and send without holding receive-context
+pointers. The boundary script continues to reject bot-policy leakage.</p>
+<h2 id="3-propagate-context-through-every-reply-path">3. Propagate context through every reply path</h2>
+<p>Update the service and queue APIs so context is required at scheduling time,
+including single-part replies, ordinary multipart replies, rescheduling after
+allocation failure, trace success, timeout/error reports and late fallback.</p>
+<p>Keep an immutable active-trace context independent of the new request's context.
+A busy notice uses the new request context; the active trace's eventual result
+uses the original context. Before closing/resetting a trace, preserve the context
+needed to construct its final report. Each queued multipart entry owns its own
+context. Trace probes remain direct MeshCore TRACE packets; do not add flood
+scope fields to direct trace frames.</p>
+<p>Regression matrix:</p>
+<ul>
+<li>Scope A request/default B replies in A; unscoped request/default B remains
+  unscoped; unresolved scope uses B or unscoped when no default exists.</li>
+<li>Interleave A and B on both Public and <code>#hillvue</code>, including multipart replies.
+  Assert every emitted part has the original channel, selected scope and width.</li>
+<li>While trace A runs, receive request B and a busy notice. Verify A's success,
+  retry failure and late fallback remain in A, while the notice uses B.</li>
+<li>Change the default and process unrelated receive traffic before delayed send,
+  allocation retry and second-part send. Context remains unchanged.</li>
+<li>Decrypt each reply and independently verify its transport code using the
+  expected key. Ensure multipart packets get their own calculated codes.</li>
+<li>Repeat cancellation, expiry, uncertain TX failure and pool-exhaustion tests;
+  check bounded traffic and complete pool recovery after terminal work drains.</li>
+</ul>
+<h2 id="4-isolate-request-candidates-and-route-history-by-scope">4. Isolate request candidates and route history by scope</h2>
+<p>Introduce an explicit request-scope identity: unscoped, resolved key, or
+unresolved. For resolved history compare the complete key bytes, or an adequately
+sized full-key fingerprint; do not use a region ID/name or 16-bit transport code
+as a durable identity. Keep existing channel, radio profile, exact route and TTL
+checks. Full-key changes naturally separate records without changing the
+fixed four-entry bound.</p>
+<p>For unresolved transport scopes, do not read/write cross-transaction history.
+Within a transaction, accept alternate copies only with the same ciphertext,
+transport route class and conservative matching transport-code tuple. This may
+discard valid alternatives but avoids asserting a scope identity that cannot be
+resolved. Document residual short-code ambiguity. Resolved alternatives must
+resolve to the original key; unscoped and scoped copies never mix.</p>
+<p>Candidate observation occurs through <code>logRx</code>, before normal receive dispatch.
+Resolve scope from the observed packet itself using a side-effect-free adapter
+operation. Never use <code>recv_pkt_region</code> left by the previous packet. Keep this
+operation bounded and avoid persistent writes. Do not change ciphertext-match,
+path validation, three-candidate capacity or settling hard limits.</p>
+<p>Required tests:</p>
+<ul>
+<li>Identical routes/channel/radio in scopes A and B have independent outcomes.</li>
+<li>Unscoped, resolved and unresolved requests cannot borrow each other's history.</li>
+<li>Same scope key with a renamed region retains identity; changed key under the
+  same region ID does not reuse evidence.</li>
+<li>Different-scope copies of identical ciphertext do not enter candidates or
+  extend quiet time. Same-scope copies still qualify.</li>
+<li>History cannot supply a candidate not observed for the current command.</li>
+<li>TTL, capacity eviction, radio changes, temporary apply/revert and millis wrap
+  retain their existing behaviour.</li>
+<li>Completion/cancellation clears candidate state. Late old results or command
+  copies cannot update history, queue probes or alter a newer transaction.</li>
+<li>Preserve intentional late-result acceptance while a transaction remains open,
+  including replacement of an unsent failure and original-attempt fallback.</li>
+</ul>
+<p>Acceptance: only fresh observations in the current request scope can be retried;
+history changes ranking only and never supplies freshness or full-node identity.</p>
+<h2 id="5-test-the-production-binding-not-only-the-service-mock">5. Test the production binding, not only the service mock</h2>
+<p>Extend the native fixtures with real transport-code generation and region/key
+resolution. Add tests for the generic SensorMesh scope-capture API or a shared
+production helper that it directly uses, plus a thin-adapter test proving the
+Bme680 binding calls that path. Resolve embedded build dependencies with small
+existing-style board/storage stubs if necessary. A mock returning a chosen scope
+alone is insufficient evidence for the integration gap being fixed.</p>
+<p>Add deterministic network cases in <code>test_sensor_network</code>: a relay rejecting
+unscoped floods must forward a correctly scoped report; a wrong-scope report
+must fail the same check. Cover both channels, delayed multipart and retry
+failure. The filter must validate transport codes rather than a fixture label.
+Keep the model explicitly separate from RF acceptance.</p>
+<h2 id="6-validation-and-documentation">6. Validation and documentation</h2>
+<p>Run focused tests after each change, then the complete release checks once the
+implementation is stable. Use the installed <code>pio</code> executable; on the reviewed
+machine it is <code>/home/matt/.platformio/penv/bin/pio</code>.</p>
+<pre><code class="language-sh">pio test -e native -e native_sensor -e native_kiss_modem
+ASAN_OPTIONS=detect_leaks=0 pio test -e native_sensor_asan
+bash bin/check-sensor-boundaries.sh
+pio run -e Xiao_nrf52_bme680_sensor
+pio run -e Xiao_nrf52_bme680_sensor -t create_uf2
+pio run -e Xiao_nrf52_sensor_baseline
+mkdocs build --strict
+</code></pre>
+<p>Also run the remaining firmware targets required by
+<code>.github/workflows/sensor-firmware.yml</code>, particularly consumers affected by any
+generic SensorMesh header/API change. Ensure the new tests are selected by CI
+and the sanitizer environment; adjust source filters only when required.</p>
+<p>Update the public-bot and development documentation with scope-selection rules,
+snapshot behaviour, unresolved-scope limitations and new automated coverage.
+Preserve conservative failure wording and ambiguity fallback. Record test
+counts, compiler warnings, firmware flash/static RAM deltas against the same
+revision/toolchain baseline, and UF2/DFU artifact paths and checksums. Confirm no
+key material or bot policy leaks into logs/core code. Do not copy old resource
+figures as new measurements.</p>
+<h2 id="7-physical-acceptance-gate">7. Physical acceptance gate</h2>
+<p>Use a controlled sensor/companion/two- or three-repeater setup. Record firmware
+revision, radio settings, scope keys by non-secret labels, topology, hash width
+and repeat counts. Capture timestamps and decoded packets with temporary test
+instrumentation; avoid logging key material.</p>
+<ol>
+<li>Set repeaters to reject unscoped flooding and confirm scoped command and
+   final report delivery. Verify unscoped and wrong-scope negative controls.</li>
+<li>Repeat on Public and <code>#hillvue</code>, one- and two-byte path hashes, including a
+   long multipart report and interleaved requests from different scopes.</li>
+<li>Change the default scope while a report is pending. The old report keeps
+   its accepted context; the next command uses the new selection rules.</li>
+<li>Exercise contention and slower radio settings. Measure enqueue and actual
+   TX-start separately; RTT excludes local waiting and follows the existing
+   airtime-aware timeout policy.</li>
+<li>Exercise retry success, late first-attempt fallback and a lost result.
+   Confirm at most two probe submissions and no contradictory final reports.</li>
+<li>Correlate distinct receive SNRs at each outward hop with report order using
+   repeater logs or controlled link differences. Do not infer correctness from
+   simulation alone.</li>
+<li>Check post-test telemetry, admin access, node identity, one-minute sampling
+   and normal channel commands. Smoke-test UF2 flashing and DFU update.</li>
+</ol>
+<p>Record physical checks as passed, failed or not run. Automated completion does
+not imply physical acceptance.</p>
+<h2 id="delivery-sequence-and-completion-criteria">Delivery sequence and completion criteria</h2>
+<p>Use reviewable commits: (1) Dispatcher tests; (2) generic scope capture and its
+baseline tests; (3) bot context propagation; (4) candidate/history isolation;
+(5) production-binding/network coverage and documentation. Put each feature's
+regressions in the same commit as its implementation where practical.</p>
+<p>Software completion requires all relevant CI suites, sanitizer checks, boundary
+checks, firmware builds and documentation validation to pass; bounded memory and
+packet ownership must remain intact. Record physical acceptance separately and
+leave deployment/installation as a subsequent action. If regression tests expose
+an unrelated defect, document it and address it separately unless it blocks this
+scope fix.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

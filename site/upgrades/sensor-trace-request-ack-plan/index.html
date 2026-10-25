@@ -1,0 +1,916 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Trace request acknowledgement: implementation and test plan - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#trace-request-acknowledgement-implementation-and-test-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Trace request acknowledgement: implementation and test plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intended-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intended behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-and-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance and lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#budget-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budget calculation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#budget-and-timer-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budget and timer tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#acceptance-and-acknowledgement-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance and acknowledgement tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle-and-recovery-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle and recovery tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-dispatcher-and-network-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real Dispatcher and network tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-and-regression-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and regression gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#physical-radio-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Physical radio acceptance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-order-and-completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation order and completion criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/sensor-trace-request-ack-plan.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="trace-request-acknowledgement-implementation-and-test-plan">Trace request acknowledgement: implementation and test plan</h1>
+<p>Status: historical plan; the calculated maximum is superseded by the fixed
+<a href="../validation/sensor-trace-60-second-cap/">60-second cap</a>. Date: 2026-10-25.</p>
+<p>See the <a href="../validation/sensor-trace-request-ack/">implementation validation record</a>.
+The following sections retain the approved implementation and test requirements.</p>
+<h2 id="intended-behaviour">Intended behaviour</h2>
+<p>When the sensor accepts a new trace, immediately schedule this single message:</p>
+<blockquote>
+<p>Trace requested, please wait up to X seconds.</p>
+</blockquote>
+<p><code>X</code> is the rounded-up maximum duration of the whole accepted operation, including acknowledgement, discovery where needed, both possible probe attempts, settling, retry delay, final grace, and final report delivery. This applies to both <code>!hillvue trace</code> and <code>!hillvue trace 4df5</code>.</p>
+<p>Keep the normal sensor-name prefix and send through the accepted request's reply channel and scope. Keep the existing final trace output, sensor-to-selected-repeater ordering, and bidirectional averaged SNR unchanged.</p>
+<p>“Immediately” means queued without application jitter after validation and acceptance. Actual transmission must still respect the radio, duty limits, and busy-channel checks. The advertised duration bounds application work and releases trace ownership on the first running service poll at or after its deadline; it cannot guarantee that a receiver hears a packet or that a stalled event loop runs on time. An already transmitting packet remains owned by the Dispatcher until completion or its existing recovery mechanism.</p>
+<p>Invalid, ambiguous, unknown-target, rate-limited, duplicate, and busy requests keep their existing responses and do not receive this acknowledgement. Neither <code>trace status</code> nor <code>trace cancel</code> starts another acknowledgement or resets a deadline.</p>
+<h2 id="acceptance-and-lifecycle">Acceptance and lifecycle</h2>
+<ol>
+<li>Parse the request and apply existing deduplication, rate limits, and busy handling.</li>
+<li>Validate the route for a bare trace, or resolve a targeted prefix to one full repeater identity. Validate supported path widths and other start prerequisites.</li>
+<li>Capture the full target or original route, reply context, radio profile, and monotonic acceptance time. Compute the maximum budget before marking the request accepted. Reject unsupported or unrepresentable timing configurations with a clear error.</li>
+<li>Freeze <code>X</code>, the acknowledgement text, and an absolute transaction deadline. Charge the accepted command once under the existing rate policy.</li>
+<li>Enter a separate, bounded acknowledgement stage. Attempt transmission with zero application delay. Once the acknowledgement completes, fails, or exhausts its allowance, proceed with tracing regardless of acknowledgement success. Do not wait for a remote receipt acknowledgement.</li>
+<li>Start discovery for a targeted trace, or the existing settling/probe flow for a bare trace. Discovery and probe queue timers start after the acknowledgement stage; acknowledgement airtime must not consume their admission budgets.</li>
+<li>Run the existing trace attempts and final report within the frozen overall deadline. Finish early whenever possible.</li>
+<li>At expiry, stop further trace admissions, cancel only owned queued packets, retire transaction callbacks, and release busy state. Do not begin another report budget after expiry.</li>
+</ol>
+<p>Use a small independent acknowledgement owner, proposed as <code>TraceRequestAcknowledgement</code>. It must not reuse the final <code>TraceReportDelivery</code> state or an ordinary reply queue with an unbounded retry lifetime. States should distinguish waiting, queued, transmitting, and terminal outcomes. Permit local retries only while emission is definitely known not to have occurred and within the admission deadline. Once transmission starts or emission is uncertain, do not create another acknowledgement copy.</p>
+<p>Cancellation, radio-profile invalidation, or an early terminal outcome must remove any acknowledgement still queued. Late callbacks must be matched to their owning packet/transaction and cannot mutate a newer trace. Preserve Dispatcher ownership of packets already on air.</p>
+<h2 id="budget-calculation">Budget calculation</h2>
+<p>Add a pure budget composer alongside the existing timing policy. Use 64-bit intermediates and enforce the existing wrap-safe maximum interval of <code>0x7FFFF000</code> milliseconds. Never silently clamp a combined budget below the time its phases can consume.</p>
+<p>Initial conservative policy:</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Allowance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Q</code></td>
+<td>Existing discovery/probe queue admission: 10,000 ms each</td>
+</tr>
+<tr>
+<td><code>QA</code></td>
+<td>New acknowledgement queue admission: 10,000 ms</td>
+</tr>
+<tr>
+<td><code>aMax</code></td>
+<td>Airtime estimate for <code>MAX_TRANS_UNIT</code> under the captured radio profile</td>
+</tr>
+<tr>
+<td><code>W</code></td>
+<td>Existing <code>transmitWatchdog(aMax)</code></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>Acknowledgement: <code>QA + W</code></td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>Discovery receive allowance: <code>attemptTimeout(10, aMax)</code></td>
+</tr>
+<tr>
+<td><code>Pmax</code></td>
+<td>Probe receive allowance using the maximum supported ten-repeater loop packet, including two-byte hop hashes</td>
+</tr>
+<tr>
+<td><code>P0</code></td>
+<td>Bare trace: allowance for its captured original route; targeted trace: <code>Pmax</code></td>
+</tr>
+<tr>
+<td><code>P1</code></td>
+<td><code>Pmax</code>, since a fresh alternate route may be longer than the first</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>Existing hard settling cap: 2,500 ms</td>
+</tr>
+<tr>
+<td><code>J</code></td>
+<td>Maximum retry pause: 2,000 ms</td>
+</tr>
+<tr>
+<td><code>G</code></td>
+<td>Existing final grace: 3,000 ms</td>
+</tr>
+<tr>
+<td><code>R</code></td>
+<td>Existing <code>reportBudget(aMax)</code></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Existing failure report allowance: 10,000 ms</td>
+</tr>
+<tr>
+<td><code>L</code></td>
+<td>Conservative terminal delivery allowance: <code>max(R + 2*W, F + W)</code></td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>Explicit processing reserve: 1,000 ms</td>
+</tr>
+</tbody>
+</table>
+<p>Calculate:</p>
+<pre><code class="language-text">discovery = targeted ? 2 * (Q + D) : 0
+total_ms = A + discovery + S + (Q + P0) + J + (Q + P1) + G + L + M
+X = ceil(total_ms / 1000)
+deadline = accepted_at + total_ms
+</code></pre>
+<p>The acknowledgement's maximum-frame allowance avoids a circular dependency between the number of digits in <code>X</code> and acknowledgement airtime. Cache the actual packet's airtime/watchdog before enqueueing it; verify it fits the planned allowance. Do not estimate airtime or access radio configuration from a TX-start callback.</p>
+<p>During implementation, verify the maximum loop packet length against the actual packet serializer and supported hop count. Receive allowances start at actual TX start and already cover transmission time; do not add that airtime again. Verify they cover the corresponding TX watchdog. The existing absolute report budget covers admission retries and the inter-part gap; do not add those twice. <code>L</code> deliberately reserves conservative TX completion allowances for the final report parts.</p>
+<p>Use the captured radio profile for every component. Discovery must remain bounded to two attempts and probes to two attempts. Fresh route observations can shorten actual work, but must not increase the promised maximum. A radio-profile change terminates the transaction rather than recalculating a longer deadline.</p>
+<p>The reserve is a scheduling allowance, not permission to extend the deadline. Every admission and retry must also obey the remaining overall budget. Define whether a phase can complete with the remaining time before admitting it; otherwise transition to an appropriate terminal outcome while report time remains. Deadline cleanup itself must work even when no report time remains.</p>
+<h2 id="code-changes">Code changes</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Planned change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TraceTimingPolicy.h</code> and, if useful, a small transaction-budget header</td>
+<td>Pure composition, checked arithmetic, rounded seconds, and wrap-safe remaining-time helpers</td>
+</tr>
+<tr>
+<td>New <code>TraceRequestAcknowledgement.h</code></td>
+<td>Bounded state, immutable text/context, packet ownership, and terminal outcomes</td>
+</tr>
+<tr>
+<td><code>SensorBotService.h/.cpp</code></td>
+<td>Acceptance snapshot, acknowledgement prelude, fixed deadline, callbacks, cancellation, profile-change handling, and busy ownership</td>
+</tr>
+<tr>
+<td>Discovery/probe/report helpers</td>
+<td>Only the interfaces needed to constrain work to the transaction deadline; preserve existing phase timing and recovery semantics</td>
+</tr>
+<tr>
+<td><code>PublicChannelSensorBot</code></td>
+<td>Preserve parser, deduplication, and rate behaviour; change only if acceptance feedback requires it</td>
+</tr>
+<tr>
+<td>Native test fixtures</td>
+<td>Realistic packet airtime, controllable clocks, and acknowledgement/failure observations</td>
+</tr>
+<tr>
+<td>Public bot and development documentation</td>
+<td>Explain acknowledgement, conservative maximum, early completion, status, and cancellation</td>
+</tr>
+</tbody>
+</table>
+<p>Keep acknowledgement memory bounded and avoid per-request heap allocation. Do not add wire protocols, authentication exchanges, persistent storage, or repeater ACL changes. Authenticated discovery continues to use its existing monotonic RTC timestamp, independently of transaction identifiers and millisecond deadlines.</p>
+<p>Extend <code>trace status</code> to identify the acknowledgement stage and show remaining overall seconds alongside useful existing phase detail. Keep <code>trace cancel</code> usable throughout acknowledgement, discovery, probing, grace, and final reporting, including when normal start-command rate slots are exhausted.</p>
+<h2 id="test-plan">Test plan</h2>
+<h3 id="budget-and-timer-tests">Budget and timer tests</h3>
+<ul>
+<li>Independently calculate expected totals for bare and targeted requests. Cover one through ten repeaters, both supported hash widths, short and maximum-sized packets, and representative fast/slow radio profiles.</li>
+<li>Confirm targeted budgets include two discovery admissions and receive windows. Confirm bare budgets exclude discovery and allow a longer second route.</li>
+<li>Confirm acknowledgement admission, report splitting, maximum retry delay, settling, grace, and conservative TX completion allowances are included exactly as specified.</li>
+<li>Test millisecond-to-second rounding, digit boundaries in <code>X</code>, zero or invalid airtime estimates, checked addition, maximum safe intervals, and rejection rather than unsafe saturation.</li>
+<li>Exercise acceptance near millisecond rollover. Check deadline minus one millisecond, the exact deadline, deadline plus one, and service polls that jump across several phase boundaries.</li>
+<li>Verify queue, discovery reply, status, and retry events never move the original deadline.</li>
+</ul>
+<h3 id="acceptance-and-acknowledgement-tests">Acceptance and acknowledgement tests</h3>
+<ul>
+<li>Accepted bare and targeted commands produce the exact message body once, using the expected node prefix, channel, and scope.</li>
+<li>Invalid syntax, missing bare routes, unknown/ambiguous target prefixes, busy responses, duplicates, rate limits, status, and cancellation produce no request acknowledgement.</li>
+<li>No added application jitter; ordinary Dispatcher channel access rules still apply.</li>
+<li>The acknowledgement does not overwrite final report text, target identity, route state, SNR values, or reply context and does not consume another command-rate slot.</li>
+<li>Discovery/probe admission clocks begin after the acknowledgement stage, including when the acknowledgement occupies the radio for longer than a probe's normal queue allowance.</li>
+<li>Allocation failures, queue rejection, definitely-not-sent failures, uncertain emission, missing TX-start, and missing completion all leave the acknowledgement stage within its bound. No uncertain or started transmission creates another emitting copy.</li>
+<li>Oversized prefixed messages and formatting failures have a defined bounded outcome; tracing does not stay busy because acknowledgement formatting failed.</li>
+</ul>
+<h3 id="lifecycle-and-recovery-tests">Lifecycle and recovery tests</h3>
+<ul>
+<li>Cancel at each acknowledgement state and every subsequent phase; confirm owned queued packets are removed and a new trace can start.</li>
+<li>Change the radio profile during each acknowledgement state and later phases; no recalculated deadline or stale acknowledgement survives.</li>
+<li>Deliver delayed discovery replies, TX-start callbacks, and TX-complete/failure callbacks after cancellation, expiry, completion, and a subsequent accepted request. They must not change the newer transaction.</li>
+<li>Hold the channel busy or deny transmission until admission expiry. Exercise both discovery failures, first-probe timeout, retry, final grace, and two-part final delivery.</li>
+<li>Cross the overall deadline with queued and in-flight packets. Queued packets are cancelled; Dispatcher-owned transmitting packets are not freed or reused by the service. Busy state and stale-callback protection remain correct.</li>
+<li>Ensure expiry never opens another full failure-report window or produces a contradictory failure after a possibly emitted success report.</li>
+<li>Preserve trace RTT measurement from actual probe TX start, averaged link SNR, alternate-route selection, history scoping, late-result fallback, and existing final formatting.</li>
+</ul>
+<h3 id="real-dispatcher-and-network-tests">Real Dispatcher and network tests</h3>
+<p>Use the real Dispatcher and existing sensor network fixtures, beyond state-only mocks, to verify packet-pool ownership, actual TX-start timing, CAD/duty delays, cancellation of queued packets, failed transmission ownership, and callback order. Model realistic slow airtimes so an unrealistically short test TX duration cannot hide contention between acknowledgement and tracing.</p>
+<p>Cover both public channels, scoped and unscoped replies, direct and multi-hop paths, and final reports of one and two parts. Assert bounded packet counts and balanced packet-pool ownership after completion and recovery. Keep regressions behavioural rather than duplicating implementation formulas in the test oracle.</p>
+<h3 id="build-and-regression-gates">Build and regression gates</h3>
+<p>Run these after implementation, with results recorded against the implemented revision:</p>
+<ol>
+<li>Focused acknowledgement/budget tests plus existing public-bot, target-trace, trace-reliability, network, and Dispatcher tests.</li>
+<li>Full native suites: <code>pio test -e native -e native_sensor -e native_kiss_modem</code>.</li>
+<li>Sensor AddressSanitizer suite using the documented working host configuration; distinguish infrastructure failures from test failures.</li>
+<li>Firmware builds and applicable DFU/UF2 generation for <code>Xiao_nrf52_bme680_sensor</code>, <code>Xiao_nrf52_sensor_baseline</code>, <code>Xiao_nrf52_companion_radio_usb</code>, <code>Xiao_nrf52_repeater</code>, and <code>Xiao_nrf52_room_server</code>.</li>
+<li><code>bash bin/check-sensor-boundaries.sh</code>, whitespace checks, and the strict documentation build.</li>
+<li>Compare sensor RAM/flash with the pre-change build; confirm bounded memory use and no unintended cross-role dependency.</li>
+</ol>
+<p>Use the installed PlatformIO executable or its virtual environment where needed. Preserve existing unrelated working-tree changes. Do not publish or install firmware as part of planning. Produce a fresh OTA package only after implementation/build validation if requested, with revision and checksum recorded.</p>
+<h3 id="physical-radio-acceptance">Physical radio acceptance</h3>
+<p>On test hardware, record firmware revision, radio settings, channel/scope, topology, and observed timings. Test bare and targeted traces, a known target such as <code>4df5</code>, fast and slow profiles, reachable and silent targets, and a busy channel. Capture acceptance, acknowledgement TX, each probe TX, terminal reply, and busy release times.</p>
+<p>Check that the acknowledgement has no added application delay, its <code>X</code> matches the calculated frozen maximum, and normal success completes early. Repeat the original scenario: start <code>trace 4df5</code>, request another trace after 30 seconds, inspect status, then cancel or wait for the advertised deadline. A busy reply before that deadline can be correct; a busy transaction persisting beyond expiry on a running service loop is a failure. Confirm a subsequent trace starts after terminal cleanup.</p>
+<p>Verify cancellation during acknowledgement and discovery, a lost final reply, and recovery after channel contention. Physical receipt and SNR accuracy require this hardware evidence; native tests alone do not establish them.</p>
+<h2 id="implementation-order-and-completion-criteria">Implementation order and completion criteria</h2>
+<ol>
+<li>Add checked budget composition and independent timing tests.</li>
+<li>Add the bounded acknowledgement owner and ownership/failure tests.</li>
+<li>Integrate acceptance, acknowledgement prelude, fixed deadline, status, cancellation, and profile-change cleanup.</li>
+<li>Add real Dispatcher/network regressions, including late callbacks and slow-radio contention.</li>
+<li>Update user/developer documentation, run all regression/build gates, and record hardware results separately.</li>
+</ol>
+<p>Complete when every accepted start schedules at most one emitting acknowledgement, the displayed maximum covers every permitted phase, all exits release trace ownership within the defined software deadline contract, and existing trace output and recovery behaviour pass regression tests. Mark hardware validation pending until actually performed. This document itself changes no firmware.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

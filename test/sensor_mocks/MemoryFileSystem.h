@@ -35,10 +35,11 @@ public:
   std::map<std::string, std::shared_ptr<std::vector<uint8_t>>> files;
   size_t writes = 0;
   bool fail_write = false;
+  std::string fail_write_path;
   bool fail_rename = false;
   File open(const char* name, const char* mode = "r", bool = false) {
     if (mode[0] == 'w') {
-      if (fail_write) return File();
+      if (fail_write || fail_write_path == name) return File();
       files[name] = std::make_shared<std::vector<uint8_t>>();
     }
     auto it = files.find(name);

@@ -1,0 +1,981 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Sensor versus Zen trace discovery: read-only review - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sensor-versus-zen-trace-discovery-read-only-review" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sensor versus Zen trace discovery: read-only review
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion-and-confidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion and confidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#protocol-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-1-unknown-requesters-cannot-use-this-authenticated-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding 1: unknown requesters cannot use this authenticated discovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-2-scope-is-neither-selected-nor-accepted-identically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding 2: scope is neither selected nor accepted identically
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-3-rtc-tags-are-correct-in-process-not-guaranteed-across-reboot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding 3: RTC tags are correct in-process, not guaranteed across reboot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-4-prior-success-tests-assumed-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding 4: prior success tests assumed registration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paths-checked-without-a-matching-defect-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paths checked without a matching defect found
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-only-validation-performed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read-only validation performed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-repair-and-verification-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended repair and verification sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zen-source-references-for-reproducibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zen source references for reproducibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/validation/sensor-zen-discovery-review.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="sensor-versus-zen-trace-discovery-read-only-review">Sensor versus Zen trace discovery: read-only review</h1>
+<p>Historical pre-implementation findings. See the subsequent
+<a href="../sensor-trace-discovery-repair/">repair implementation and validation</a>.</p>
+<p>Date: 2026-10-25. Sensor: <code>meshcore/sensor</code> at <code>5add24af</code>.
+Zen comparison: local <code>zen/main</code> at <code>6ba09b28</code>.
+No firmware, test source, configuration, identity, ACL or radio settings changed.
+Only this review document was added. No network request/login was performed.</p>
+<h2 id="conclusion-and-confidence">Conclusion and confidence</h2>
+<p>The sensor sends the same authenticated telemetry-based path discovery as Zen,
+but it assumes the destination already knows the sensor's full identity. The
+sensor does not establish that prerequisite. Stock MeshCore 1.18 cannot decrypt
+this request from an unknown client because the packet carries only a short
+sender hash. Learning a repeater's advert/name/public key on the sensor does not
+register the sensor on that repeater.</p>
+<p>User evidence for 7188: it runs MeshCore 1.18, Zen has previously logged into it,
+and the sensor has not knowingly been registered or logged in. This strongly
+supports missing remote client registration as the cause for 7188. It is a
+confirmed protocol/design gap under an unregistered-sensor setup, not a remotely
+observed ACL inspection or packet-level proof of this specific failure.</p>
+<p>The user also reports Zen success with repeaters they have never had access to.
+That observation remains valid and unresolved: administrator access is not
+required for this telemetry request, and guest/client identity knowledge differs
+from admin access. However, the current Zen trace entry point itself performs
+no automatic login either. Static code cannot establish those other repeaters'
+client tables, earlier traffic, exact firmware, or the installed Zen build. Do
+not claim that a prior guest login definitely occurred. Capture the successful
+Zen transaction and compare it to sensor traffic to settle this discrepancy.</p>
+<p>Additional confirmed differences are outgoing scope/width selection and strict
+sensor reply-scope filtering. A clock-reset replay failure is another concrete
+conditional risk. No evidence establishes either as the deployed cause yet.</p>
+<h2 id="protocol-comparison">Protocol comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Sensor</th>
+<th>Zen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Destination</td>
+<td>Unique four-hex prefix resolves a full cached 32-byte key</td>
+<td>Selected repeater's full 32-byte key/contact</td>
+</tr>
+<tr>
+<td>Discovery type</td>
+<td><code>PAYLOAD_TYPE_REQ</code></td>
+<td><code>PAYLOAD_TYPE_REQ</code></td>
+</tr>
+<tr>
+<td>Plaintext</td>
+<td>RTC tag, <code>03 FE 00 00 00</code>, four random bytes</td>
+<td>Same fields and sizes</td>
+</tr>
+<tr>
+<td>Request size</td>
+<td>13 plaintext bytes before encryption/padding</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>Shared secret</td>
+<td><code>self_id.calcSharedSecret(secret, target_key)</code></td>
+<td><code>ContactInfo::getSharedSecret</code>, which calls the same operation</td>
+</tr>
+<tr>
+<td>Source on wire</td>
+<td>Sender identity hash, not its full public key</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>Outgoing login inside trace</td>
+<td>None</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Send scope</td>
+<td>Captured bot request/reply scope, default fallback when unresolved</td>
+<td>Current <code>send_unscoped</code> / <code>send_scope</code> / configured default scope</td>
+</tr>
+<tr>
+<td>Flood hash width</td>
+<td>Incoming bot command's width</td>
+<td>Zen's configured <code>path_hash_mode + 1</code></td>
+</tr>
+<tr>
+<td>Expected route reply</td>
+<td>Authenticated <code>PATH</code> with embedded <code>RESPONSE</code> and matching tag</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>Reply eligibility</td>
+<td>Full target, sent tag, current owner/profile/time and exact captured scope</td>
+<td>Full target, sent tag and active session; no equivalent reply-scope comparison in <code>pathResponse</code></td>
+</tr>
+<tr>
+<td>Timing</td>
+<td>Existing hop/airtime policy clamped into 55-second work / 60-second total</td>
+<td>Flood timeout from actual request airtime plus grace</td>
+</tr>
+<tr>
+<td>Initial public acknowledgement</td>
+<td>Yes, separate radio transmission</td>
+<td>No corresponding public-channel ACK</td>
+</tr>
+</tbody>
+</table>
+<p>The payload fields are equivalent in the compared source. No random trace-ID /
+RTC-tag mixup was found. The added public acknowledgement can affect airtime and
+contention, but normal discovery response matching begins only after actual
+request TX start, and the current budget leaves far more than the reported
+one-second successful Zen discovery under ordinary settings.</p>
+<h2 id="finding-1-unknown-requesters-cannot-use-this-authenticated-discovery">Finding 1: unknown requesters cannot use this authenticated discovery</h2>
+<p>Evidence:</p>
+<ul>
+<li><code>examples/bme680_sensor/SensorScopeBinding.h:50-59</code> creates a normal encrypted
+  request; there is no anonymous login or full sender key in its application data.</li>
+<li><code>src/Mesh.cpp:492-509</code> serializes destination hash, source hash and ciphertext.</li>
+<li><code>src/Mesh.cpp:151-160</code> asks <code>searchPeersByHash</code> for candidate shared secrets
+  before decrypting any ordinary request.</li>
+<li><code>examples/simple_repeater/MyMesh.cpp:623-637</code> searches the repeater ACL only.
+  With no matching client, there is no decryption candidate and no request reply.</li>
+<li><code>examples/simple_repeater/MyMesh.cpp:663-687</code> handles a known client's request,
+  checks replay freshness and creates the PATH response for a flooded request.</li>
+<li><code>examples/simple_repeater/MyMesh.cpp:240-260</code> permits guest base telemetry;
+  this is not an administrator-only operation.</li>
+<li><code>examples/simple_repeater/MyMesh.cpp:650-659</code> observes repeater neighbours but
+  does not turn incoming sensor adverts into registered requester clients.</li>
+</ul>
+<p>The normal first-contact mechanism is an encrypted <code>PAYLOAD_TYPE_ANON_REQ</code>
+login. Its packet includes the full sender public key, allowing the recipient
+to derive a shared secret before the requester is in its ACL. A valid configured
+guest login can establish a transient client entry; it does not require admin
+privileges. Bad/disabled guest credentials can be silently ignored, so an absent
+login reply alone must not be labelled proof of permission denial.</p>
+<p>Zen has a general login path (<code>BaseChatMesh::sendLogin</code>) and the user confirms
+using it on 7188. Its trace path is <code>UITask::startRepeaterTrace</code> -&gt;
+<code>MyMesh::startRepeaterTrace</code> -&gt; <code>RepeaterTraceSession::start</code> -&gt; authenticated
+telemetry flood. That sequence does not itself call login. Accordingly, simply
+copying more of Zen's request builder will not fill the sensor's first-contact gap.</p>
+<h2 id="finding-2-scope-is-neither-selected-nor-accepted-identically">Finding 2: scope is neither selected nor accepted identically</h2>
+<p>Outgoing policy differs:</p>
+<ul>
+<li>Sensor <code>SensorScopeBinding.h:64-75</code> captures context from the bot packet;
+  <code>src/helpers/RegionScope.h</code> preserves a resolved request scope, keeps an
+  unscoped flood unscoped, or uses the configured default for unresolved scope.</li>
+<li>Zen <code>MyMesh.cpp:746-770</code> on the compared branch uses its local flood-scope
+  override/default and local path-hash-width preference.</li>
+</ul>
+<p>The public <code>#hillvue</code> channel and a transport region are separate concepts.
+Receiving the command on the same channel does not prove the subsequent sensor
+and Zen discovery frames use the same transport key or scope mode.</p>
+<p>The sensor then silently returns from <code>SensorBotService.cpp:660-662</code> when a
+matching authenticated PATH response uses a different scope/mode. Zen's
+<code>RepeaterTraceSession::pathResponse</code> has no equivalent scope comparison.</p>
+<p>A concrete conditional divergence: a target directly hears a request whose
+transport scope it does not resolve, processes it locally, and emits a reply
+using its own default scope or no scope. The stock repeater's <code>onRecvPacket</code>
+sets <code>recv_pkt_region</code> but still calls core Mesh processing; the region gate is
+on forwarding. <code>sendFloodReply</code> selects a default when request scope is
+unresolved. Sensor may decrypt and silently reject that response; Zen may accept
+an equivalently authenticated response if it reaches the device.</p>
+<p>For a correctly resolved matching scope, stock 1.18 normally mirrors it; this
+is not proof of a defect on every scoped trace. Record actual outgoing and
+return modes/keys before changing policy. Do not indiscriminately accept all
+foreign-scope replies to conceal the discrepancy. Explicitly decide whether
+trace discovery should retain strict captured-scope semantics or match Zen's
+less restrictive response policy.</p>
+<h2 id="finding-3-rtc-tags-are-correct-in-process-not-guaranteed-across-reboot">Finding 3: RTC tags are correct in-process, not guaranteed across reboot</h2>
+<p>Both implementations use <code>getCurrentTimeUnique</code> for discovery. The sensor's
+<code>uniqueTime</code> adapter calls the real RTC helper, so the old random-ID integration
+mistake is not present here.</p>
+<p>However, <code>src/MeshCore.h:119-124</code> only guarantees increasing values within the
+current clock object's lifetime. <code>variants/xiao_nrf52/target.cpp:16-22</code> uses an
+auto-discovered RTC with <code>VolatileRTCClock</code> fallback. Without a supported external
+RTC or later clock synchronization, <code>ArduinoHelpers.h:11</code> starts that fallback
+at 2024-05-15 on each reset. A registered sender that previously sent higher
+timestamps can then be rejected by <code>timestamp &gt; client-&gt;last_timestamp</code> on a
+still-running repeater. Wrong absolute time alone is insufficient to prove a
+replay failure: it must be at or below that same client's recorded timestamp.</p>
+<p>Tests use a valid advancing synthetic RTC and do not cover this complete
+production reboot/remote-retained-client scenario. Compare both actual sensor
+time and transmitted tag to the remote per-client value. Do not solve replay
+rejection with random tags or unconditional trust in a peer's reported clock.</p>
+<h2 id="finding-4-prior-success-tests-assumed-registration">Finding 4: prior success tests assumed registration</h2>
+<p><code>TargetedSensorNetwork::SetUp</code> at <code>test/test_sensor_network.cpp:571-573</code> explicitly
+adds <code>sensor_mesh-&gt;self_id</code> as a guest on the remote before every success case.
+It supplies the correct shared secret too. The mock target implements the
+request/replay/PATH response subset, not the complete production repeater login
+and telemetry handler.</p>
+<p><code>UnknownRemoteClientTimesOutWithoutAutomaticLogin</code> deliberately removes that
+remote ACL entry, then expects discovery timeout and no trace. This confirms the
+behaviour but does not satisfy a user expectation that a newly deployed sensor
+can discover any known repeater. Earlier passing test totals therefore did not
+validate first-contact operation. This is a gap in the implementation's intended
+behaviour and its acceptance coverage.</p>
+<p>Wrong-scope tests likewise deliberately assert sensor rejection, while normal
+network successes use one shared scope throughout. They do not establish that
+real 1.18 reply-scope fallback matches the sensor's assumption.</p>
+<h2 id="paths-checked-without-a-matching-defect-found">Paths checked without a matching defect found</h2>
+<ul>
+<li>Full destination keys are resolved and passed to encryption, not four hex
+  characters treated as a complete key. Ambiguous prefixes are rejected.</li>
+<li>Base telemetry mask is <code>~1</code>, matching Zen's <code>~TELEM_PERM_BASE</code>.</li>
+<li>Reserved bytes and random nonce positions match; packet padding is handled by
+  the shared core encryption/decryption routines.</li>
+<li>Discovery ownership is installed after queueing and before the asynchronous
+  Dispatcher can start TX. Production callbacks forward TX start/completion/
+  failure into the service. No missing binding was found.</li>
+<li>Transient target peers supplement the sensor's management ACL lookup and are
+  used to decrypt returning PATH replies. An existing matching ACL peer can
+  still dispatch to discovery without saving a management route.</li>
+<li>Both implementations construct the loop from the target's embedded outbound
+  path, append the target hash, and reverse intermediate hops for the return leg.</li>
+<li>Late response absorption and retired target/tag ownership are deliberate and
+  do not substitute an old cached route for a fresh discovery.</li>
+<li>Differences in discovery timeout formulas cannot explain a normal one-second
+  reply never being accepted under the ordinary current sensor time windows.</li>
+<li>Core branch differences reviewed include PATH bounds checks and safer TRACE
+  path validation; neither shows a normal valid 1.18 PATH reply being rejected
+  solely because those safety checks exist.</li>
+</ul>
+<h2 id="read-only-validation-performed">Read-only validation performed</h2>
+<p>Ran the existing suites without editing test source:</p>
+<pre><code class="language-sh">/home/matt/.platformio/penv/bin/pio test -e native_sensor \
+  --filter test_sensor_target_trace --filter test_sensor_network
+</code></pre>
+<p>109/109 tests passed. This includes known-client success, unknown-client expected
+failure, replay protection, full-key matching, wrong-scope rejection and real
+Dispatcher/network timing. No new reproduction tests were implemented, and no
+over-air evidence or target ACL contents were collected during this review.
+Build products/logs may be refreshed by that test command; firmware source is
+unchanged.</p>
+<h2 id="recommended-repair-and-verification-sequence">Recommended repair and verification sequence</h2>
+<ol>
+<li>Confirm the comparison uses the same full target key, actual deployed build
+   versions and PHY settings. Read the relevant target client ACL locally or
+   capture target-side request handling. Never infer ACL state solely from the
+   sensor knowing the target's name or from prior admin access on another device.</li>
+<li>Capture one working Zen attempt and one failing sensor attempt. Record packet
+   types in order (including any anonymous login before discovery), sender and
+   target identities, actual TX times, scope mode/fingerprint, hash width,
+   request timestamp and whether a PATH response was emitted. Do not log shared
+   secrets or passwords.</li>
+<li>Track the sensor receive checkpoints: matching source/destination, MAC/decrypt
+   success, tag ownership, active phase/profile, scope acceptance, route decode
+   and first probe admission. Existing timeout text does not distinguish these
+   silent exits; add bounded RAM/debug evidence in a separately authorized fix.</li>
+<li>Implement a bounded first-contact strategy for targets that do not know the
+   sensor, using only the target's configured guest-access policy. Prefer an
+   explicitly owned guest login followed by a fresh ordinary discovery request.
+   Do not elevate to admin or silently guess passwords. Both stages must share
+   the existing 60-second total and preserve cancellation and packet ownership.</li>
+<li>Handle login as its own protocol: stock login replies begin with the target's
+   timestamp and <code>RESP_SERVER_LOGIN_OK</code>, not an echo of the discovery request
+   tag (<code>MyMesh.cpp:135-144</code>). Feeding that response through current tag matching
+   would still fail. Correlate it using the correct selected identity/state and
+   protocol semantics, then send a new, fresh-tag discovery. Avoid introducing
+   stale login replies or new management-route side effects.</li>
+<li>Resolve any measured scope difference deliberately, with tests against real
+   stock request/reply selection. Keep public reply context independent if
+   outbound discovery scope becomes a separate policy; preserve captured final
+   report channel/scope semantics.</li>
+<li>Add an explicit registered-client reboot/replay test and clock validity
+   diagnostics before choosing a persistent monotonic-time strategy. Do not
+   assume a successful login repairs a stale subsequent request timestamp.</li>
+</ol>
+<p>Essential new tests for an eventual fix:</p>
+<ul>
+<li>Fresh sensor, empty remote ACL, allowed guest login, then authenticated PATH
+  discovery and successful trace, with no test pre-registration.</li>
+<li>Guest access unavailable/restricted: bounded stage-specific outcome without
+  claiming RF failure or explicit permission denial from silence alone.</li>
+<li>Remote restart loses transient guest state: next sensor operation re-establishes
+  it within the same deadline and emits bounded traffic.</li>
+<li>Sensor reboot rolls back fallback RTC while the target retains higher replay
+  state; detect/report this accurately and exercise the chosen clock policy.</li>
+<li>Valid reply on same scope, target default fallback scope, unscoped fallback,
+  and deliberately foreign scope; compare sensor/Zen acceptance under the
+  selected explicit policy.</li>
+<li>Real 1.18 login and request-handler semantics in the test target, plus duplicate
+  hashes/full keys, late PATH/login replies, cancellation and expiry in each
+  stage, failed sends and no automatic alteration of management routes.</li>
+<li>Preserve the 55-second work cutoff, 60-second total, acknowledgement text and
+  at most the intended emitting submissions per stage.</li>
+</ul>
+<p>Hardware acceptance must compare captured packets and confirm the original
+7188 case succeeds from an initially unregistered sensor. The additional
+successful Zen targets should be included without assuming how they learned
+Zen's identity. No diagnosis of those targets is complete until their actual
+packet exchange or client state is observed.</p>
+<h2 id="zen-source-references-for-reproducibility">Zen source references for reproducibility</h2>
+<p>The following refer to <code>zen/main@6ba09b28</code>, not paths checked out on sensor:</p>
+<ul>
+<li><code>examples/companion_radio/zen-overlay/app/MyMesh.cpp:1375-1391</code>: RTC tag,
+  shared-secret request construction and flood scope dispatch.</li>
+<li>Same file <code>:746-770</code>: active/default/unscoped scope and local hash width.</li>
+<li>Same file <code>:1412-1460</code>: start, transient peer matching and PATH dispatch.</li>
+<li>Same file <code>:1271-1283</code>: existing-contact PATH dispatch into trace matching.</li>
+<li><code>examples/companion_radio/zen-overlay/app/zen/RepeaterTraceSession.h:150-185</code>:
+  authenticated identity/tag route acceptance and TX-start ownership.</li>
+<li><code>examples/companion_radio/zen-overlay/app/ui-new/UITask.cpp:1833-1846</code>:
+  UI trace start has no login stage.</li>
+<li><code>src/helpers/BaseChatMesh.cpp:603-633</code>: separate anonymous login mechanism.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

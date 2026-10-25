@@ -1,0 +1,32 @@
+Named destination trace acknowledgement, 2026-10-25
+Base: adc6cab4 (trace) + current working-tree name acknowledgement changes
+
+Native/native_sensor/native_kiss_modem: 426/426 PASS
+Sensor AddressSanitizer (detect_leaks=0): 319/319 PASS
+Extended post-rename fresh-request assertions: 77/77 targeted tests PASS, native and ASan
+Five firmware environments: buildprog + UF2 PASS
+Five DFU archives: CRC and root manifest/bin/dat entries PASS
+Sensor boundary script: PASS
+git diff --check: PASS
+Strict MkDocs: PASS (existing FAQ anchor INFO notice)
+Sensor RAM: 37364 bytes (unchanged from adc6cab4)
+Sensor flash: 360532 bytes (+1360 from adc6cab4)
+Physical radio validation: PENDING; no device flashed
+
+SHA256:
+8ec8cedfcb3b4cf6113b608d84efb674160188d6d1327935effb28428d44ac7a  .pio/build/Xiao_nrf52_bme680_sensor/firmware.zip
+79d98c608eb6c48fd52a3f5b6618ca31fc7d6c34364ac99abff30cd1ad09123b  .pio/build/Xiao_nrf52_bme680_sensor/firmware.hex
+36bd4fc75847f9674696981122fb73589de22f98204c4d3a28cb72201c1cb7bc  .pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2
+909773a08358b0abc5958d81bb2d4036e1e7b505a61cfc2b0707a5c4be538cf0  .pio/build/Xiao_nrf52_sensor_baseline/firmware.zip
+871f395165b4396f5533b04517078effaa8efdc27d9ff8c1f7719d45ae01235d  .pio/build/Xiao_nrf52_sensor_baseline/firmware.hex
+95d135af9ee1b2215229487ff8b765abe4a0687d4f21fe85956d53ed1fd0986c  .pio/build/Xiao_nrf52_sensor_baseline/Xiao_nrf52_sensor_baseline.uf2
+3b482ec90e3495485b3e7027de6838c7cc102b9d3856d17813dffb03f52343d0  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.zip
+c7ddcb3225d3ca39e9851a4ec48b1bbd8c6b298c7555d60354b5f303b5d3aa08  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.hex
+9e43607199a3cf31be707a8eeb5ef913a15faa313b7f0a310ebcef74f635cabe  .pio/build/Xiao_nrf52_companion_radio_usb/firmware.uf2
+eccf6ebdbff0424e6289d2aff857d4360d6b9f995df7232f50336433349ade46  .pio/build/Xiao_nrf52_repeater/firmware.zip
+4e2b1acb79e030591009742306a871b6cf9b470460b5d8d8a07c8f4689e95bf0  .pio/build/Xiao_nrf52_repeater/firmware.hex
+1a3fb581b70ee9a9edbe82ca01f828e06b5cc39c54514eec2c2262a8a7285b4e  .pio/build/Xiao_nrf52_repeater/firmware.uf2
+23615d0e2838794a2bdd43d18dd3ac53e1ecff724319c0850cb71c1bb12183a8  .pio/build/Xiao_nrf52_room_server/firmware.zip
+14df63f8b3e48d2826998d63fcc2bb8749d867db41f1ef35bbd5c784a65194e5  .pio/build/Xiao_nrf52_room_server/firmware.hex
+b4101a4c6dd92b85b1363f285f559ea43df77530e7033e24886ec4beea8c6847  .pio/build/Xiao_nrf52_room_server/firmware.uf2
+8ec8cedfcb3b4cf6113b608d84efb674160188d6d1327935effb28428d44ac7a  .pio/build/Xiao_nrf52_bme680_sensor/MeshCore_BME680_Sensor_Named_Trace_OTA_2026-10-25.zip

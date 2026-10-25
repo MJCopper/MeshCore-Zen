@@ -1,0 +1,923 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hardware and software documentation for the XIAO nRF52840 BME680 sensor firmware">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>MeshCore 1.18 integration and acceptance record - MeshCore BME680 Sensor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../_stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#meshcore-118-integration-and-acceptance-record" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-header__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MeshCore BME680 Sensor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MeshCore 1.18 integration and acceptance record
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="MeshCore BME680 Sensor" class="md-nav__button md-logo" aria-label="MeshCore BME680 Sensor" data-md-component="logo">
+      
+  <img src="../../_assets/meshcore.svg" alt="logo">
+
+    </a>
+    MeshCore BME680 Sensor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/MJCopper/MeshCore-Zen/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    MJCopper/MeshCore-Zen
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/hardware/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware and Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/telemetry/telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Telemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/public_bot/public_bot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public-channel Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/access/access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access and Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building_sensor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sensor_features/development/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development and Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-and-branch-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery and branch isolation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automated-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-preservation-and-hardware-acceptance-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature-preservation and hardware acceptance register
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-release-gate-pending" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-end release gate (pending)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#host-test-suites-available-on-this-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host test suites available on this branch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifact verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/MJCopper/MeshCore-Zen/edit/meshcore/sensor/docs/upgrades/meshcore-1.18.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="meshcore-118-integration-and-acceptance-record">MeshCore 1.18 integration and acceptance record</h1>
+<p>Release baseline: <code>81dbae592ffad40b4212bc0b37e82b38da08f4bc</code>, shared by official
+<code>companion-v1.18.0</code>, <code>repeater-v1.18.0</code> and <code>room-server-v1.18.0</code> tags.
+Validation date: 20 October 2026 (Australia/Sydney).</p>
+<p>Status: software integration and automated validation recorded below. Hardware
+acceptance remains pending. This record does not claim every physical feature
+has been tested or authorize a production release.</p>
+<h2 id="recovery-and-branch-isolation">Recovery and branch isolation</h2>
+<p>The local <code>meshcore/main</code> branch was fast-forwarded from <code>d9296435</code> to the release.
+The three product branches independently merge that baseline without rebasing
+or force-pushing. Backup refs retain each original product:</p>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Original commit</th>
+<th>Backup ref</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>meshcore/main</td>
+<td>d9296435</td>
+<td>backup/pre-1.18-meshcore-main</td>
+</tr>
+<tr>
+<td>zen/main</td>
+<td>e35bceea</td>
+<td>backup/pre-1.18-zen</td>
+</tr>
+<tr>
+<td>meshcore/sensor</td>
+<td>90f9cbcb</td>
+<td>backup/pre-1.18-sensor</td>
+</tr>
+<tr>
+<td>meshcore/archiver</td>
+<td>981c5872</td>
+<td>backup/pre-1.18-archiver</td>
+</tr>
+</tbody>
+</table>
+<p>Device rollback requires a saved settings backup and matching previous firmware.
+Do not assume newer preference files can be read by older firmware. The archive
+history is intentionally volatile and cannot survive an upgrade/reboot.</p>
+<h2 id="integration-decisions">Integration decisions</h2>
+<ul>
+<li>Zen keeps its presentation, message histories, child-mode permissions,
+  notifications, power policies and UI callbacks. The 1.18 listener extension
+  API coexists with this context-rich UI binding. The binding is explicitly
+  retained in the boot composition; replacing it with an unregistered listener
+  would silently disable standalone features.</li>
+<li>Zen incorporates protocol version 14, local and permitted remote CLI,
+  unsolicited binary responses (including telemetry push), multi-byte raw paths,
+  updated GPS diagnostics and board lifecycle/dynamic preferences. Remote CLI
+  cannot execute while Child Mode is restricted. CLI timezone changes select
+  Zen's fixed-offset mode so clock, quiet time and pet schedules agree.</li>
+<li>Zen retains repeater Yield x2 and uses the new configurable transmit-delay
+  factors. The new baseline preference fields participate in save suppression;
+  dynamic preference dirty state also forces a baseline save.</li>
+<li>Sensor retains its application policy hooks, guest telemetry, admin ACL
+  persistence, leaf policy, environmental transformations and public bot. The
+  1.18 sensor runtime supplies subscriptions, region loading and board hooks.
+  Subscription thresholds are bounds-checked before state mutation; humidity
+  keeps its one-byte, half-percent encoding. Push telemetry reserves its extra
+  timestamp bytes. Custom serial commands use the updated runtime signature.</li>
+<li>Archiver retains the Public decoder, RAM ring, room snapshot boundaries,
+  hop-dependent history limit, read-only policy and ACK-driven synchronization.
+  Production snapshot selection was extracted into a directly tested policy;
+  normal room-server builds remain free of archive policy.</li>
+<li>Baseline sources remain exactly upstream in Zen's protected paths. Reviewed
+  overlay counterpart hashes and the sensor boundary pin now reference 1.18.
+  PlatformIO environments, firmware filenames and CI branch tests are retained.</li>
+</ul>
+<h2 id="automated-validation">Automated validation</h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Official baseline native + KISS tests</td>
+<td>54/54 passed</td>
+</tr>
+<tr>
+<td>Official Wio repeater and room-server builds</td>
+<td>Both passed</td>
+</tr>
+<tr>
+<td>Zen native + KISS tests</td>
+<td>485/485 passed</td>
+</tr>
+<tr>
+<td>Sensor native + sensor + ASAN + KISS tests</td>
+<td>326/326 passed, including repeated instrumented cases</td>
+</tr>
+<tr>
+<td>Archiver native + KISS tests</td>
+<td>63/63 passed</td>
+</tr>
+<tr>
+<td>Zen baseline/shadow boundary</td>
+<td>Passed against pinned 1.18 SHA</td>
+</tr>
+<tr>
+<td>Sensor boundary</td>
+<td>Passed against pinned 1.18 SHA</td>
+</tr>
+<tr>
+<td>Strict documentation build</td>
+<td>Passed on all three product branches</td>
+</tr>
+<tr>
+<td>Both Zen firmware builds</td>
+<td>Passed; version v2.2.36</td>
+</tr>
+<tr>
+<td>Standard Wio BLE companion boundary build</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Custom sensor and standard sensor boundary builds</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Custom archiver and standard XIAO room-server boundary builds</td>
+<td>Passed</td>
+</tr>
+</tbody>
+</table>
+<p>The sensor sanitizer initially could not link because the host's libasan runtime
+was absent. The matching Fedora runtime was downloaded/extracted under <code>/tmp</code>
+and the complete instrumented suite was rerun successfully using <code>LIBRARY_PATH</code>
+and <code>LD_LIBRARY_PATH</code>. No system packages were installed. Stalled dependency
+clones were replaced with copies of the verified local RadioLib dependency at
+<code>6d8934836678d8894e3d556550475b37dce3e2b6</code>.</p>
+<h2 id="feature-preservation-and-hardware-acceptance-register">Feature-preservation and hardware acceptance register</h2>
+<p>Existing custom source changes were compared to the 1.17.1 baseline and the
+upstream 1.18 changes. The following groups are retained/adapted. Automated
+coverage is necessary but does not replace the pending device checks.</p>
+<table>
+<thead>
+<tr>
+<th>Product/group</th>
+<th>Automated coverage</th>
+<th>Pending physical acceptance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zen messaging/transcripts</td>
+<td>delivery, ACK tracker, text, unread, channel slots, remote operations</td>
+<td>direct/channel/room send/receive, resend, fallback, echo counts, duplicates, app coexistence</td>
+</tr>
+<tr>
+<td>Zen UI/input</td>
+<td>UI controls, editor, CardKB, word/CLI completion, UTF-8, pet UI</td>
+<td>every page/menu, button hold/repeat, keyboard connect/disconnect, ABC/T9/emoji and favourites on both displays</td>
+</tr>
+<tr>
+<td>Zen time/location</td>
+<td>GPS modes/adaptive/course, deadlines, boot sync, timezone/DST</td>
+<td>cold/warm GPS, stale fixes, RTC/reboot, companion time, city/fixed offsets and all GPS schedules</td>
+</tr>
+<tr>
+<td>Zen notifications</td>
+<td>notifications, quiet time, melodies, ringtone models</td>
+<td>wake, sounds/vibration, per-source overrides, midnight/DST transitions and Bluetooth Auto mode</td>
+</tr>
+<tr>
+<td>Zen access/admin</td>
+<td>admin session/commands, login, remote operations, Zen policy</td>
+<td>PIN restrictions, favourite-only messaging, local/remote CLI permissions, discovery/hidden nodes, ping/path/admin read-back</td>
+</tr>
+<tr>
+<td>Zen power/radio</td>
+<td>battery, Bluetooth, peripheral power, repeater timing/signal, relay timing</td>
+<td>battery calibration, 5% suspension, override, 3.3 V shutdown, radio/GPS/BLE recovery and RF timing</td>
+</tr>
+<tr>
+<td>Zen persistence/diagnostics</td>
+<td>codec migrations/boundaries, runtime/config maintenance, storage, diagnostics/trace</td>
+<td>upgrade real saved state, backup/restore, interrupted writes and hardware diagnostics</td>
+</tr>
+<tr>
+<td>Zen pet</td>
+<td>care/evolution, training, personality, rewards, UI/display, notifications, persistence/filesystem</td>
+<td>retained pet save, physical animations/audio, sleep/wake, retirement and interaction under traffic</td>
+</tr>
+<tr>
+<td>Sensor measurements</td>
+<td>BME680 air quality, cached telemetry, policy</td>
+<td>actual sensor values/units, 60 s cadence, ten-sample warm-up, +100 m offset, missing sensor and I2C recovery</td>
+</tr>
+<tr>
+<td>Sensor public bot</td>
+<td>parser, response queue, policy and encrypted mesh integration</td>
+<td>every command/alias on Public and #hillvue, rate/duplicate limits, two-part timing, channel isolation and no unsolicited posts</td>
+</tr>
+<tr>
+<td>Sensor traces</td>
+<td>probe, route candidates/history, network/reliability/integration</td>
+<td>direct through ten repeaters, hash widths, congestion, late results, retries, failures and bounded reporting</td>
+</tr>
+<tr>
+<td>Sensor access/storage</td>
+<td>management policy, storage, network tests</td>
+<td>old identity/ACL/password/radio settings retained, guest reads/admin writes, forced leaf policy, new subscriptions/expiry/unsubscribe</td>
+</tr>
+<tr>
+<td>Archiver capture</td>
+<td>Public decoder text/type/length rejection</td>
+<td>actual encrypted Public capture, other-channel rejection, passive RF behaviour</td>
+</tr>
+<tr>
+<td>Archiver history</td>
+<td>ring wrap, snapshot floor/cutoff/sync_since and encoded hop policy</td>
+<td>256/257+ entries, direct/one-hop/full vs multi-hop/20, concurrent sessions, wrap during sync</td>
+</tr>
+<tr>
+<td>Archiver access/delivery</td>
+<td>upstream ACL/protocol helpers and standard/custom compile boundary</td>
+<td>all login roles, post rejection including admin, ACK pacing, three failures, 12 clients and reboot-cleared history</td>
+</tr>
+</tbody>
+</table>
+<h2 id="end-to-end-release-gate-pending">End-to-end release gate (pending)</h2>
+<p>Use OLED and E-ink Zen devices, the BME680 sensor, the archive, an official 1.18
+companion and a 1.17.1 peer. Exercise direct, one-hop and two-plus-hop routes:</p>
+<ul>
+<li>Poll and subscribe from a companion while sensor bot/trace traffic runs;
+  receive pushed telemetry, unsubscribe and verify expiry.</li>
+<li>Synchronize archive snapshots from Zen and official companions, including
+  messages arriving during synchronization and all access roles.</li>
+<li>Verify old saved identities, contacts, channels, ACL, Zen preferences and pet
+  records; export and restore settings before/after flashing.</li>
+<li>Introduce radio congestion, lost ACKs, disconnect/reconnect, reboot and low
+  power; verify recovery and bounded memory/queues.</li>
+<li>Run at least 24 hours across a quiet-time boundary and archive wraparound;
+  retain logs, memory readings, traffic observations and device identifiers.</li>
+</ul>
+<p>No identifiable supported USB firmware devices were available; the host exposed
+only generic ttyS entries. Physical display, RF,
+GPS, sensor, battery, OTA, mixed-firmware interoperability and soak tests are
+therefore PENDING. Promote/release only after recording those results.</p>
+<h2 id="host-test-suites-available-on-this-branch">Host test suites available on this branch</h2>
+<ul>
+<li><code>test_bme680_air_quality</code></li>
+<li><code>test_companion_118</code></li>
+<li><code>test_companion_node_prefs</code></li>
+<li><code>test_config_serializer</code></li>
+<li><code>test_kiss_modem</code></li>
+<li><code>test_mesh_tables</code></li>
+<li><code>test_public_channel_sensor_bot</code></li>
+<li><code>test_public_response_queue</code></li>
+<li><code>test_repeater_trace_probe</code></li>
+<li><code>test_routing_policy</code></li>
+<li><code>test_sensor_integration</code></li>
+<li><code>test_sensor_network</code></li>
+<li><code>test_sensor_policy</code></li>
+<li><code>test_sensor_routes</code></li>
+<li><code>test_sensor_storage</code></li>
+<li><code>test_sensor_subscriptions</code></li>
+<li><code>test_sensor_trace_reliability</code></li>
+<li><code>test_trace_path_bounds</code></li>
+<li><code>test_utf8_helpers</code></li>
+<li><code>test_utils</code></li>
+</ul>
+<h2 id="artifact-verification">Artifact verification</h2>
+<p><a href="../meshcore-1.18-artifacts.json">Artifact checksums and UF2 block counts</a> were
+recorded after validating UF2 magic words, family ID, block sequence/count,
+payload sizes and embedded firmware version. Sensor/archive DFU ZIP manifests
+and ZIP integrity were checked. Paths under <code>/tmp</code> identify the isolated local
+worktrees used for those branch builds. These checks do not replace flashing.</p>
+<p>The branch validation evidence is retained as <a href="../validation/test-results.log">test results</a>,
+<a href="../validation/firmware-build.log">firmware builds</a> and
+<a href="../validation/documentation-build.log">documentation build</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.code.copy", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
