@@ -9,7 +9,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v2.2.48**, based on **MeshCore v1.18.0**.
+Current release: **Zen v2.2.58**, based on **MeshCore v1.18.0**.
 
 ## Supported hardware
 
@@ -24,7 +24,7 @@ for charging and bootloader DFU flashing. Firmware is available from the
 
 ## Features
 
-- Repeater node-menu Trace with fresh route discovery, loop RTT and per-link SNR in both directions.
+- Repeater Trace with first-contact guest discovery, advert-route fallback, bounded airtime-aware retries, loop RTT and directional SNR.
 
 - Direct, channel and room messaging with full transcripts and delivery state.
 - Route-aware retries, manual resend and unread-message shortcuts.

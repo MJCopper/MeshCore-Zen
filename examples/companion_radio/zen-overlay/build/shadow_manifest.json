@@ -6,27 +6,27 @@
   },
   "app/MyMesh.cpp": {
     "baseline_sha256": "4c9f283f596407dd85387ef6c9ecf6802f3c5a8c2891b7420325a97731d03be9",
-    "overlay_sha256": "a1ce58b304f85418d32b4ae1978c98817f267b0996adeeeb6fbdeb568d5e881b",
+    "overlay_sha256": "eb9557add6cce19bbed25fb5d9ff4471df5e091b952115232049df41680d92c4",
     "reason": "Zen companion integration; baseline protocol, storage and radio ownership is parity-guarded."
   },
   "app/MyMesh.h": {
     "baseline_sha256": "2401a22b5fb58397da5c80b96ec437739472b3085c1669a543624c1346383478",
-    "overlay_sha256": "e22145b2c3b68025d529ab364fcd920eccb87756fd7545f064b338442a2feb2a",
+    "overlay_sha256": "b358ac8a3f6c64f025b453c9906ba238ab08a3bdfb077250eeecf86ac925ced4",
     "reason": "Zen companion integration API over BaseChatMesh."
   },
   "app/main.cpp": {
     "baseline_sha256": "389e32564945fe87cc1047fd709e7f91c89c9888102bf56d7d2d6aa29959ee9f",
-    "overlay_sha256": "5af4a5eda30df19428f30930aa81000cac51499a4dd82957d3eb31021b11f9db",
+    "overlay_sha256": "44fb60a8f9ee7e8f1a1f0ae140bb02c16e03d56dc6a996b57d5a0c90fcc428de",
     "reason": "Zen boot composition using baseline MeshCore services."
   },
   "app/ui-new/UITask.cpp": {
     "baseline_sha256": "fd9b629b335477fa10c957f0d34e7bc50eb645837a2d583b5d71e54483da7d8b",
-    "overlay_sha256": "241e34126be1d43999112e1d9a49ffe808d471261c453e7c77cf62c0262c85ef",
+    "overlay_sha256": "244c0fb461f7f9e0180bb76e39b43d993644ac23b133b1938dee49135e69e2c1",
     "reason": "Zen application UI orchestration."
   },
   "app/ui-new/UITask.h": {
     "baseline_sha256": "0625cd3e5529094249d2db1b3c3b2ff784e8cb7a71cf102bdce06137d5e47c6a",
-    "overlay_sha256": "d34837feb214b7fb3225891ac4e25a251d7bbf19a9598605bb2011b6dfd8a3a9",
+    "overlay_sha256": "505cc65bdbeaa14fe608b93d0fda50ace6d3fbd8105f51b5b4bbed74b49ade16",
     "reason": "Zen application UI orchestration API."
   },
   "app/ui-new/icons.h": {

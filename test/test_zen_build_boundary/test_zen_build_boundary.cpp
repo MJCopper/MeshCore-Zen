@@ -56,8 +56,6 @@ TEST(ZenBuildBoundary, ZenCodecRoundTripsEveryActiveRecordGroup) {
   source.user_radio_presets[1].freq = 916.25f;
   source.user_radio_presets[1].sf = 9;
   source.advert_auto_interval_sec = 10800;
-  source.locator_radius_idx = 3;
-  source.alarm_hour = 7;
   source.display_brightness = 2;
   source.auto_off_secs = 60;
   source.bluetooth_enabled = 0;
@@ -89,8 +87,6 @@ TEST(ZenBuildBoundary, ZenCodecRoundTripsEveryActiveRecordGroup) {
   EXPECT_FLOAT_EQ(916.25f, restored.user_radio_presets[1].freq);
   EXPECT_EQ(9, restored.user_radio_presets[1].sf);
   EXPECT_EQ(10800u, restored.advert_auto_interval_sec);
-  EXPECT_EQ(3, restored.locator_radius_idx);
-  EXPECT_EQ(7, restored.alarm_hour);
   EXPECT_EQ(2, restored.display_brightness);
   EXPECT_EQ(60, restored.auto_off_secs);
   EXPECT_EQ(0, restored.bluetooth_enabled);
@@ -107,7 +103,7 @@ TEST(ZenBuildBoundary, NewerCodecVersionsAreDetectedAndRejected) {
   size_t size = zen::ZenPrefsCodec::encode(source, 1, encoded, sizeof(encoded));
   ASSERT_GT(size, 5u);
 
-  encoded[4] = 3;  // Header version immediately follows the four-byte magic.
+  ++encoded[4];  // Header version immediately follows the four-byte magic.
   EXPECT_TRUE(zen::ZenPrefsCodec::hasNewerVersion(encoded, size));
   ZenPrefs destination;
   EXPECT_FALSE(zen::ZenPrefsCodec::decode(destination, encoded, size));

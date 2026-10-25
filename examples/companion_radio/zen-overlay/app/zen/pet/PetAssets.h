@@ -10,7 +10,7 @@ struct Form {
   uint8_t size;
   const uint8_t* silhouette;
   uint8_t source_size;
-  Form(const char* n,uint8_t s,const uint8_t* bits)
+  constexpr Form(const char* n,uint8_t s,const uint8_t* bits)
       : name(n),size(s),silhouette(bits),source_size(16) {}
   bool pixel(uint8_t x,uint8_t y) const {
     return x<source_size && y<source_size &&
@@ -19,7 +19,8 @@ struct Form {
 };
 
 static inline const Form& form(uint8_t id) {
-  static const Form FORMS[] = {
+  // Compile-time initialization keeps this immutable table in flash on nRF52.
+  static constexpr Form FORMS[] = {
     {"Sprout",16,PORTRAITS[0]},
     {"Bramble",16,PORTRAITS[1]},
     {"Flutter",16,PORTRAITS[2]},

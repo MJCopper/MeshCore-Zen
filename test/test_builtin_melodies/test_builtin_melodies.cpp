@@ -103,10 +103,10 @@ TEST(BuiltinMelodies, MigratesACompleteLegacyPreferenceState) {
   prefs.notif_melody_ad = 3;
   prefs.dm_melody[0].prefix[0] = 42;
   prefs.dm_melody[0].slot = 2;
-  prefs.ch_notif_melody_set = (1ULL << 3) | (1ULL << 4);
-  prefs.ch_notif_melody_2 = 1ULL << 4;
+  uint64_t legacy_set = (1ULL << 3) | (1ULL << 4);
+  uint64_t legacy_two = 1ULL << 4;
 
-  EXPECT_TRUE(zen::ConfigMaintenance::migrateMelodySchema(prefs, 0xC0DE0029));
+  EXPECT_TRUE(zen::ConfigMaintenance::migrateMelodySchema(prefs, 0xC0DE0029,legacy_set,legacy_two));
   EXPECT_EQ(prefs.notif_melody_dm, zen::BuiltinMelodies::CUSTOM1);
   EXPECT_EQ(prefs.notif_melody_ch, zen::BuiltinMelodies::KERPLOP);
   EXPECT_EQ(prefs.notif_melody_ad, zen::BuiltinMelodies::NONE);
@@ -115,8 +115,6 @@ TEST(BuiltinMelodies, MigratesACompleteLegacyPreferenceState) {
             zen::BuiltinMelodies::CUSTOM1 + 1);
   EXPECT_EQ(zen::NotificationPreferences::channelMelody(&prefs, 4),
             zen::BuiltinMelodies::CUSTOM2 + 1);
-  EXPECT_EQ(prefs.ch_notif_melody_set, 0U);
-  EXPECT_EQ(prefs.ch_notif_melody_2, 0U);
   EXPECT_FALSE(zen::ConfigMaintenance::migrateMelodySchema(prefs, 0xC0DE002A));
 }
 

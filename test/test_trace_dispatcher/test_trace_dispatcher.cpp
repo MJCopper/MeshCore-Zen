@@ -65,3 +65,42 @@ TEST(TraceDispatcher, StandardConsumerWithoutTxOverrideRetainsBaselineLifecycle)
   radio.complete=true;clock.now=150;mesh.loop();EXPECT_EQ(mesh.completed,1u);EXPECT_EQ(pool.getFreeCount(),2);
 }
 int main(int argc,char** argv){::testing::InitGoogleTest(&argc,argv);return RUN_ALL_TESTS();}
+
+#include "../../examples/companion_radio/zen-overlay/app/zen/RepeaterTraceSession.h"
+struct SessionDispatch:mesh::Dispatcher,zen::RepeaterTraceTransport {
+  Clock& clock;zen::RepeaterTraceSession trace{*this};uint32_t tags=100;
+  mesh::Packet* control=nullptr;
+  SessionDispatch(Radio& r,Clock& c,StaticPoolPacketManager& p):Dispatcher(r,c,p),clock(c){}
+  uint32_t traceNow()const override{return clock.now;}
+  uint32_t traceRandom()override{return ++tags;}
+  uint32_t traceDiscoveryTag()override{return ++tags;}
+  uint32_t traceAirtime(unsigned)const override{return 100;}
+  mesh::Packet* traceQueueDiscovery(const uint8_t*,uint32_t tag)override {
+    control=obtainNewPacket();if(!control)return nullptr;
+    control->header=ROUTE_TYPE_FLOOD|(PAYLOAD_TYPE_REQ<<PH_TYPE_SHIFT);control->payload_len=20;control->path_len=0;
+    memset(control->payload,0,20);memcpy(control->payload,&tag,4);sendPacket(control,0,0);return control;
+  }
+  mesh::Packet* traceQueueLoop(const zen::TraceRoute&,uint32_t,uint32_t)override{return nullptr;}
+  bool traceCancelQueued(mesh::Packet* packet)override{return cancelQueuedPacket(packet);}
+  mesh::DispatcherAction onRecvPacket(mesh::Packet*)override{return ACTION_RELEASE;}
+  void onTxStarted(mesh::Packet* packet,uint32_t now)override{trace.txStarted(packet,now);}
+  void logTx(mesh::Packet* packet,int)override{trace.txComplete(packet);}
+  void logTxFail(mesh::Packet* packet,int)override{trace.txFailed(packet,clock.now);}
+};
+TEST(TraceDispatcher, RealSessionReceivesFullDiscoveryWindowAfterBusyQueueAndTxCompletion) {
+  Radio radio;Clock clock;StaticPoolPacketManager pool(4);SessionDispatch d(radio,clock,pool);d.begin();
+  const uint8_t target[32]={1};ASSERT_TRUE(d.trace.start(target,true,1));d.trace.tick();
+  uint32_t tag;memcpy(&tag,d.control->payload,4);radio.busy=true;clock.now=1000;d.trace.tick();d.loop();
+  EXPECT_EQ(radio.sends,0u);radio.busy=false;clock.now=2000;d.trace.tick();d.loop();
+  EXPECT_EQ(d.trace.phase(),zen::RepeaterTraceSession::DISCOVERY_TX);
+  radio.complete=true;clock.now=2500;d.trace.tick();d.loop();
+  EXPECT_EQ(d.trace.phase(),zen::RepeaterTraceSession::DISCOVERY_WAIT);
+  clock.now=5599;d.trace.tick();EXPECT_TRUE(d.trace.pathResponse(target,tag,nullptr,0));
+  EXPECT_EQ(d.trace.phase(),zen::RepeaterTraceSession::SETTLING);EXPECT_EQ(pool.getFreeCount(),4);
+}
+TEST(TraceDispatcher, ExhaustedSharedQueueBudgetCancelsBeforeDispatcherCanStartExpiredWork) {
+  Radio radio;Clock clock;StaticPoolPacketManager pool(4);SessionDispatch d(radio,clock,pool);d.begin();
+  const uint8_t target[32]={1};ASSERT_TRUE(d.trace.start(target,true,1));d.trace.tick();
+  clock.now+=8000;d.trace.tick();d.loop();EXPECT_FALSE(d.trace.active());
+  EXPECT_EQ(radio.sends,0u);EXPECT_EQ(pool.getFreeCount(),4);
+}

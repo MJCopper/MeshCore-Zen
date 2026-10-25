@@ -72,6 +72,7 @@ class SettingsScreen : public ZenUIScreen {
     HOME_ADVERT, HOME_BT, HOME_RADIO, HOME_TOOLS, HOME_SETTINGS,
     // Radio section
     SECTION_RADIO,
+    TRACE_PUBLIC_LOGIN,
     TX_POWER,
     RADIO_PRESET,
     CUSTOM_FREQ, CUSTOM_SF, CUSTOM_BW, CUSTOM_CR,
@@ -172,13 +173,9 @@ class SettingsScreen : public ZenUIScreen {
   int valCol(ZenDisplayDriver& display) const { return display.valCol() - _reserve; }
 
   static uint32_t prefsFingerprint(const ZenPrefs& prefs) {
-    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&prefs);
-    uint32_t hash = 2166136261UL;
-    for (size_t i = 0; i < sizeof(ZenPrefs); i++) {
-      hash ^= bytes[i];
-      hash *= 16777619UL;
-    }
-    return hash;
+    uint64_t zen_hash=zen::ZenPrefsCodec::fingerprint(prefs);
+    uint64_t baseline=zen::BaselinePrefsFingerprint::calculate(prefs);
+    return uint32_t(zen_hash^(zen_hash>>32)^baseline^(baseline>>32));
   }
 
   // Shared 0/90/180/270 labels for display + joystick rotation.
@@ -437,6 +434,9 @@ class SettingsScreen : public ZenUIScreen {
         display.print("Always");
       else
         display.print(homePageVisible(item, p) ? "On" : "Off");
+    } else if(item==TRACE_PUBLIC_LOGIN) {
+      display.print("Trace guest");display.setCursor(valCol(display),y);
+      display.print(p && p->tracePublicLogin()?"On":"Off");
     } else if (item == TX_POWER) {
       display.print("TX Pwr");
       char buf[8];
@@ -1220,6 +1220,9 @@ public:
     if (_selected == TX_POWER && p) {
       if (right && p->tx_power_dbm < 22) { p->tx_power_dbm++; _task->applyTxPower(); _dirty = true; return true; }
       if (left  && p->tx_power_dbm > 2)  { p->tx_power_dbm--; _task->applyTxPower(); _dirty = true; return true; }
+    }
+    if(_selected==TRACE_PUBLIC_LOGIN && p && (enter || left || right)) {
+      p->setTracePublicLogin(!p->tracePublicLogin());_dirty=true;return true;
     }
     if (_selected == RADIO_PRESET && p && enter) {
       _picker.open(p, radioTarget(p), "Radio Preset");

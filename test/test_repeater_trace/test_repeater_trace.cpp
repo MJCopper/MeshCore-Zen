@@ -12,12 +12,24 @@ static const uint8_t TARGET[32]={0xCC,0xDD};
 class FakeTraceTransport:public RepeaterTraceTransport {
 public:
   uint32_t now=0,sequence=10,airtime=100,flood_timeout=5000;
-  bool allocation_fails=false;
+  bool allocation_fails=false,guest=false,clock_failed=false,hint_available=false;
+  TraceRoute hint{},alternate_hint{};
+  unsigned emitted_logins=0;
+  bool tracePublicLogin() const override { return guest; }
+  bool traceAdvertRoute(const uint8_t*,TraceRoute& out,const TraceRoute* exclude=nullptr) override {
+    if(!hint_available)return false;
+    out=exclude?alternate_hint:hint;return out.repeaters && (!exclude || !out.equals(*exclude));
+  }
+  mesh::Packet* traceQueueLogin(const uint8_t*,uint32_t tag) override {
+    auto p=packet();if(!p)return nullptr;
+    p->header=ROUTE_TYPE_FLOOD|(PAYLOAD_TYPE_ANON_REQ<<PH_TYPE_SHIFT);p->payload_len=53;
+    memcpy(p->payload,&tag,4);queue.push_back(p);return p;
+  }
   unsigned allocated=0,cancelled=0,emitted_floods=0,emitted_traces=0,allocation_calls=0;
   mesh::Packet pool[64];std::deque<mesh::Packet*> queue;
   uint32_t traceNow() const override { return now; }
   uint32_t traceRandom() override { return ++sequence; }
-  uint32_t traceDiscoveryTag() override { return 1700000000u+(++discovery_clock); }
+  uint32_t traceDiscoveryTag() override { return clock_failed?0:1700000000u+(++discovery_clock); }
   uint32_t discovery_clock=0;
   uint32_t traceAirtime(unsigned) const override { return airtime; }
   uint32_t traceFloodTimeout(uint32_t) const override { return flood_timeout; }
@@ -43,7 +55,7 @@ public:
   mesh::Packet* transmit(RepeaterTraceSession& s,bool success=true) {
     if(queue.empty())return nullptr;
     auto p=queue.front();queue.pop_front();
-    if(p->getPayloadType()==PAYLOAD_TYPE_TRACE)++emitted_traces;else ++emitted_floods;
+    if(p->getPayloadType()==PAYLOAD_TYPE_TRACE)++emitted_traces;else if(p->getPayloadType()==PAYLOAD_TYPE_ANON_REQ)++emitted_logins;else ++emitted_floods;
     if(success){s.txStarted(p,now);s.txComplete(p);}else s.txFailed(p,now);
     return p;
   }
@@ -106,19 +118,19 @@ TEST_F(RepeaterTraceTest, TwoByteRoutePreservesHashBoundariesAndCount) {
   EXPECT_EQ(session.result().route.repeaters,3);
 }
 TEST_F(RepeaterTraceTest, QueueWaitAndSettlingAreExcludedFromTraceRtt) {
-  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();tx.now=8000;
-  discovery=tx.transmit(session);ASSERT_NE(discovery,nullptr);tx.now=8100;
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();tx.now=2000;
+  discovery=tx.transmit(session);ASSERT_NE(discovery,nullptr);tx.now=2100;
   ASSERT_TRUE(session.pathResponse(TARGET,tx.tag(discovery),nullptr,0));
-  tx.now=11100;session.tick();ASSERT_FALSE(tx.queue.empty());tx.now=19100;
-  first=tx.transmit(session);tx.now=19421;ASSERT_TRUE(reply(first));
+  tx.now=5100;session.tick();ASSERT_FALSE(tx.queue.empty());tx.now=7100;
+  first=tx.transmit(session);tx.now=7421;ASSERT_TRUE(reply(first));
   EXPECT_EQ(session.result().elapsed_millis,321u);
 }
 TEST_F(RepeaterTraceTest, DiscoveryTimeoutRetriesOnlyOnce) {
   ASSERT_TRUE(session.start(TARGET,true,1));session.tick();discovery=tx.transmit(session);
-  tx.now=4999;session.tick();EXPECT_TRUE(tx.queue.empty());
-  tx.now=5000;session.tick();session.tick();auto next=tx.transmit(session);ASSERT_NE(next,nullptr);
+  tx.now=3099;session.tick();EXPECT_TRUE(tx.queue.empty());
+  tx.now=3100;session.tick();session.tick();auto next=tx.transmit(session);ASSERT_NE(next,nullptr);
   EXPECT_NE(tx.tag(next),tx.tag(discovery));
-  tx.now=10000;session.tick();EXPECT_FALSE(session.active());
+  tx.now=6200;session.tick();session.tick();EXPECT_FALSE(session.active());
   EXPECT_EQ(session.error(),RepeaterTraceSession::DISCOVERY_TIMEOUT);
   EXPECT_EQ(tx.emitted_floods,2u);EXPECT_EQ(tx.emitted_traces,0u);
   for(int i=0;i<100;++i)session.tick();EXPECT_TRUE(tx.queue.empty());
@@ -260,8 +272,8 @@ TEST(TraceRoute, LimitsAndHashWidthsAreValidatedIncludingDirectNeighbour) {
   EXPECT_EQ(TraceRoute::fromOutbound(nullptr,1,TARGET,r),TraceRoute::INVALID);
 }
 TEST(TraceTiming, SensorPolicyIsAirtimeAwareAndBounded) {
-  EXPECT_EQ(TraceTimingPolicy::attemptTimeout(2,1),10000u);
-  EXPECT_EQ(TraceTimingPolicy::attemptTimeout(3,1),13000u);
+  EXPECT_EQ(TraceTimingPolicy::attemptTimeout(2,1),2524u);
+  EXPECT_EQ(TraceTimingPolicy::attemptTimeout(3,1),3036u);
   EXPECT_GT(TraceTimingPolicy::attemptTimeout(10,10000),30000u);
   EXPECT_GE(TraceTimingPolicy::settleDelay(1,0),300u);
   EXPECT_LE(TraceTimingPolicy::settleDelay(UINT32_MAX,250),2250u);
@@ -398,10 +410,177 @@ TEST_F(RepeaterTraceTest, DisplayHoldSurvivesTraceRetryAndFinalGraceThenReleases
     return activity.endSample(30000);
   };
   EXPECT_TRUE(sample().hold);
-  tx.now+=60000;session.tick();EXPECT_TRUE(sample().hold);
+  tx.now+=TraceTimingPolicy::attemptTimeout(2,tx.airtime);session.tick();EXPECT_TRUE(sample().hold);
   tx.now+=2001;session.tick();second=tx.transmit(session);ASSERT_NE(second,nullptr);
   EXPECT_TRUE(sample().hold);
-  tx.now+=60000;session.tick();EXPECT_TRUE(sample().hold);
+  tx.now+=TraceTimingPolicy::attemptTimeout(2,tx.airtime);session.tick();EXPECT_TRUE(sample().hold);
   tx.now+=3001;session.tick();EXPECT_FALSE(session.active());
   auto d=sample();EXPECT_TRUE(d.released);EXPECT_EQ(tx.now+30000,d.deadline);
+}
+
+static void firstContact(FakeTraceTransport& tx,RepeaterTraceSession& session) {
+  tx.guest=true;
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();
+  ASSERT_NE(tx.transmit(session),nullptr);
+  tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();
+  ASSERT_FALSE(tx.queue.empty());
+  ASSERT_NE(tx.transmit(session),nullptr);
+  ASSERT_EQ(session.phase(),RepeaterTraceSession::LOGIN_WAIT);
+}
+static void loginBytes(uint8_t* data,uint8_t role=0) {
+  memset(data,0,13);uint32_t server=1700000100;memcpy(data,&server,4);
+  data[6]=role;data[7]=role?3:1;data[12]=1;
+}
+TEST_F(RepeaterTraceTest, FirstContactUsesLoginReturnPathWithoutRedundantDiscovery) {
+  firstContact(tx,session);uint8_t data[13];loginBytes(data);
+  ASSERT_TRUE(session.loginResponse(TARGET,data,13,via,2));
+  EXPECT_TRUE(session.loginPath());EXPECT_EQ(session.phase(),RepeaterTraceSession::SETTLING);
+  tx.now+=2501;session.tick();first=tx.transmit(session);ASSERT_NE(first,nullptr);
+  tx.now+=321;ASSERT_TRUE(reply(first));
+  EXPECT_EQ(tx.emitted_floods,1u);EXPECT_EQ(tx.emitted_logins,1u);EXPECT_EQ(tx.emitted_traces,1u);
+  EXPECT_EQ(session.result().elapsed_millis,321u);EXPECT_EQ(session.result().route.repeaters,3);
+}
+TEST_F(RepeaterTraceTest, PlainLoginAndUnsupportedLoginPathUseOnlyRemainingDiscovery) {
+  for(bool unsupported:{false,true}) {
+    FakeTraceTransport transport;RepeaterTraceSession flow(transport);firstContact(transport,flow);
+    uint8_t data[13];loginBytes(data);
+    ASSERT_TRUE(flow.loginResponse(TARGET,data,13,unsupported?via:nullptr,unsupported?0x80:0));
+    flow.tick();ASSERT_FALSE(transport.queue.empty());
+    auto request=transport.transmit(flow);ASSERT_NE(request,nullptr);
+    EXPECT_EQ(request->getPayloadType(),PAYLOAD_TYPE_REQ);
+    EXPECT_TRUE(flow.pathResponse(TARGET,transport.tag(request),nullptr,0));
+    EXPECT_EQ(transport.emitted_floods,2u);EXPECT_EQ(transport.emitted_logins,1u);
+  }
+}
+TEST_F(RepeaterTraceTest, ThreeSilentGuestAttemptsHaveFreshTagsThenFallback) {
+  firstContact(tx,session);uint32_t seen[3]{};seen[0]=tx.sequence; // clock tags checked on later packets
+  for(unsigned attempt=1;attempt<3;++attempt) {
+    tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();
+    EXPECT_TRUE(tx.queue.empty());tx.now+=1001;session.tick();
+    ASSERT_FALSE(tx.queue.empty());auto login=tx.transmit(session);ASSERT_NE(login,nullptr);
+    seen[attempt]=tx.tag(login);
+  }
+  EXPECT_NE(seen[1],seen[2]);EXPECT_EQ(tx.emitted_logins,3u);
+  tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();
+  EXPECT_FALSE(session.active());EXPECT_EQ(session.error(),RepeaterTraceSession::GUEST_UNAVAILABLE);
+  EXPECT_EQ(tx.emitted_floods,1u);EXPECT_EQ(tx.emitted_traces,0u);
+}
+TEST_F(RepeaterTraceTest, GuestRetrySuccessAndUnexpectedRoleAreHandledSeparately) {
+  firstContact(tx,session);
+  tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();tx.now+=1001;session.tick();
+  auto login=tx.transmit(session);ASSERT_NE(login,nullptr);
+  uint8_t data[13];loginBytes(data);
+  ASSERT_TRUE(session.loginResponse(TARGET,data,13,nullptr,0));session.tick();
+  auto request=tx.transmit(session);ASSERT_NE(request,nullptr);
+  EXPECT_TRUE(session.pathResponse(TARGET,tx.tag(request),nullptr,0));EXPECT_EQ(tx.emitted_logins,2u);
+  session.cancel();FakeTraceTransport other;RepeaterTraceSession rejected(other);firstContact(other,rejected);
+  loginBytes(data,1);EXPECT_TRUE(rejected.loginResponse(TARGET,data,13,via,1));rejected.tick();
+  EXPECT_FALSE(rejected.active());EXPECT_FALSE(rejected.hasResult());EXPECT_EQ(other.emitted_traces,0u);
+}
+TEST_F(RepeaterTraceTest, QueueAndActualControlAirtimeDoNotConsumeReplyWindow) {
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();
+  auto packet=tx.queue.front();tx.queue.pop_front();tx.now=2000;session.txStarted(packet,tx.now);
+  EXPECT_EQ(session.phase(),RepeaterTraceSession::DISCOVERY_TX);
+  tx.now=3000;session.txComplete(packet);
+  EXPECT_EQ(session.phase(),RepeaterTraceSession::DISCOVERY_WAIT);
+  tx.now=6099;session.tick();EXPECT_TRUE(tx.queue.empty());
+  EXPECT_TRUE(session.pathResponse(TARGET,tx.tag(packet),nullptr,0));
+  EXPECT_EQ(session.phase(),RepeaterTraceSession::SETTLING);
+}
+TEST_F(RepeaterTraceTest, MissingTxCompletionAndLateCompletionDoNotResurrectControl) {
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();auto packet=tx.queue.front();tx.queue.pop_front();
+  session.txStarted(packet,tx.now);tx.now=TraceTimingPolicy::transmitWatchdog(tx.airtime);session.tick();
+  session.cancel();session.txComplete(packet);EXPECT_EQ(session.phase(),RepeaterTraceSession::CANCELLED);
+  EXPECT_FALSE(session.hasResult());
+}
+TEST_F(RepeaterTraceTest, AdvertHintWorksAfterGuestFailureAndStillNeedsNewTraceResult) {
+  ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(via,1,TARGET,tx.hint));tx.hint_available=true;
+  firstContact(tx,session);uint8_t data[13];loginBytes(data,1);
+  ASSERT_TRUE(session.loginResponse(TARGET,data,13));session.tick();EXPECT_TRUE(session.advertRoute());
+  EXPECT_FALSE(session.hasResult());tx.now+=2501;session.tick();first=tx.transmit(session);
+  ASSERT_NE(first,nullptr);tx.now+=11;ASSERT_TRUE(reply(first));EXPECT_TRUE(session.hasResult());
+}
+TEST_F(RepeaterTraceTest, BrokenClockPermitsAdvertOnlyTraceAndEmitsNoAuthenticatedControl) {
+  tx.clock_failed=true;tx.hint_available=true;
+  ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(nullptr,0,TARGET,tx.hint));
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();EXPECT_TRUE(session.advertRoute());
+  tx.now+=2501;session.tick();first=tx.transmit(session);ASSERT_NE(first,nullptr);
+  tx.now+=10;EXPECT_TRUE(reply(first));EXPECT_EQ(tx.emitted_floods,0u);EXPECT_EQ(tx.emitted_logins,0u);
+}
+TEST_F(RepeaterTraceTest, FrozenBudgetOmitsRetryWhoseFullWindowCannotFit) {
+  begin(1);auto maximum=session.maximumMillis();
+  tx.now=maximum-1000;session.tick();
+  EXPECT_TRUE(tx.queue.empty());EXPECT_EQ(tx.emitted_traces,1u);
+  tx.now=maximum;session.tick();EXPECT_FALSE(session.active());
+  EXPECT_EQ(session.maximumMillis(),maximum);EXPECT_EQ(tx.emitted_traces,1u);
+}
+TEST_F(RepeaterTraceTest, LatePriorOperationPathIsDrainedAfterReTraceToAnotherTarget) {
+  ASSERT_TRUE(session.start(TARGET,true,1));session.tick();auto original=tx.transmit(session);
+  uint32_t tag=tx.tag(original);session.cancel();uint8_t other[32]={0x44};
+  ASSERT_TRUE(session.start(other,true,1));session.tick();
+  EXPECT_TRUE(session.pathResponse(TARGET,tag,via,1));EXPECT_EQ(session.phase(),RepeaterTraceSession::DISCOVERY_QUEUE);
+  EXPECT_FALSE(session.hasResult());
+}
+
+TEST_F(RepeaterTraceTest, LoginResponsesRejectWrongIdentityMalformedAndPrematureFrames) {
+  firstContact(tx,session);uint8_t data[13];loginBytes(data);uint8_t wrong[32]={5};
+  EXPECT_FALSE(session.loginResponse(wrong,data,13,via,1));
+  EXPECT_FALSE(session.loginResponse(TARGET,data,12,via,1));
+  data[4]=1;EXPECT_FALSE(session.loginResponse(TARGET,data,13,via,1));
+  EXPECT_EQ(session.phase(),RepeaterTraceSession::LOGIN_WAIT);
+  session.cancel();loginBytes(data);EXPECT_FALSE(session.loginResponse(TARGET,data,13,via,1));
+  EXPECT_TRUE(tx.queue.empty());EXPECT_FALSE(session.hasResult());
+}
+TEST_F(RepeaterTraceTest, DiscoveryAndLoginReplyWindowsRespectOriginalDeadlineAcrossRollover) {
+  tx.now=0xfffffff0u;firstContact(tx,session);auto maximum=session.maximumMillis();
+  uint8_t data[13];loginBytes(data);ASSERT_TRUE(session.loginResponse(TARGET,data,13,via,1));
+  tx.now+=2501;session.tick();first=tx.transmit(session);ASSERT_NE(first,nullptr);
+  tx.now+=21;ASSERT_TRUE(reply(first));EXPECT_EQ(session.result().elapsed_millis,21u);
+  EXPECT_EQ(session.maximumMillis(),maximum);
+}
+TEST_F(RepeaterTraceTest, AdvertAlternativeSharesTheSingleRemainingProbe) {
+  tx.hint_available=true;ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(nullptr,0,TARGET,tx.hint));
+  uint8_t other[]={0x77};ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(other,1,TARGET,tx.alternate_hint));
+  tx.clock_failed=true;ASSERT_TRUE(session.start(TARGET,true,1));session.tick();tx.now+=2501;session.tick();
+  first=tx.transmit(session);ASSERT_NE(first,nullptr);tx.now+=TraceTimingPolicy::attemptTimeout(1,tx.airtime);
+  session.tick();tx.now+=2001;session.tick();second=tx.transmit(session);ASSERT_NE(second,nullptr);
+  EXPECT_EQ(second->payload[9],0x77);EXPECT_EQ(tx.emitted_traces,2u);
+  tx.now+=12;ASSERT_TRUE(reply(second));EXPECT_EQ(session.result().attempt,1u);
+}
+
+TEST_F(RepeaterTraceTest, GuestReplyRequiresTxCompletionAndAnUnexpiredReplyWindow) {
+  tx.guest=true;ASSERT_TRUE(session.start(TARGET,true,1));session.tick();tx.transmit(session);
+  tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();ASSERT_FALSE(tx.queue.empty());
+  uint8_t data[13];loginBytes(data);EXPECT_FALSE(session.loginResponse(TARGET,data,13,via,1));
+  auto login=tx.queue.front();tx.queue.pop_front();session.txStarted(login,tx.now);
+  EXPECT_FALSE(session.loginResponse(TARGET,data,13,via,1));session.txComplete(login);
+  tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);EXPECT_FALSE(session.loginResponse(TARGET,data,13,via,1));
+  session.tick();EXPECT_EQ(tx.emitted_traces,0u);EXPECT_FALSE(session.hasResult());
+}
+
+TEST_F(RepeaterTraceTest, LongerAlternateThatCannotFitRetriesOriginalFullWindow) {
+  begin(1);uint8_t longer[9]={0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39};
+  ASSERT_TRUE(session.pathResponse(TARGET,tx.tag(discovery),longer,9));
+  tx.now=session.maximumMillis()-18000;session.tick();EXPECT_EQ(session.phase(),RepeaterTraceSession::RETRY_PAUSE);
+  tx.now+=2001;session.tick();second=tx.transmit(session);ASSERT_NE(second,nullptr);
+  EXPECT_EQ(first->payload_len,second->payload_len);
+  EXPECT_EQ(0,memcmp(first->payload+9,second->payload+9,first->payload_len-9));
+  tx.now+=17;ASSERT_TRUE(reply(second));EXPECT_EQ(session.result().elapsed_millis,17u);
+}
+TEST_F(RepeaterTraceTest, CancelQueuedGuestRetryPreventsFurtherLoginOrTraceTraffic) {
+  firstContact(tx,session);tx.now+=TraceTimingPolicy::floodTimeout(tx.airtime);session.tick();
+  tx.now+=1001;session.tick();ASSERT_EQ(tx.queue.size(),1u);session.cancel();
+  EXPECT_TRUE(tx.queue.empty());tx.now+=60000;session.tick();
+  EXPECT_EQ(tx.emitted_logins,1u);EXPECT_EQ(tx.emitted_traces,0u);EXPECT_FALSE(session.hasResult());
+}
+
+TEST_F(RepeaterTraceTest, LateOriginalResultRetainsItsSourceWhenAdvertRetryFails) {
+  tx.hint_available=true;
+  ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(nullptr,0,TARGET,tx.hint));
+  uint8_t other[]={0x77};ASSERT_EQ(TraceRoute::VALID,TraceRoute::fromOutbound(other,1,TARGET,tx.alternate_hint));
+  begin(1);EXPECT_FALSE(session.advertRoute());tx.now+=TraceTimingPolicy::attemptTimeout(2,tx.airtime);
+  session.tick();tx.now+=2001;session.tick();second=tx.transmit(session);ASSERT_NE(second,nullptr);
+  EXPECT_TRUE(session.advertRoute());tx.now+=21;ASSERT_TRUE(reply(first));
+  tx.now+=TraceTimingPolicy::attemptTimeout(2,tx.airtime);session.tick();
+  ASSERT_TRUE(session.hasResult());EXPECT_EQ(session.result().attempt,0u);EXPECT_FALSE(session.advertRoute());
 }

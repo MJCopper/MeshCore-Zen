@@ -82,17 +82,24 @@ def check_shadows() -> list[str]:
 
 
 def checked_core_extensions() -> tuple[set[str], list[str]]:
-    """Only exact, pinned sensor-branch transport extensions are permitted."""
+    """Only pinned Dispatcher sources and the exact baseline RTC virtual hook are permitted."""
     manifest = json.loads((ROOT / "tools/zen_baseline_extensions.json").read_text())
     errors = []
-    allowed = {"src/Dispatcher.h", "src/Dispatcher.cpp"}
+    allowed = {"src/Dispatcher.h", "src/Dispatcher.cpp", "src/MeshCore.h"}
     if set(manifest) != allowed:
-        return set(), ["core extension manifest must contain exactly the two Dispatcher files"]
+        return set(), ["core extension manifest must contain exactly Dispatcher and the RTC hook"]
     for name, entry in manifest.items():
         source = subprocess.run(["git", "show", f"{entry['source_commit']}:{name}"],
                                 cwd=ROOT, capture_output=True, check=False)
-        digest = hashlib.sha256(source.stdout).hexdigest()
-        if source.returncode or digest != entry["sha256"] or source.stdout != (ROOT/name).read_bytes():
+        expected = source.stdout
+        if name == "src/MeshCore.h":
+            before = b"  uint32_t getCurrentTimeUnique() {"
+            after = b"  virtual uint32_t getCurrentTimeUnique() {"
+            if entry['source_commit'] != BASELINE or expected.count(before) != 1:
+                errors.append("RTC extension must be the single virtual hook on the pinned baseline")
+            expected = expected.replace(before, after, 1)
+        digest = hashlib.sha256(expected).hexdigest()
+        if source.returncode or digest != entry["sha256"] or expected != (ROOT/name).read_bytes():
             errors.append(f"unreviewed core extension: {name}")
     return allowed, errors
 
@@ -121,7 +128,7 @@ def main() -> int:
         for error in shadow_errors:
             print(f"  {error}", file=sys.stderr)
         return 1
-    print(f"MeshCore baseline {BASELINE} is unchanged outside pinned sensor Dispatcher extensions.")
+    print(f"MeshCore baseline {BASELINE} is unchanged outside pinned Dispatcher/RTC extensions.")
     print("Zen baseline shadows match the reviewed manifest.")
     return 0
 

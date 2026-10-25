@@ -27,6 +27,7 @@ public:
   File open(const char* path,const char*,bool=true) {
     if(full)return File(); files[path].clear(); mutation(); return File(this,path,true);
   }
+  bool exists(const char* path)const{return files.count(path);}
   bool remove(const char* path) { files.erase(path); mutation(); return true; }
   bool rename(const char* source,const char* target) {
     ++rename_count;
@@ -37,7 +38,8 @@ public:
 size_t File::size() { return _fs->files[_path].size(); }
 size_t File::write(const uint8_t* data,size_t count) {
   size_t written=_fs->short_write?count/2:count;
-  _fs->files[_path].assign(data,data+written); _fs->mutation(); return written;
+  auto& bytes=_fs->files[_path];if(bytes.size()<_at+written)bytes.resize(_at+written);
+  memcpy(bytes.data()+_at,data,written);_at+=written;_fs->mutation();return written;
 }
 int File::read(uint8_t* data,size_t count) {
   if(++_fs->read_count==_fs->fail_read)return -1;
@@ -69,8 +71,8 @@ TEST(PetSnapshotFilesystem, ShortWritesFullStorageAndRenameFailuresPreserveCheck
     PetSnapshotFilesystem backend(zen); PetSnapshotStore store; PetSnapshot s;
     ASSERT_TRUE(store.save(backend,s)); fs.rename_count=0;
     if(failure==0)fs.short_write=true; if(failure==1)fs.full=true;
-    if(failure==2)fs.fail_rename={2}; if(failure==3)fs.fail_rename={3};
-    if(failure==4)fs.fail_rename={3,4};
+    if(failure==2)fs.fail_rename={1}; if(failure==3)fs.fail_rename={2};
+    if(failure==4)fs.fail_rename={2,3};
     s.engine.state.fullness=40; EXPECT_FALSE(store.save(backend,s));
     fs.short_write=fs.full=false; fs.fail_rename.clear();
     PetSnapshot restored; PetSnapshotStore reboot;

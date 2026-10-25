@@ -73,5 +73,9 @@ Repeater Trace deliberately imports the sensor branch's TX-start observer and
 queue-only lookup/cancellation capabilities into `src/Dispatcher.h/.cpp`.
 Those two files are pinned by source commit and SHA-256, not broadly exempted
 from review. Their default callback is empty and queue cancellation cannot
-remove the in-flight packet. All other baseline invariants and the forbidden
+remove the in-flight packet. A separately pinned one-keyword RTC extension makes `getCurrentTimeUnique()`
+virtual; its default implementation is unchanged. Zen supplies a durable
+sequencer through its overlay, sharing request ordering with companion traffic
+while retaining physical wall time. The checker permits only that exact change
+to `src/MeshCore.h`, reconstructed from the pinned baseline. All other baseline invariants and the forbidden
 core-shadow list remain enforced. See [trace verification](zen_repeater_trace.md).

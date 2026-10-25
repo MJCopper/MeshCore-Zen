@@ -20,7 +20,7 @@ public:
     char title[48];snprintf(title,sizeof(title),"Trace: %s",target);
     display.drawTextEllipsized(0,0,display.width()-2,title);
     const auto& result=session.result();
-    int total=session.hasResult()?2+3*result.route.repeaters:4;
+    int total=session.hasResult()?2+3*result.route.repeaters:6;
     const int start=display.listStart(),step=display.lineStep();
     int visible=(display.height()-start)/step;if(visible<1)visible=1;
     int maximum=total-visible;if(maximum<0)maximum=0;
@@ -45,7 +45,7 @@ public:
           }
         }
       } else if(index==0) snprintf(line,sizeof(line),"%s",session.phaseName());
-      else if(index==1) snprintf(line,sizeof(line),"Flood %u/2 Trace %u/2",session.discoveryAttempt(),session.traceAttempt());
+      else if(index==1) snprintf(line,sizeof(line),"F%u/2 Login%u/3 T%u/2",session.discoveryAttempt(),session.loginAttempt(),session.traceAttempt());
       else if(index==2) {
         const char* hint="Back: cancel/close";
         switch(session.error()) {
@@ -56,7 +56,10 @@ public:
           default:break;
         }
         snprintf(line,sizeof(line),"%s",hint);
-      } else snprintf(line,sizeof(line),"Queued F:%u T:%u",session.floodSubmissions(),session.traceSubmissions());
+      } else if(index==3) snprintf(line,sizeof(line),"%lu/%lu s left/max",
+        (unsigned long)((session.remainingMillis()+999)/1000),(unsigned long)((session.maximumMillis()+999)/1000));
+      else if(index==4) snprintf(line,sizeof(line),"Route: %s",session.advertRoute()?"advert hint":session.loginPath()?"login PATH":"discovery");
+      else snprintf(line,sizeof(line),"Queued F:%u L:%u T:%u",session.floodSubmissions(),session.loginSubmissions(),session.traceSubmissions());
       display.drawTextEllipsized(1,start+row*step,display.width()-3,line);
     }
     return session.active()?200:1000;

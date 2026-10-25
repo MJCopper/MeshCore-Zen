@@ -1,240 +1,80 @@
 #pragma once
-
-#include "../ZenPrefs.h"
-#include <stddef.h>
-#include <stdint.h>
+#include "ZenSettingsFields.h"
+#include <new>
 #include <string.h>
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#error "Zen settings wire scalars require a little-endian adapter on this target"
+#endif
 
 namespace zen {
+struct SettingsAllocator {
+  static ZenSettings* create(const ZenSettings& initial) { return new(std::nothrow) ZenSettings(initial); }
+  static void destroy(ZenSettings* p) { delete p; }
+};
 
-// Versioned, tagged Zen preference overlay. This deliberately contains only
-// active Zen/UI settings; MeshCore-compatible radio and identity data remain
-// in their established stores. Unknown records are skipped by length.
+// One canonical encoder drives flash writes, exact verification and hashing.
+// No complete encoded record is allocated by any production entry point.
 class ZenPrefsCodec {
-  static constexpr uint32_t MAGIC = 0x46504E5AUL; // "ZNPF" little-endian
-  static constexpr uint8_t VERSION = 2;
-  static constexpr uint8_t MIN_COMPAT_VERSION = 1;
-  // Older records are migrated explicitly. Never accept a newer envelope and
-  // then rewrite it without the records that this codec does not understand.
-  static constexpr uint8_t MAX_COMPAT_VERSION = VERSION;
-  enum Record : uint8_t {
-    REC_CHILD = 1,
-    REC_QUIET = 2,
-    REC_SYSTEM = 3,
-    REC_UI = 4,
-    REC_NOTIFICATIONS = 5,
-    REC_QUICK_REPLIES = 6,
-    REC_RADIO_PRESETS = 7,
-    REC_ADVERT = 8,
-    REC_ZEN_TAIL = 9,
-    REC_PET = 10,
-  };
-
-  class Writer {
-    uint8_t* _p;
-    uint8_t* _end;
-    bool _good = true;
-  public:
-    Writer(uint8_t* out, size_t size) : _p(out), _end(out + size) {}
-    bool put(const void* src, size_t size) {
-      if (!_good || (size_t)(_end - _p) < size) return _good = false;
-      memcpy(_p, src, size); _p += size; return true;
-    }
-    void u8(uint8_t value) { put(&value, 1); }
-    void u16(uint16_t value) { uint8_t b[2] = {(uint8_t)value, (uint8_t)(value >> 8)}; put(b, 2); }
-    void u32(uint32_t value) {
-      uint8_t b[4] = {(uint8_t)value, (uint8_t)(value >> 8), (uint8_t)(value >> 16), (uint8_t)(value >> 24)};
-      put(b, 4);
-    }
-    uint8_t* position() const { return _p; }
-    bool good() const { return _good; }
-  };
-
-  class Reader {
-    const uint8_t* _p;
-    const uint8_t* _end;
-    bool _good = true;
-  public:
-    Reader(const uint8_t* data, size_t size) : _p(data), _end(data + size) {}
-    bool get(void* dst, size_t size) {
-      if (!_good || (size_t)(_end - _p) < size) return _good = false;
-      memcpy(dst, _p, size); _p += size; return true;
-    }
-    uint8_t u8() { uint8_t v = 0; get(&v, 1); return v; }
-    uint16_t u16() { uint8_t b[2] = {}; get(b, 2); return (uint16_t)b[0] | ((uint16_t)b[1] << 8); }
-    uint32_t u32() {
-      uint8_t b[4] = {}; get(b, 4);
-      return (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 24);
-    }
-    const uint8_t* position() const { return _p; }
-    size_t remaining() const { return (size_t)(_end - _p); }
-    bool good() const { return _good; }
-  };
-
-  static uint32_t checksum(const uint8_t* data, size_t len) {
-    uint32_t h = 2166136261UL;
-    for (size_t i = 0; i < len; i++) { h ^= data[i]; h *= 16777619UL; }
-    return h;
-  }
-
-  static void beginRecord(Writer& w, uint8_t id, uint16_t len) { w.u8(id); w.u16(len); }
-
-  static bool inspectEnvelope(const uint8_t* data, size_t size, uint32_t* generation,
-                              const uint8_t** payload, uint16_t* payload_len) {
-    if (!data || size < 17) return false;
-    Reader r(data, size);
-    if (r.u32() != MAGIC) return false;
-    uint8_t version = r.u8();
-    if (version < MIN_COMPAT_VERSION || version > MAX_COMPAT_VERSION) return false;
-    uint16_t len = r.u16();
-    uint32_t gen = r.u32();
-    (void)r.u16(); // semantic schema; individual records remain authoritative
-    if (!r.good() || (size_t)len + 17 != size) return false;
-    const uint8_t* start = r.position();
-    const uint8_t* checksum_pos = start + len;
-    Reader tail(checksum_pos, 4);
-    if (tail.u32() != checksum(data, (size_t)(checksum_pos - data))) return false;
-
-    // Validate the complete TLV structure before any preference is changed.
-    Reader records(start, len);
-    while (records.remaining()) {
-      if (records.remaining() < 3) return false;
-      (void)records.u8();
-      uint16_t record_len = records.u16();
-      if (!records.good() || records.remaining() < record_len) return false;
-      uint8_t scratch[16];
-      while (record_len) {
-        uint16_t chunk = record_len > sizeof(scratch) ? sizeof(scratch) : record_len;
-        records.get(scratch, chunk);
-        record_len -= chunk;
-      }
-    }
-    if (!records.good()) return false;
-    if (generation) *generation = gen;
-    if (payload) *payload = start;
-    if (payload_len) *payload_len = len;
-    return true;
-  }
-
+  static constexpr uint32_t MAGIC=0x46504E5AUL;
+  static constexpr uint8_t VERSION=3;
+  enum Record : uint8_t { REC_CHILD=1,REC_QUIET,REC_SYSTEM,REC_UI,REC_NOTIFICATIONS,
+    REC_QUICK_REPLIES,REC_RADIO_PRESETS,REC_ADVERT,REC_ZEN_TAIL,REC_PET,REC_TRACE };
 public:
-  static constexpr size_t MAX_ENCODED_SIZE = 4096;
-
-  static bool hasNewerVersion(const uint8_t* data, size_t size) {
-    if (!data || size < 5) return false;
-    Reader r(data, size);
-    return r.u32() == MAGIC && r.u8() > VERSION;
-  }
-
-  static size_t encode(const ZenPrefs& p, uint32_t generation, uint8_t* out, size_t capacity) {
-    if (!out || capacity < MAX_ENCODED_SIZE) return 0;
-    Writer w(out, capacity);
-    w.u32(MAGIC); w.u8(VERSION);
-    uint8_t* len_pos = w.position(); w.u16(0);
-    w.u32(generation); w.u16(p.zen_config_schema);
-    uint8_t* payload = w.position();
-
-    beginRecord(w, REC_CHILD, 9);
-    w.u8(p.child_mode_enabled); w.u32(p.child_mode_pin_hash); w.u16(p.child_visible_pages);
-    w.u8(p.child_channels_enabled); w.u8(p.child_rooms_enabled);
-
-    beginRecord(w, REC_PET, 1);
-    w.u8(p.pet_enabled);
-    beginRecord(w, REC_QUIET, 5);
-    w.u8(p.quiet_time_enabled); w.u16(p.quiet_time_start_min); w.u16(p.quiet_time_end_min);
-
-    beginRecord(w, REC_SYSTEM, 9);
-    w.u8(p.bluetooth_enabled); w.u8(p.gps_adaptive); w.u8(p.timezone_mode);
-    w.u8(p.timezone_city); w.put(&p.timezone_manual_min, sizeof(p.timezone_manual_min));
-    w.u8(p.notification_screen_wake); w.u16(p.zen_config_schema);
-
-    const uint16_t ui_len = 2 + 1 + ZenPrefs::PAGE_ORDER_LEN + 1 + 2 + 11 + 8 + 1 +
-                            sizeof(p.favourite_contacts);
-    beginRecord(w, REC_UI, ui_len);
-    w.u16(p.home_pages_mask); w.u8(p.page_order_set); w.put(p.page_order, sizeof(p.page_order));
-    w.u8(p.display_brightness); w.put(&p.auto_off_secs, sizeof(p.auto_off_secs));
-    w.u8(p.clock_12h); w.u8(p.clock_hide_seconds); w.u8(p.use_lemon_font); w.u8(p.display_rotation);
-    w.u8(p.joystick_rotation); w.u8(p.eink_full_refresh_every); w.u8(p.keyboard_type);
-    w.u8(p.batt_display_mode); w.u8(p.units_imperial); w.u8(p.dm_show_all); w.u8(p.room_fav_only);
-    w.put(&p.ch_fav_bitmask, sizeof(p.ch_fav_bitmask)); w.u8(p.ch_fav_only);
-    w.put(p.favourite_contacts, sizeof(p.favourite_contacts));
-
-    const uint16_t notif_len = 8 + 2 + sizeof(p.ringtone_notes) + 2 + sizeof(p.ringtone2_notes) +
-                               sizeof(p.ch_notif_override) + sizeof(p.ch_notif_muted) +
-                               sizeof(p.dm_notif) + sizeof(p.dm_melody) +
-                               sizeof(p.channel_melody_overrides);
-    beginRecord(w, REC_NOTIFICATIONS, notif_len);
-    // Retain the byte position for backward-compatible decoding, but do not
-    // duplicate MeshCore's buzzer_quiet preference in the Zen-owned record.
-    w.u8(0); w.u8(p.buzzer_volume); w.u8(p.buzzer_auto);
-    w.u8(p.notif_melody_dm); w.u8(p.notif_melody_ch); w.u8(p.notif_melody_ad);
-    w.u8(p.notif_melody_new_contact); w.u8(p.advert_sound_scope);
-    w.u8(p.ringtone_bpm_idx); w.u8(p.ringtone_len); w.put(p.ringtone_notes, sizeof(p.ringtone_notes));
-    w.u8(p.ringtone2_bpm_idx); w.u8(p.ringtone2_len); w.put(p.ringtone2_notes, sizeof(p.ringtone2_notes));
-    w.put(&p.ch_notif_override, sizeof(p.ch_notif_override));
-    w.put(&p.ch_notif_muted, sizeof(p.ch_notif_muted));
-    w.put(p.dm_notif, sizeof(p.dm_notif)); w.put(p.dm_melody, sizeof(p.dm_melody));
-    w.put(p.channel_melody_overrides, sizeof(p.channel_melody_overrides));
-
-    beginRecord(w, REC_QUICK_REPLIES, 5 * sizeof(p.custom_msgs[0]));
-    w.put(p.custom_msgs, 5 * sizeof(p.custom_msgs[0]));
-
-    const uint16_t preset_len = ZenPrefs::USER_RADIO_PRESET_MAX * (16 + 4 + 4 + 1 + 1);
-    beginRecord(w, REC_RADIO_PRESETS, preset_len);
-    for (uint8_t i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; i++) {
-      w.put(p.user_radio_presets[i].name, sizeof(p.user_radio_presets[i].name));
-      w.put(&p.user_radio_presets[i].freq, sizeof(float));
-      w.put(&p.user_radio_presets[i].bw, sizeof(float));
-      w.u8(p.user_radio_presets[i].sf); w.u8(p.user_radio_presets[i].cr);
+  static constexpr size_t MAX_ENCODED_SIZE=4096; // Input bound, not buffer size.
+  enum Status : uint8_t { OK,INVALID,IO_ERROR,NEWER_VERSION,NO_MEMORY };
+  struct MemorySource {
+    const uint8_t* data;size_t length,at=0;
+    MemorySource(const uint8_t* p,size_t n):data(p),length(p?n:0){}
+    size_t size() const{return length;}
+    int read(uint8_t* p,size_t n){if(n>length-at)n=length-at;memcpy(p,data+at,n);at+=n;return int(n);}
+  };
+private:
+  struct MemorySink {
+    uint8_t* data;size_t capacity,at=0;
+    MemorySink(uint8_t* p,size_t n):data(p),capacity(p?n:0){}
+    size_t write(const uint8_t* p,size_t n){if(n>capacity-at)return 0;memcpy(data+at,p,n);at+=n;return n;}
+  };
+  struct HashSink {
+    uint64_t hash=14695981039346656037ULL;
+    size_t write(const uint8_t* p,size_t n){for(size_t i=0;i<n;++i)hash=(hash^p[i])*1099511628211ULL;return n;}
+  };
+  template<class Sink> struct Writer {
+    Sink& sink;bool good=true;uint32_t hash=2166136261UL;
+    explicit Writer(Sink& s):sink(s){}
+    void put(const void* data,size_t n,bool digest=true) {
+      auto p=static_cast<const uint8_t*>(data);
+      while(n && good){size_t k=n>128?128:n;if(sink.write(p,k)!=k){good=false;return;}
+        if(digest)for(size_t i=0;i<k;++i)hash=(hash^p[i])*16777619UL;
+        p+=k;n-=k;}
     }
-
-    beginRecord(w, REC_ADVERT, 4);
-    w.put(&p.advert_auto_interval_sec, sizeof(p.advert_auto_interval_sec));
-
-    // Persist every field owned by Zen. NodePrefs remains outside this record,
-    // so the complete Zen tail survives reboot without shadowing MeshCore data.
-    const size_t zen_tail_offset = (size_t)(
-      reinterpret_cast<const uint8_t*>(&p.buzzer_volume) -
-      reinterpret_cast<const uint8_t*>(&p));
-    const uint16_t zen_tail_len = (uint16_t)(sizeof(ZenPrefs) - zen_tail_offset);
-    beginRecord(w, REC_ZEN_TAIL, zen_tail_len);
-    w.put(reinterpret_cast<const uint8_t*>(&p) + zen_tail_offset, zen_tail_len);
-
-    if (!w.good()) return 0;
-    uint16_t payload_len = (uint16_t)(w.position() - payload);
-    len_pos[0] = (uint8_t)payload_len; len_pos[1] = (uint8_t)(payload_len >> 8);
-    uint32_t digest = checksum(out, (size_t)(w.position() - out));
-    w.u32(digest);
-    return w.good() ? (size_t)(w.position() - out) : 0;
-  }
-
-  static uint64_t fingerprint(const ZenPrefs& p, uint8_t* scratch,
-                              size_t capacity) {
-    size_t size = encode(p, 0, scratch, capacity);
-    if (!size) return 0;
-    uint64_t hash = 14695981039346656037ULL;
-    for (size_t i = 0; i < size; i++) {
-      hash ^= scratch[i];
-      hash *= 1099511628211ULL;
-    }
-    return hash;
-  }
-
-  static bool inspect(const uint8_t* data, size_t size, uint32_t& generation) {
-    return inspectEnvelope(data, size, &generation, nullptr, nullptr);
-  }
-
-  static bool decode(ZenPrefs& p, const uint8_t* data, size_t size, uint32_t* generation = nullptr) {
-    const uint8_t* payload = nullptr;
-    uint16_t payload_len = 0;
-    if (!inspectEnvelope(data, size, generation, &payload, &payload_len)) return false;
-    p.pet_enabled = 0;
-    Reader records(payload, payload_len);
-    while (records.remaining()) {
-      uint8_t id = records.u8();
-      uint16_t len = records.u16();
-      const uint8_t* body = records.position();
-      Reader r(body, len);
-      if (id == REC_PET && len == 1) {
+    void u8(uint8_t v){put(&v,1);}
+    void u16(uint16_t v){uint8_t b[2]={uint8_t(v),uint8_t(v>>8)};put(b,2);}
+    void u32(uint32_t v,bool digest=true){uint8_t b[4]={uint8_t(v),uint8_t(v>>8),uint8_t(v>>16),uint8_t(v>>24)};put(b,4,digest);}
+  };
+  template<class Source> struct Reader {
+    Source& source;bool good=true,io=false;uint32_t hash=2166136261UL;
+    explicit Reader(Source& s):source(s){}
+    bool get(void* data,size_t n,bool digest=true){auto p=static_cast<uint8_t*>(data);
+      while(n && good){size_t k=n>128?128:n;int got=source.read(p,k);
+        if(got<=0 || size_t(got)>k){io=true;good=false;break;}
+        if(digest)for(int i=0;i<got;++i)hash=(hash^p[i])*16777619UL;
+        p+=got;n-=got;}return good;}
+    uint8_t u8(){uint8_t v=0;get(&v,1);return v;}
+    uint16_t u16(){uint8_t b[2]={};get(b,2);return b[0]|uint16_t(b[1])<<8;}
+    uint32_t u32(bool digest=true){uint8_t b[4]={};get(b,4,digest);return b[0]|uint32_t(b[1])<<8|uint32_t(b[2])<<16|uint32_t(b[3])<<24;}
+  };
+  template<class R> struct RecordReader {
+    R& reader;size_t left;bool good=true;
+    RecordReader(R& r,size_t n):reader(r),left(n){}
+    bool get(void* p,size_t n){if(n>left){good=false;return false;}left-=n;return good=reader.get(p,n)&&good;}
+    uint8_t u8(){uint8_t v=0;get(&v,1);return v;}
+    uint16_t u16(){uint8_t b[2]={};get(b,2);return b[0]|uint16_t(b[1])<<8;}
+    uint32_t u32(){uint8_t b[4]={};get(b,4);return b[0]|uint32_t(b[1])<<8|uint32_t(b[2])<<16|uint32_t(b[3])<<24;}
+    bool skip(){uint8_t scratch[16];while(left && good)get(scratch,left>sizeof(scratch)?sizeof(scratch):left);return good;}
+  };
+  template<class R> static void legacyRecord(R& r,uint8_t id,uint16_t len,ZenSettings& p,bool& trace_seen,bool& trace_login) {
+      if(id==REC_TRACE && len==1) { trace_seen=true;trace_login=r.u8()==1; }
+      else if (id == REC_PET && len == 1) {
         p.pet_enabled = r.u8() == 1;
       } else if (id == REC_CHILD && len == 9) {
         p.child_mode_enabled = r.u8(); p.child_mode_pin_hash = r.u32();
@@ -246,7 +86,7 @@ public:
         p.timezone_city = r.u8(); r.get(&p.timezone_manual_min, sizeof(p.timezone_manual_min));
         p.notification_screen_wake = r.u8(); p.zen_config_schema = r.u16();
       } else if (id == REC_UI) {
-        const uint16_t expected = 2 + 1 + ZenPrefs::PAGE_ORDER_LEN + 1 + 2 + 11 + 8 + 1 +
+        const uint16_t expected = 2 + 1 + ZenSettings::PAGE_ORDER_LEN + 1 + 2 + 11 + 8 + 1 +
                                   sizeof(p.favourite_contacts);
         const uint16_t legacy_expected = expected - 2;
         if (len == expected || len == legacy_expected) {
@@ -287,8 +127,8 @@ public:
       } else if (id == REC_QUICK_REPLIES && len == 5 * sizeof(p.custom_msgs[0])) {
         r.get(p.custom_msgs, 5 * sizeof(p.custom_msgs[0]));
       } else if (id == REC_RADIO_PRESETS &&
-                 len == ZenPrefs::USER_RADIO_PRESET_MAX * (16 + 4 + 4 + 1 + 1)) {
-        for (uint8_t i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; i++) {
+                 len == ZenSettings::USER_RADIO_PRESET_MAX * (16 + 4 + 4 + 1 + 1)) {
+        for (uint8_t i = 0; i < ZenSettings::USER_RADIO_PRESET_MAX; i++) {
           r.get(p.user_radio_presets[i].name, sizeof(p.user_radio_presets[i].name));
           r.get(&p.user_radio_presets[i].freq, sizeof(float));
           r.get(&p.user_radio_presets[i].bw, sizeof(float));
@@ -296,25 +136,88 @@ public:
         }
       } else if (id == REC_ADVERT && len == 4) {
         r.get(&p.advert_auto_interval_sec, sizeof(p.advert_auto_interval_sec));
-      } else if (id == REC_ZEN_TAIL) {
-        const size_t zen_tail_offset = (size_t)(
-            reinterpret_cast<const uint8_t*>(&p.buzzer_volume) -
-            reinterpret_cast<const uint8_t*>(&p));
-        if (len == sizeof(ZenPrefs) - zen_tail_offset)
-          r.get(reinterpret_cast<uint8_t*>(&p) + zen_tail_offset, len);
+      } else if (id == REC_ZEN_TAIL && len==LEGACY_SETTINGS_SIZE) {
+        for(size_t at=0;at<len;++at) {
+          uint8_t byte=r.u8();
+          for(const auto& field:SETTINGS_FIELDS)
+            if(at>=field.legacy && at<size_t(field.legacy)+field.size)
+              reinterpret_cast<uint8_t*>(&p)[field.offset+at-field.legacy]=byte;
+          if(at>=2192 && at<2304)
+            reinterpret_cast<uint8_t*>(p.user_radio_presets)[at-2192]=byte;
+        }
       }
-      // Advance over known or unknown record without trusting a handler's reads.
-      uint8_t scratch[16];
-      Reader skip(body, len);
-      size_t remaining = len;
-      while (remaining) {
-        size_t chunk = remaining > sizeof(scratch) ? sizeof(scratch) : remaining;
-        skip.get(scratch, chunk); remaining -= chunk;
+  }
+public:
+  static size_t encodedSize(){size_t n=17+3+104+4;for(const auto& f:SETTINGS_FIELDS)n+=3+f.size;return n;}
+  template<class Sink> static bool encodeStream(const ZenSettings& p,uint32_t generation,Sink& sink) {
+    static_assert(sizeof(float)==4,"Radio preset format requires IEEE binary32");
+    const size_t size=encodedSize();if(size>MAX_ENCODED_SIZE)return false;
+    Writer<Sink> w(sink);w.u32(MAGIC);w.u8(VERSION);w.u16(size-17);w.u32(generation);w.u16(p.zen_config_schema);
+    for(const auto& f:SETTINGS_FIELDS){w.u8(f.tag);w.u16(f.size);w.put(reinterpret_cast<const uint8_t*>(&p)+f.offset,f.size);}
+    w.u8(REC_RADIO_PRESETS);w.u16(104);
+    for(const auto& v:p.user_radio_presets){w.put(v.name,16);w.put(&v.freq,4);w.put(&v.bw,4);w.u8(v.sf);w.u8(v.cr);}
+    w.u8(REC_TRACE);w.u16(1);w.u8(p.tracePublicLogin()?1:0);
+    uint32_t hash=w.hash;w.u32(hash,false);return w.good;
+  }
+  static uint64_t fingerprint(const ZenSettings& p){HashSink sink;return encodeStream(p,0,sink)?sink.hash:0;}
+  static size_t encode(const ZenSettings& p,uint32_t gen,uint8_t* out,size_t capacity){
+    MemorySink sink(out,capacity);return encodeStream(p,gen,sink)?sink.at:0;
+  }
+  static bool hasNewerVersion(const uint8_t* p,size_t n){return p && n>=5 && p[0]=='Z' && p[1]=='N' && p[2]=='P' && p[3]=='F' && p[4]>VERSION;}
+  template<class Source,class Allocator=SettingsAllocator>
+  static bool decodeStream(Source& source,ZenSettings& destination,uint32_t* generation=nullptr,
+                           Status* status=nullptr,uint8_t* format=nullptr) {
+    Status result=INVALID;
+    struct ResultGuard {Status* out;Status& value;~ResultGuard(){if(out)*out=value;}} result_guard{status,result};
+    Reader<Source> reader(source);
+    if(source.size()<5)return false;
+    uint32_t magic=reader.u32();uint8_t version=reader.u8();
+    if(!reader.good){result=IO_ERROR;return false;}
+    if(magic!=MAGIC || version<1)return false;
+    if(version>VERSION){result=NEWER_VERSION;return false;}
+    if(source.size()<17 || source.size()>MAX_ENCODED_SIZE)return false;
+    uint16_t payload=reader.u16();uint32_t gen=reader.u32();(void)reader.u16();
+    if(!reader.good){result=IO_ERROR;return false;}
+    if(size_t(payload)+17!=source.size())return false;
+    ZenSettings* staged=Allocator::create(destination);
+    if(!staged){result=NO_MEMORY;return false;}
+    struct StageGuard {ZenSettings* p;~StageGuard(){Allocator::destroy(p);}} stage_guard{staged};
+    if(version<3)staged->pet_enabled=0;
+    bool trace_seen=false,trace_login=true;size_t remaining=payload;
+    while(remaining && reader.good){
+      if(remaining<3)return false;
+      uint8_t id=reader.u8();uint16_t length=reader.u16();remaining-=3;
+      if(length>remaining)return false;
+      RecordReader<Reader<Source>> record(reader,length);
+      if(version<3)legacyRecord(record,id,length,*staged,trace_seen,trace_login);
+      else if(id==REC_TRACE){if(length!=1)return false;trace_seen=true;trace_login=record.u8()==1;}
+      else if(id==REC_RADIO_PRESETS){
+        if(length!=104)return false;
+        for(auto& v:staged->user_radio_presets){record.get(v.name,16);record.get(&v.freq,4);record.get(&v.bw,4);v.sf=record.u8();v.cr=record.u8();}
+      } else {
+        for(const auto& f:SETTINGS_FIELDS)if(id==f.tag){
+          if(length!=f.size)return false;
+          record.get(reinterpret_cast<uint8_t*>(staged)+f.offset,f.size);break;
+        }
       }
-      records = Reader(body + len, records.remaining() - len);
+      if(!record.skip()){result=reader.io?IO_ERROR:INVALID;return false;}
+      remaining-=length;
     }
-    return true;
+    uint32_t computed=reader.hash;uint32_t supplied=reader.u32(false);
+    if(!reader.good){result=IO_ERROR;return false;}
+    if(remaining || supplied!=computed)return false;
+    staged->setTracePublicLogin(trace_seen?trace_login:true);
+    destination=*staged;if(generation)*generation=gen;if(format)*format=version;result=OK;return true;
+  }
+  static bool decode(ZenSettings& p,const uint8_t* data,size_t n,uint32_t* gen=nullptr){MemorySource source(data,n);return decodeStream(source,p,gen);}
+  static bool inspect(const uint8_t* data,size_t n,uint32_t& generation){
+    if(!data || n<17 || n>MAX_ENCODED_SIZE)return false;
+    MemorySource src(data,n);Reader<MemorySource> r(src);
+    if(r.u32()!=MAGIC)return false;uint8_t version=r.u8();if(version<1 || version>VERSION)return false;
+    uint16_t bytes=r.u16();uint32_t gen=r.u32();(void)r.u16();if(size_t(bytes)+17!=n)return false;
+    size_t left=bytes;while(left){if(left<3)return false;(void)r.u8();uint16_t k=r.u16();left-=3;if(k>left)return false;
+      RecordReader<Reader<MemorySource>> record(r,k);if(!record.skip())return false;left-=k;}
+    uint32_t hash=r.hash;if(hash!=r.u32(false)||!r.good)return false;generation=gen;return true;
   }
 };
-
 } // namespace zen

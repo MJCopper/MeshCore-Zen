@@ -5,22 +5,12 @@
 
 TEST(ConfigMaintenance, ClearsRemovedFeaturesOnceAndTracksSchema) {
   ZenPrefs prefs{};
-  prefs.custom_msgs[5][0] = 'x';
-  prefs.bot_enabled = 1;
-  prefs.locator_enabled = 1;
-  prefs.alarm_on = 1;
-  prefs.gpio1_mode = 3;
-  prefs.reserved_radio_power = 4;
+  strcpy(prefs.custom_msgs[4],"Retained");
   prefs.favourite_contacts[0][0] = 9;
 
   EXPECT_TRUE(zen::ConfigMaintenance::apply(prefs));
   EXPECT_EQ(prefs.zen_config_schema, zen::ConfigMaintenance::CURRENT_SCHEMA);
-  EXPECT_EQ(prefs.custom_msgs[5][0], 'x');
-  EXPECT_EQ(prefs.bot_enabled, 0);
-  EXPECT_EQ(prefs.locator_enabled, 0);
-  EXPECT_EQ(prefs.alarm_on, 0);
-  EXPECT_EQ(prefs.gpio1_mode, 0);
-  EXPECT_EQ(prefs.reserved_radio_power, 4);
+  EXPECT_STREQ("Retained",prefs.custom_msgs[4]);
   EXPECT_EQ(prefs.favourite_contacts[0][0], 9);
   EXPECT_FALSE(zen::ConfigMaintenance::apply(prefs));
 }

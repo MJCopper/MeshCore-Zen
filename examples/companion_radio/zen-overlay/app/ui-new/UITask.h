@@ -95,7 +95,6 @@ class UITask : public AbstractUITask {
   uint8_t _deferred_prefs_attempts = 0;
   bool _dnd_active = false; // manual notification silence; RAM only
   char _alert[80];
-  const char* _boot_stage = "Starting";
   zen::NotificationPopupState _notification_popup;
   char _notif_mel_buf[220];  // persistent RTTTL buffer for custom notification melodies
   KeyboardWidget _kb;        // shared across all screens — only one active at a time
@@ -210,9 +209,6 @@ public:
   }
   void begin(ZenDisplayDriver* display, SensorManager* sensors,
              zen::GpsService* gps, ZenPrefs* node_prefs);
-  const char* bootStage() const { return _boot_stage; }
-  bool bootSplashActive() const { return curr && curr == splash; }
-  void showBootStage(const char* stage);
   // nRF52 event sleep has no timed wake of its own. While the display is on,
   // keep servicing splash, refresh and auto-off deadlines even when Bluetooth
   // is disabled and there are no radio events to wake the processor.

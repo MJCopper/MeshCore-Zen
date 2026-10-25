@@ -36,45 +36,62 @@ forwarding and software receive processing; it excludes route discovery,
 settling and local TX queue waiting. TRACE supplies no per-hop timestamps, so
 individual hop latency is not shown.
 
-## Discovery and retries
+## Discovery, public guest login and fallback
 
-Trace uses MeshCore's standard targeted flooded base-telemetry path-discovery
-request. It does not reset or replace your saved contact route. An unsaved
-repeater uses a temporary RAM peer context and is not added to contacts.
-The repeater still has to recognise/permit this client's request: local presence
-in a discovery list does not grant remote permissions. Missing responses may
-reflect permissions, congestion or RF conditions; they do not prove no route
-exists. Trace does not silently log in or change remote permissions.
+Trace first sends a standard targeted flooded telemetry request. If it receives
+no usable path, it can introduce Zen's identity with empty-password public guest
+login. A usable authenticated login PATH supplies the route directly, avoiding a
+redundant discovery flood. Login success without a usable path permits the
+remaining ordinary discovery request. Failed control discovery can fall back to
+a route hint learned from a signature-verified repeater advert. Every hint still
+needs a new successful loop TRACE; cached routes never supply cached results.
 
-The operation permits at most **two discovery submissions and two loop-trace
-submissions**. Forwarded packets and replies add network airtime beyond these
-originating requests. No channel result report or automatic repeating trace is
-sent. Background automatic signal discovery is suppressed during this local
-operation. Starting Trace while a node-discovery scan or another local remote
-operation is active is refused as busy.
+Settings → Radio → **Trace guest** controls public guest login (On by default).
+Off permits ordinary discovery and advert fallback without guest login. Stored
+administrator passwords are never used automatically. Silent guest login may
+mean protected access, congestion or RF loss; it is not proof of denial.
+Trace never installs its temporary peer/path as a saved contact route.
 
-Discovery matches the target full key and each attempt's monotonic RTC tag,
-using the same request clock as normal MeshCore telemetry. It retries once on
-timeout. Loop trace retries once after a random one-to-two-second pause.
-Allocation failures use 250/500/1000 ms backoff with bounded jitter and a
-10-second admission window; they cannot create an unlimited stream of probes.
-Queue counts displayed in progress are submissions, not confirmations of RF
-emission or remote reception.
+One operation permits at most **two ordinary discovery submissions, three public
+guest-login attempts and two loop TRACE submissions**, subject to the overall
+time budget. Forwarding and replies add RF traffic. No public-channel
+acknowledgement or result report is sent. Automatic signal discovery pauses
+while Trace is active. A conflicting local operation or active app login is busy.
 
-The loop timeout and settling policy are ported from the sensor branch's
-working `!hillvue trace` engine. Timeouts scale with hop count and maximum
-accumulated-packet airtime, rather than one fixed delay for all radio presets.
-A three-second final grace accepts valid late results before failure commits.
-A first result arriving before retry transmission cancels that queued retry.
-During retry it is held as fallback; a successful retry takes precedence. Names,
-route, RTT and SNR always come from the selected attempt together.
+The progress view shows stages, attempts, route provenance, queue submissions
+and remaining/maximum seconds. Its calculated maximum is frozen at acceptance
+and capped at **120 seconds**; successful traces finish sooner. Queueing shares
+**eight cumulative seconds** across control and loop work. An optional retry is
+sent only when its full calculated window fits. Slow/long routes that cannot fit
+are reported explicitly rather than receiving a shortened reply window.
 
-Only routes actually returned during this operation are candidates. Up to three
-are retained; exact-route history, directed-edge diversity per estimated airtime,
-freshness and last-hop SNR provide bounded ranking. Last-hop SNR is only a tie
-breaker, not an end-to-end quality estimate. RAM history expires after 15 minutes
-and is cleared across target/radio/scope context changes. This finds a usable
-observed route, not a guaranteed globally best route.
+Discovery/login reply time starts after actual TX completion. TRACE RTT starts
+at actual loop TX start. Both use active-radio airtime, including hash width,
+scope/encryption overhead and accumulated TRACE samples. The loop retry delay is
+randomised one to two seconds; final grace is three seconds. A first result
+arriving before retry transmission cancels that queued retry. During retry it
+is retained as fallback, and a successful retry takes precedence. Route, RTT and
+both directional SNR values always belong to the selected attempt together.
+
+Live alternatives use exact-route history, directed-edge diversity, airtime,
+freshness and last-hop SNR. The separate advert fallback cache keeps one route
+for up to eight repeaters in RAM only, with full identity, scope/radio isolation,
+duplicate suppression and a 24-hour monotonic age limit. It starts empty after
+reboot and fills passively from new verified adverts. No advert hints are read
+from or written to flash; old cache files are ignored. Without a cached hint,
+normal fresh discovery and trace retries still operate. An advertised path is
+only a mutable hint and must pass a fresh TRACE.
+All MeshCore unique request timestamps share one identity-bound durable clock,
+including app login, telemetry and CLI paths. This preserves replay sequencing
+across reboot without changing displayed wall time. Journal faults fail trace
+control safely; a compatible advert hint can still permit an advert-only trace.
+Plain repeater-message retries preserve their logical wire timestamp.
+
+Local/private diagnostic commands are `get trace.diag`, `get trace.login` and
+`set trace.login public|off`. Diagnostics include submissions, queue use, frozen
+time budget, scope differences, clock health and route provenance. Return-scope
+differences are recorded for authenticated owned replies, not treated as proof
+that a valid full-identity reply belongs to another operation.
 
 ## Limits and ownership
 
@@ -95,8 +112,7 @@ observed route, not a guaranteed globally best route.
   busy, transmission failure and an unsent retry. Partial overheard progress
   cannot identify a particular failed repeater or complete a trace.
 
-The reference implementation is local `meshcore/sensor` commit
-`99dc1448` (`RepeaterTraceProbe`, `TraceTimingPolicy`, candidate/history ranking
-and `SensorBotService`). Zen adapts its route builder for a discovered outbound
-path; the Bot instead starts from a received channel-command route. Results and
-report ownership are local UI state rather than public-channel messages.
+The reference is local `meshcore/sensor` commit `6f5506a3`. Zen follows its
+targeted discovery/login, timing, budget-aware retry and advert fallback process,
+with local presentation and a smaller cache. Both outward and return SNR values
+remain visible instead of the Bot's averaged-SNR summary.

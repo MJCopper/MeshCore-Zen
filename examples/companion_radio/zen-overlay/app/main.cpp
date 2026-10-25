@@ -110,7 +110,8 @@ MultiSerialInterface interface_manager;
 
 StdRNG fast_rng;
 SimpleMeshTables tables;
-MyMesh the_mesh(radio_driver, fast_rng, rtc_clock, tables, store
+zen::RequestRTC request_rtc(rtc_clock);
+MyMesh the_mesh(radio_driver, fast_rng, request_rtc, tables, store
 #ifdef DISPLAY_CLASS
     , &ui_task
 #endif
@@ -207,14 +208,17 @@ void setup() {
   #endif
   #endif
   store.begin();
+  the_mesh.bindRequestClock(&request_rtc);
   the_mesh.begin();
 #elif defined(RP2040_PLATFORM)
   LittleFS.begin();
   store.begin();
+  the_mesh.bindRequestClock(&request_rtc);
   the_mesh.begin();
 #elif defined(ESP32)
   SPIFFS.begin(true);
   store.begin();
+  the_mesh.bindRequestClock(&request_rtc);
   the_mesh.begin();
 #else
   #error "need to define filesystem"
@@ -318,7 +322,7 @@ void setup() {
   if (disp && the_mesh.getNodePrefs())
     disp->setBrightness(the_mesh.getNodePrefs()->display_brightness);
   ui_task.begin(disp, &sensors, &sensors, the_mesh.getNodePrefs());
-  if (the_mesh.zenPrefsIncompatible())
+  if (the_mesh.zenPrefsIncompatible() || the_mesh.zenPrefsLoadFailed())
     ui_task.operationWarning(zen::Operation::STORAGE,
                              zen::OperationReason::PREFS_INVALID);
   zen::OperationReason boot_fault;
@@ -330,37 +334,14 @@ void setup() {
 }
 
 void loop() {
-  // While the splash is active, display each major loop stage immediately
-  // before it runs. If a cold-start-only fault blocks or hard-faults, the OLED
-  // retains the responsible stage. Diagnostics stop with the splash.
-#ifdef DISPLAY_CLASS
-  static bool boot_probe_complete = false;
-  bool probe = !boot_probe_complete && ui_task.bootSplashActive();
-  if (probe) ui_task.showBootStage("Mesh");
-#endif
+  request_rtc.observeWallGeneration(rtc_clock.getSetGeneration());
   the_mesh.loop();
-#ifdef DISPLAY_CLASS
-  if (probe) ui_task.showBootStage("Interfaces");
-#endif
   interface_manager.loop();
-#ifdef DISPLAY_CLASS
-  if (probe) ui_task.showBootStage("Sensors");
-#endif
   sensors.loop();
 #ifdef DISPLAY_CLASS
-  if (probe) ui_task.showBootStage("UI");
   ui_task.loop();
 #endif
-#ifdef DISPLAY_CLASS
-  if (probe) ui_task.showBootStage("Clock");
-#endif
   rtc_clock.tick();
-#ifdef DISPLAY_CLASS
-  if (probe) {
-    ui_task.showBootStage("Ready");
-    boot_probe_complete = true;
-  }
-#endif
   board.loop();
 #ifdef HAS_EXTERNAL_WATCHDOG
   external_watchdog.loop();

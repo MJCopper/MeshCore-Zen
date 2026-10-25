@@ -35,7 +35,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.48"
+#define FIRMWARE_VERSION "v2.2.58"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -49,6 +49,9 @@ class UITask;
 #include "DataStore.h"
 #include "ZenPrefs.h"
 #include "zen/ZenStore.h"
+#include "zen/RequestRTC.h"
+#include "zen/RequestMessageClock.h"
+#include "zen/TraceAdvertRouteCache.h"
 
 #include <RTClib.h>
 #include <helpers/ArduinoHelpers.h>
@@ -162,9 +165,12 @@ public:
   bool radioAvailable() const { return !_low_power_mode || _emergency_mode; }
   int sendMessage(const ContactInfo& recipient, uint32_t timestamp, uint8_t attempt,
                   const char* text, uint32_t& expected_ack, uint32_t& est_timeout) {
-    return !radioAvailable() ? MSG_SEND_FAILED
-                           : BaseChatMesh::sendMessage(recipient, timestamp, attempt, text,
-                                                       expected_ack, est_timeout);
+    if(!radioAvailable() || !requestClockHealthy())return MSG_SEND_FAILED;
+    if(recipient.type==ADV_TYPE_REPEATER) {
+      timestamp=_message_clock.timestamp(recipient.id.pub_key,timestamp,attempt,text,*getRTCClock());
+      if(!timestamp)return MSG_SEND_FAILED;
+    }
+    return BaseChatMesh::sendMessage(recipient,timestamp,attempt,text,expected_ack,est_timeout);
   }
   int sendUIMessage(const ContactInfo& recipient, uint32_t timestamp, uint8_t attempt,
                     const char* text, uint32_t& expected_ack, uint32_t& est_timeout);
@@ -173,14 +179,20 @@ public:
     return radioAvailable() && BaseChatMesh::sendGroupMessage(timestamp, channel,
                                                                sender_name, text, text_len);
   }
+  int sendLogin(const ContactInfo& recipient,const char* password,uint32_t& timeout) {
+    return requestClockHealthy() && radioAvailable()?BaseChatMesh::sendLogin(recipient,password,timeout):MSG_SEND_FAILED;
+  }
+  int sendCommandData(const ContactInfo& recipient,uint32_t stamp,uint8_t attempt,uint8_t type,const char* text,uint32_t& timeout) {
+    return requestClockHealthy() && stamp && radioAvailable()?BaseChatMesh::sendCommandData(recipient,stamp,attempt,type,text,timeout):MSG_SEND_FAILED;
+  }
   int sendRequest(const ContactInfo& recipient, uint8_t req_type,
                   uint32_t& tag, uint32_t& est_timeout) {
-    return !radioAvailable() ? MSG_SEND_FAILED
+    return (!radioAvailable() || !requestClockHealthy()) ? MSG_SEND_FAILED
                            : BaseChatMesh::sendRequest(recipient, req_type, tag, est_timeout);
   }
   int sendRequest(const ContactInfo& recipient, const uint8_t* data, uint8_t len,
                   uint32_t& tag, uint32_t& est_timeout) {
-    return !radioAvailable() ? MSG_SEND_FAILED
+    return (!radioAvailable() || !requestClockHealthy()) ? MSG_SEND_FAILED
                            : BaseChatMesh::sendRequest(recipient, data, len, tag, est_timeout);
   }
   MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMeshTables &tables, DataStore& store, AbstractUITask* ui=NULL);
@@ -430,7 +442,7 @@ public:
     // and binary requests have their own response matching and must not make a
     // standalone node login appear to fail merely because an app request is
     // still pending.
-    if (_ui_login_pending || zen::RemoteLoginAdapter::appBusy(
+    if (!requestClockHealthy() || _ui_login_pending || zen::RemoteLoginAdapter::appBusy(
           pending_login, _app_login_deadline, millis())) return false;
     // An unanswered app login must not indefinitely reserve the UI login path.
     pending_login = 0;
@@ -493,7 +505,7 @@ public:
     if (!_admin_session.formatRequest(tagged, sizeof(tagged), cmd_text)) return false;
     ContactInfo route = *current;
     if (force_flood) route.out_path_len = OUT_PATH_UNKNOWN;
-    if (sendCommandData(route, rtc_clock.getCurrentTimeUnique(), 0, TXT_TYPE_CLI_DATA, tagged, est_timeout) == MSG_SEND_FAILED) {
+    if (sendCommandData(route, getRTCClock()->getCurrentTimeUnique(), 0, TXT_TYPE_CLI_DATA, tagged, est_timeout) == MSG_SEND_FAILED) {
       _transport_trace.add(zen::TransportTrace::SEND_REJECTED,
                            contact.id.pub_key, zen::TransportTrace::ADMIN_QUEUED);
       return false;
@@ -602,10 +614,10 @@ public:
     }
     return ok;
   }
-  bool zenPrefsIncompatible() const { return _zen_store.writeLocked(); }
+  bool zenPrefsIncompatible() const { return _zen_store.newerVersion(); }
+  bool zenPrefsLoadFailed() const { return _zen_store.failure()==zen::ZenStore::Failure::NO_MEMORY || _zen_store.failure()==zen::ZenStore::Failure::READ_FAILED; }
   void resetZenFields(ZenPrefs& prefs) {
-    uint8_t* first = &prefs.buzzer_volume;
-    memset(first, 0, sizeof(ZenPrefs) - (size_t)(first - (uint8_t*)&prefs));
+    prefs.resetZen();
   }
   void flushDirtyContacts() {
     if (dirty_contacts_expiry) {
@@ -613,6 +625,8 @@ public:
       dirty_contacts_expiry = 0;
     }
   }
+  void bindRequestClock(zen::RequestRTC* clock) { _request_clock=clock; }
+  bool requestClockHealthy() const { return !_request_clock || _request_clock->prepare(); }
   DataStore* getDataStore() const { return _store; }
   // Apply the companion radio parameters. Repeater mode shares this network.
   void applyRadioParams();
@@ -667,6 +681,10 @@ private:
 
   DataStore* _store;
   zen::ZenStore _zen_store;
+  zen::RequestRTC* _request_clock=nullptr;
+  zen::RequestMessageClock _message_clock;
+  zen::TraceAdvertRouteCache _trace_adverts;
+  zen::TraceScope _trace_scope;
   ZenPrefs _prefs;
   uint64_t _baseline_fingerprint = 0;
   bool _baseline_fingerprint_valid = false;
@@ -679,15 +697,25 @@ private:
     uint32_t traceAirtime(unsigned bytes) const override;
     uint32_t traceFloodTimeout(uint32_t airtime) const override;
     mesh::Packet* traceQueueDiscovery(const uint8_t* key,uint32_t tag) override;
+    mesh::Packet* traceQueueLogin(const uint8_t* key,uint32_t tag) override;
+    bool tracePublicLogin() const override;
+    bool traceAdvertRoute(const uint8_t* key,zen::TraceRoute& route,const zen::TraceRoute* exclude=nullptr) override;
+    unsigned traceScopeBytes() const override;
     mesh::Packet* traceQueueLoop(const zen::TraceRoute& route,uint32_t tag,uint32_t auth) override;
     bool traceCancelQueued(mesh::Packet* packet) override;
   } _trace_adapter{this};
   zen::RepeaterTraceSession _repeater_trace{_trace_adapter};
   ContactInfo _trace_target{};
   int _trace_peer_index=-1;
+  const uint8_t* _trace_extra_keys[MAX_SEARCH_RESULTS]{};
+  bool _trace_extra_valid[MAX_SEARCH_RESULTS]{};
   int8_t _trace_reply_snr=INT8_MIN;
   uint32_t _trace_context=0;
+  uint16_t _trace_scope_mismatches=0;
+  void noteTraceReplyScope(const mesh::Packet* packet);
+  void bindTraceIdentity();
   uint32_t traceContext() const;
+  zen::TraceScope effectiveTraceScope() const;
   zen::TransportTrace _transport_trace;
   bool _identity_loaded_at_boot = false;
   uint32_t pending_login;

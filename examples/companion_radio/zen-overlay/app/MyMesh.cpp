@@ -347,6 +347,14 @@ void MyMesh::logRx(mesh::Packet* packet, int, float) {
 
 void MyMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp,
                           const uint8_t* app_data, size_t app_data_len) {
+  // Only the verified callback may harvest hints. Unknown transport keys and
+  // temporary scope overrides are excluded from cached observations.
+  auto scope=effectiveTraceScope();TransportKey key{};memcpy(key.key,scope.key,16);
+  if(!hasTemporaryFloodScopeOverride() && packet &&
+     (scope.kind==zen::TraceScope::UNSCOPED?!packet->hasTransportCodes():
+      packet->hasTransportCodes() && key.calcTransportCode(packet)==packet->transport_codes[0]))
+    _trace_adverts.observe(packet,id,timestamp,app_data,app_data_len,millis(),
+      traceContext(),scope);
   // MeshCore has verified the signature before this callback. A full public
   // key identifies the physical sender only for a zero-hop flood advert.
   AdvertDataParser parser(app_data, app_data_len);
@@ -1246,7 +1254,7 @@ bool MyMesh::saveRoomPassword(const uint8_t* pub_key, const char* password) {
   // interrupted save leaves the previous good table intact rather than a
   // truncated mix (mirrors how contacts/channels are persisted).
   size_t want = sizeof(RoomPwRec) * count;
-  return _zen_store.replaceVerified(ROOM_PW_TMP, ROOM_PW_FILE, ROOM_PW_BAK,
+  return _zen_store.replaceExtension(ROOM_PW_TMP, ROOM_PW_FILE, ROOM_PW_BAK,
                                     (const uint8_t*)recs, want);
 }
 
@@ -1269,7 +1277,7 @@ bool MyMesh::forgetRoomPassword(const uint8_t* pub_key) {
   if (!removed) return true; // nothing to do, avoid a pointless rewrite
 
   size_t want = sizeof(RoomPwRec) * count;
-  return _zen_store.replaceVerified(ROOM_PW_TMP, ROOM_PW_FILE, ROOM_PW_BAK,
+  return _zen_store.replaceExtension(ROOM_PW_TMP, ROOM_PW_FILE, ROOM_PW_BAK,
                                     (const uint8_t*)recs, want);
 }
 
@@ -1378,7 +1386,7 @@ uint32_t MyMesh::TraceAdapter::traceRandom() {
 }
 uint32_t MyMesh::TraceAdapter::traceAirtime(unsigned bytes) const { return mesh->_radio->getEstAirtimeFor(bytes); }
 uint32_t MyMesh::TraceAdapter::traceFloodTimeout(uint32_t airtime) const {
-  return mesh->calcFloodTimeoutMillisFor(airtime)+zen::RemoteNodeOperation::RESPONSE_GRACE_MS;
+  return zen::TraceTimingPolicy::floodTimeout(airtime);
 }
 mesh::Packet* MyMesh::TraceAdapter::traceQueueDiscovery(const uint8_t*,uint32_t tag) {
   uint8_t data[13];memcpy(data,&tag,4);
@@ -1387,8 +1395,29 @@ mesh::Packet* MyMesh::TraceAdapter::traceQueueDiscovery(const uint8_t*,uint32_t 
   auto& target=mesh->_trace_target;
   auto packet=mesh->createDatagram(PAYLOAD_TYPE_REQ,target.id,target.getSharedSecret(mesh->self_id),data,sizeof(data));
   if(!packet) return nullptr;
-  mesh->sendFloodScoped(target,packet);
+  TransportKey scope{};memcpy(scope.key,mesh->_trace_scope.key,16);
+  mesh->sendFloodScoped(scope,packet,0);
   return mesh->isQueuedPacket(packet)?packet:nullptr;
+}
+mesh::Packet* MyMesh::TraceAdapter::traceQueueLogin(const uint8_t* key,uint32_t tag) {
+  uint8_t secret[32],data[4];memcpy(data,&tag,4);mesh->self_id.calcSharedSecret(secret,key);
+  auto packet=mesh->createAnonDatagram(PAYLOAD_TYPE_ANON_REQ,mesh->self_id,mesh::Identity(key),secret,data,4);
+  if(!packet)return nullptr;
+  TransportKey scope{};memcpy(scope.key,mesh->_trace_scope.key,16);mesh->sendFloodScoped(scope,packet,0);
+  return mesh->isQueuedPacket(packet)?packet:nullptr;
+}
+bool MyMesh::TraceAdapter::tracePublicLogin() const { return mesh->_prefs.tracePublicLogin(); }
+unsigned MyMesh::TraceAdapter::traceScopeBytes() const { return mesh->_trace_scope.kind==zen::TraceScope::RESOLVED?4:0; }
+bool MyMesh::TraceAdapter::traceAdvertRoute(const uint8_t* key,zen::TraceRoute& route,const zen::TraceRoute* exclude) {
+  return mesh->_trace_adverts.best(key,mesh->_trace_context,mesh->_trace_scope,millis(),route,exclude);
+}
+zen::TraceScope MyMesh::effectiveTraceScope() const {
+  zen::TraceScope scope;
+  if(send_unscoped)return scope;
+  const uint8_t* key=send_scope.key;
+  if(send_scope.isNull() && _prefs.default_scope_name[0])key=_prefs.default_scope_key;
+  uint8_t any=0;for(unsigned i=0;i<16;++i)any|=key[i];
+  if(any){scope.kind=zen::TraceScope::RESOLVED;memcpy(scope.key,key,16);}return scope;
 }
 mesh::Packet* MyMesh::TraceAdapter::traceQueueLoop(const zen::TraceRoute& route,uint32_t tag,uint32_t auth) {
   auto packet=mesh->createTrace(tag,auth,route.flags);
@@ -1403,16 +1432,21 @@ uint32_t MyMesh::traceContext() const {
   auto mix=[&](const void* data,size_t size) {
     auto bytes=(const uint8_t*)data;for(size_t i=0;i<size;++i) { hash^=bytes[i];hash*=16777619u; }
   };
+  mix(self_id.pub_key,PUB_KEY_SIZE);
   mix(&_prefs.freq,sizeof(_prefs.freq));mix(&_prefs.bw,sizeof(_prefs.bw));
   mix(&_prefs.sf,sizeof(_prefs.sf));mix(&_prefs.cr,sizeof(_prefs.cr));
   mix(&_prefs.path_hash_mode,sizeof(_prefs.path_hash_mode));
-  mix(send_scope.key,sizeof(send_scope.key));
+  auto scope=effectiveTraceScope();
+  mix(&scope.kind,sizeof(scope.kind));mix(scope.key,sizeof(scope.key));
+  mix(&send_unscoped,sizeof(send_unscoped));
+  mix(_prefs.default_scope_key,sizeof(_prefs.default_scope_key));
   return hash?hash:1;
 }
 bool MyMesh::startRepeaterTrace(const uint8_t* key,const char* name) {
-  if(!key||_repeater_trace.active()||(_pending_node_discover_tag&&!millisHasNowPassed(_pending_node_discover_until))||_sensor_state==SENSOR_WAITING)
+  if(!key||_ui_login_pending||zen::RemoteLoginAdapter::appBusy(pending_login,_app_login_deadline,millis())||_repeater_trace.active()||(_pending_node_discover_tag&&!millisHasNowPassed(_pending_node_discover_until))||_sensor_state==SENSOR_WAITING)
     return false;
   for(const auto& ping:_ping_results) if(ping.tag&&!ping.received) return false;
+  _trace_scope=effectiveTraceScope();_trace_scope_mismatches=0;
   const uint32_t context=traceContext();
   if(context!=_trace_context) { _trace_context=context;_repeater_trace.contextChanged(); }
   _trace_target=ContactInfo();
@@ -1434,27 +1468,66 @@ void MyMesh::traceHopName(const uint8_t* prefix,unsigned width,char* out,size_t 
     resolver.observe(prefix,width,_trace_target.id.pub_key,_trace_target.name);
   resolver.format(prefix,width,out,size);
 }
+void MyMesh::bindTraceIdentity() {
+  _repeater_trace.contextChanged();_message_clock=zen::RequestMessageClock();
+  FILESYSTEM* fs=_store->getSecondaryFS()?_store->getSecondaryFS():_store->getPrimaryFS();
+  if(_request_clock)_request_clock->begin(fs,self_id.pub_key);
+  _trace_adverts.clear();
+}
+void MyMesh::noteTraceReplyScope(const mesh::Packet* packet) {
+  if(!packet)return;TransportKey expected{};memcpy(expected.key,_trace_scope.key,16);
+  bool mismatch=expected.isNull()?packet->hasTransportCodes():
+    !packet->hasTransportCodes() || expected.calcTransportCode(packet)!=packet->transport_codes[0];
+  if(mismatch && _trace_scope_mismatches<65535)++_trace_scope_mismatches;
+}
 int MyMesh::searchPeersByHash(const uint8_t* hash) {
+  memset(_trace_extra_valid,0,sizeof(_trace_extra_valid));
   int n=BaseChatMesh::searchPeersByHash(hash);_trace_peer_index=-1;
-  if(_repeater_trace.active()&&!lookupContactByPubKey(_trace_target.id.pub_key,PUB_KEY_SIZE)&&
-      n<MAX_SEARCH_RESULTS&&_trace_target.id.isHashMatch(hash)) _trace_peer_index=n++;
+  // Append temporary peers only when not saved; retired operations can still
+  // authenticate and drain their matching late PATH replies.
+  for(unsigned i=0;i<3 && n<MAX_SEARCH_RESULTS;++i) {
+    auto key=_repeater_trace.peer(i);
+    if(key && !lookupContactByPubKey(key,32) && mesh::Identity(key).isHashMatch(hash)) {
+      _trace_extra_keys[n]=key;_trace_extra_valid[n]=true;++n;
+    }
+  }
   return n;
 }
 void MyMesh::getPeerSharedSecret(uint8_t* secret,int index) {
-  if(index==_trace_peer_index) memcpy(secret,_trace_target.getSharedSecret(self_id),PUB_KEY_SIZE);
+  if(index>=0 && index<MAX_SEARCH_RESULTS && _trace_extra_valid[index]) self_id.calcSharedSecret(secret,_trace_extra_keys[index]);
   else BaseChatMesh::getPeerSharedSecret(secret,index);
 }
 void MyMesh::onPeerDataRecv(mesh::Packet* packet,uint8_t type,int index,const uint8_t* secret,uint8_t* data,size_t len) {
-  if(index!=_trace_peer_index) BaseChatMesh::onPeerDataRecv(packet,type,index,secret,data,len);
+  if(type==PAYLOAD_TYPE_RESPONSE) {
+    for(unsigned i=0;i<3;++i) if(auto key=_repeater_trace.peer(i)) {
+      uint8_t expected[32];self_id.calcSharedSecret(expected,key);
+      if(!memcmp(expected,secret,32)) {
+        if(_repeater_trace.loginResponse(key,data,len)){noteTraceReplyScope(packet);return;}
+        if(!_ui_login_pending && !zen::RemoteLoginAdapter::appBusy(pending_login,_app_login_deadline,millis()) &&
+           len>=13 && data[4]==0 && data[5]==0 && data[6]<=1)return;
+      }
+    }
+  }
+  if(index<0 || index>=MAX_SEARCH_RESULTS || !_trace_extra_valid[index])BaseChatMesh::onPeerDataRecv(packet,type,index,secret,data,len);
 }
 bool MyMesh::onPeerPathRecv(mesh::Packet* packet,int index,const uint8_t* secret,uint8_t* path,uint8_t len,
                             uint8_t extra_type,uint8_t* extra,uint8_t extra_len) {
   _trace_reply_snr=packet->_snr;
-  if(index!=_trace_peer_index) return BaseChatMesh::onPeerPathRecv(packet,index,secret,path,len,extra_type,extra,extra_len);
-  if(extra_type==PAYLOAD_TYPE_RESPONSE&&extra_len>4) {
-    uint32_t tag;memcpy(&tag,extra,4);_repeater_trace.pathResponse(_trace_target.id.pub_key,tag,path,len,packet->_snr);
+  if(extra_type==PAYLOAD_TYPE_RESPONSE && extra_len>=4) {
+    for(unsigned i=0;i<3;++i) if(auto key=_repeater_trace.peer(i)) {
+      uint8_t expected[32];self_id.calcSharedSecret(expected,key);
+      if(memcmp(expected,secret,32))continue;
+      if(_repeater_trace.loginResponse(key,extra,extra_len,path,len)){noteTraceReplyScope(packet);return false;}
+      uint32_t tag;memcpy(&tag,extra,4);
+      if(_repeater_trace.pathResponse(key,tag,path,len,packet->_snr)){noteTraceReplyScope(packet);return false;}
+      // Late trace-login replies have a server timestamp rather than a tag.
+      // Drain only with no current UI/app login owner to avoid stealing its response.
+      if(!_ui_login_pending && !zen::RemoteLoginAdapter::appBusy(pending_login,_app_login_deadline,millis()) &&
+         extra_len>=13 && extra[4]==0 && extra[5]==0 && extra[6]<=1)return false;
+    }
   }
-  return false;
+  if(index>=0 && index<MAX_SEARCH_RESULTS && _trace_extra_valid[index])return false;
+  return BaseChatMesh::onPeerPathRecv(packet,index,secret,path,len,extra_type,extra,extra_len);
 }
 void MyMesh::onTxStarted(mesh::Packet* packet,uint32_t now) {
   _repeater_trace.txStarted(packet,now);
@@ -1874,18 +1947,7 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.advert_sound_scope = ADVERT_SOUND_SCOPE_ALL;  // apply to all adverts when a sound is selected
   _prefs.home_pages_mask = ZenPrefs::HP_ALL;  // all available carousel pages visible by default
   zen::PrefsDefaults::apply(_prefs);
-  _prefs.bot_enabled = 0;
-  _prefs.bot_channel_enabled = 0;
-  _prefs.bot_channel_idx = 0;
-  _prefs.bot_trigger[0] = '\0';
-  _prefs.bot_reply_dm[0] = '\0';
-  _prefs.bot_reply_ch[0] = '\0';
-  _prefs.bot_trigger_ch[0] = '\0';
-  _prefs.bot_commands_enabled = 0;
-  _prefs.bot_quiet_start = 0;
-  _prefs.bot_quiet_end = 0;       // start==end → quiet hours disabled
   _prefs.dm_show_all = 1;        // show all contacts by default
-  _prefs.reserved_dm_resend_count = 0;
   memset(_prefs.dm_notif, 0, sizeof(_prefs.dm_notif));
   _prefs.auto_off_secs = 15;    // 15 seconds auto-off by default
   _prefs.clock_hide_seconds = Features::CLOCK_HIDE_SECONDS_DEFAULT ? 1 : 0;
@@ -1894,7 +1956,6 @@ MyMesh::MyMesh(mesh::Radio &radio, mesh::RNG &rng, mesh::RTCClock &rtc, SimpleMe
   _prefs.timezone_mode = zen::TimezonePolicy::MANUAL;
   _prefs.timezone_city = zen::TimezonePolicy::DEFAULT_CITY;
   _prefs.timezone_manual_min = 0;
-  _prefs.low_batt_mv = 0;  // reserved legacy field; ignored by BatteryPolicy
   _prefs.batt_display_mode = 0; // icon by default
   //_prefs.rx_delay_base = 10.0f;  enable once new algo fixed
 #if defined(USE_SX1262) || defined(USE_SX1268)
@@ -1964,6 +2025,7 @@ void MyMesh::begin() {
   _baseline_fingerprint_valid = true;
   _zen_store.begin(_store->getSecondaryFS(), _store->getPrimaryFS());
   bool zen_prefs_loaded = _zen_store.load(_prefs);
+  bindTraceIdentity();
 
   // Constructor defaults are already the current Zen factory defaults. A
   // missing record is a fresh installation, not a schema-zero legacy record:
@@ -2632,6 +2694,7 @@ void MyMesh::handleCmdFrame(size_t len) {
         flushDirtyContacts();
         if (_store->saveMainIdentity(identity)) {
           self_id = identity;
+          bindTraceIdentity();
           writeOKFrame();
           // re-load contacts, to invalidate ecdh shared_secrets
           resetContacts();
@@ -3156,6 +3219,19 @@ void MyMesh::enterCLIRescue() {
 }
 
 bool MyMesh::handleCommand(const char* command, uint32_t sender_timestamp, char* reply) {
+  if(!strcmp(command,"get trace.diag")) {
+    snprintf(reply,160,"> flood=%u login=%u trace=%u queue=%lu max=%lu left=%lu scope_miss=%u clock=%u route=%s",
+      _repeater_trace.floodSubmissions(),_repeater_trace.loginSubmissions(),_repeater_trace.traceSubmissions(),
+      (unsigned long)_repeater_trace.queueUsedMillis(),(unsigned long)_repeater_trace.maximumMillis(),
+      (unsigned long)_repeater_trace.remainingMillis(),_trace_scope_mismatches,
+      _request_clock && _request_clock->healthy(),_repeater_trace.advertRoute()?"advert":_repeater_trace.loginPath()?"login":"discovery");return true;
+  }
+  if(!strcmp(command,"get trace.login")){strcpy(reply,_prefs.tracePublicLogin()?"> public":"> off");return true;}
+  if(!strncmp(command,"set trace.login ",16)) {
+    const char* value=command+16;if(strcmp(value,"public") && strcmp(value,"off")){strcpy(reply,"ERR: public|off");return true;}
+    _prefs.setTracePublicLogin(!strcmp(value,"public"));strcpy(reply,savePrefs()?"OK":"ERR: save failed");return true;
+  }
+
   while (*command == ' ') command++; // skip leading spaces
 
   if (strlen(command) > 4 && command[2] == '|') { // optional prefix (for companion radio CLI)

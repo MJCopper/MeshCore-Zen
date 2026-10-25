@@ -8,5 +8,10 @@
     "source_commit": "99dc14489bcaf529be7957a998863c5acc8713e8",
     "sha256": "7eb9a8cbd2c85139ded37d72fe0fc5b703ca4fbd84b36189425c52d53f4d4575",
     "reason": "Sensor trace TX-start callback and safe queued-packet inspection/cancellation; no default dispatch behaviour change."
+  },
+  "src/MeshCore.h": {
+    "source_commit": "81dbae592ffad40b4212bc0b37e82b38da08f4bc",
+    "sha256": "9516f078405f069ad4922766e470a8c3f4fad8979baa87987910589b4189cd36",
+    "reason": "One virtual qualifier on getCurrentTimeUnique; default behaviour unchanged; Zen RequestRTC coordinates durable request sequencing without changing wall time."
   }
 }

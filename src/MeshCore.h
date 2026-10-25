@@ -116,7 +116,7 @@ public:
    */
   virtual void tick() { /* no op */}
 
-  uint32_t getCurrentTimeUnique() {
+  virtual uint32_t getCurrentTimeUnique() {
     uint32_t t = getCurrentTime();
     if (t <= last_unique) {
       return ++last_unique;

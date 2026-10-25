@@ -1,0 +1,18 @@
+{
+  "source_commit": "6f5506a38f65666260e40673cb5a341e66640b18",
+  "files": {
+    "TraceTimingPolicy.h": "2ce2df711e79cd76cc1f7d667ed9a1ab3c782c5b6d84317164d87bb983e8e28b",
+    "TraceDiscovery.h": "9d0dc824a3eb7327679f4ca713d294eb3ea22d103324642fea509c5aafff638a",
+    "TraceRequestClock.h": "232498160a02a6c3620c0cd03dbc35f7e583cbb46bc4c7f420daaeed7da369e3",
+    "TraceAdvertRouteCache.h": "481db9e4807073a6ac8a73fb896a777ae12da1684bd96aa2486329beb4c2e98d",
+    "TraceStorage.h": "c4084818ed9e76889905a6f2d53e6b7ee235dbf8ea3e8597d35718c9180985bb"
+  },
+  "adaptations": [
+    "Zen namespace and route/scope types",
+    "Local result: omit public ACK/report RF reserve",
+    "16 targets with two advert hints each",
+    "Shared request RTC virtual hook; ordinary wall time unchanged",
+    "Portable replicated-journal replacement; preference policy in Zen codec",
+    "Separate identity journals; conservative import of matching legacy sensor reservations"
+  ]
+}

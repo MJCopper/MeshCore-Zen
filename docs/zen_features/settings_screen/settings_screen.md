@@ -207,3 +207,7 @@ as message composition.
 
 See the [Quick Replies guide](../quick_replies/quick_replies.md) for use from a
 conversation.
+
+Trace guest (Radio section) enables empty-password public guest introduction for
+repeater Trace, On by default. Off retains ordinary discovery and advert-route
+fallback. Trace never automatically uses an administrator password.

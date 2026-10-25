@@ -152,11 +152,10 @@ public:
     int lh2 = display.getLineHeight();
     display.drawTextCentered(display.width()/2, ver_y, _version_info);
 
-    // Live boot-stage diagnostic at sz1, below the MeshCore version. This is
-    // more useful on-device than the compile date when a cold boot stalls.
+    // Build date below the MeshCore version.
     int date_y = ver_y + lh2 + 2;
     display.setTextSize(1);
-    display.drawTextCentered(display.width()/2, date_y, _task->bootStage());
+    display.drawTextCentered(display.width()/2, date_y, __DATE__);
 
 #ifdef FIRMWARE_ZEN_BUILD
     int zen_y = date_y + step;
@@ -687,28 +686,32 @@ public:
             loaded==Store::INCOMPATIBLE?zen::OperationReason::PET_NEWER:
             zen::OperationReason::PET_STORAGE_UNAVAILABLE,zen::RESULT_BACKGROUND));
     }
-    _pet.update(millis(), _node_prefs && _node_prefs->pet_enabled,
-                zen::pet::PetSleep::scheduled(!_task->isTimeSyncPending(),
-                    _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
-                    _node_prefs->quiet_time_end_min), _task->isLowPowerMode(),
-                !_task->isTimeSyncPending(),_task->petLocalSeconds(),
-                _page == PET && _task->isHomeScreenVisible() && _task->canNotifyPet(),
-                _task->cachedBatteryValid() ?
-                    zen::BatteryPolicy::percent(_task->cachedBattMilliVolts()) : -1,
-                _task->cachedExternalPower(),_task->cachedBatterySample(),
-                zen::pet::PetSleep::nearBedtime(!_task->isTimeSyncPending(),
-                    _task->petLocalSeconds(),_node_prefs->quiet_time_start_min,
-                    _node_prefs->quiet_time_end_min),
-                _page == PET && _task->isHomeScreenVisible(),_task->canNotifyPet(),
-                Features::IS_EINK,now ^ uint32_t(_task->petLocalSeconds()));
+    // Share one clock and power snapshot across this pet update.
+    const bool synced=!_task->isTimeSyncPending();
+    const int64_t local=_task->petLocalSeconds();
+    const bool sleeping=zen::pet::PetSleep::scheduled(synced,local,
+      _node_prefs->quiet_time_start_min,_node_prefs->quiet_time_end_min);
+    const bool paused=_task->isLowPowerMode();
+    const bool page_visible=_page==PET && _task->isHomeScreenVisible();
+    const bool unobscured=_task->canNotifyPet();
+    const bool battery_valid=_task->cachedBatteryValid();
+    const auto battery_mv=_task->cachedBattMilliVolts();
+    const int battery_percent=battery_valid?zen::BatteryPolicy::percent(battery_mv):-1;
+    const bool external=_task->cachedExternalPower();
+    const auto battery_sample=_task->cachedBatterySample();
+    const bool bedtime=zen::pet::PetSleep::nearBedtime(synced,local,
+      _node_prefs->quiet_time_start_min,_node_prefs->quiet_time_end_min);
+    _pet.update(millis(),enabled,sleeping,paused,synced,local,page_visible && unobscured,
+      battery_percent,external,battery_sample,bedtime,page_visible,unobscured,
+      Features::IS_EINK,now ^ uint32_t(local));
     uint32_t next_update=now + _pet.personality().updateDelay(now);
     if (!force || int32_t(next_update-_pet_update_at)<0) _pet_update_at=next_update;
     if(!force && _pet_persistence.started()) {
-      auto saved=_pet_persistence.process(now,pet_files,_pet,enabled,
-          !_task->isTimeSyncPending(),_task->petLocalSeconds(),
-          _task->cachedExternalPower() || (_task->cachedBatteryValid() &&
-          _task->cachedBattMilliVolts()>zen::BatteryPolicy::SHUTDOWN_MV),
-          the_mesh.petExtensionStore().external() || !_task->isBluetoothEnabled());
+      const bool battery_safe=external || (battery_valid && battery_mv>zen::BatteryPolicy::SHUTDOWN_MV);
+      const bool external_store=the_mesh.petExtensionStore().external();
+      const bool storage_safe=external_store || !_task->isBluetoothEnabled();
+      auto saved=_pet_persistence.process(now,pet_files,_pet,enabled,synced,local,
+        battery_safe,storage_safe);
       using Persistence=zen::pet::PetPersistence;
       if(saved==Persistence::SAVED || saved==Persistence::UNCHANGED || saved==Persistence::RETIRED)
         _pet.saveFeedback(saved==Persistence::RETIRED?"New pet":saved==Persistence::SAVED?"Pet saved":"Already saved");
@@ -3018,15 +3021,6 @@ void UITask::setCurrScreen(ZenUIScreen* c) {
     _next_refresh = 100;
 }
 
-void UITask::showBootStage(const char* stage) {
-  if (!stage) return;
-  _boot_stage = stage;
-  if (!_display || !bootSplashActive() || !_display->isOn()) return;
-  _display->startFrame();
-  curr->render(*_display);
-  _display->endFrame();
-}
-
 bool UITask::savePrefsIfDirty(bool& dirty) {
   if (!dirty) return false;
   // Keep the dirty flag set when persistence fails so a later exit/shutdown
@@ -3378,7 +3372,6 @@ void UITask::loop() {
     next_backlight_btn_check = millis() + 300;
   }
 #endif
-
   if (_kq_head != _kq_tail) {
     if (curr) {
       // Apply the whole queued burst, then redraw once — N taps captured during
@@ -3409,7 +3402,6 @@ void UITask::loop() {
       _next_refresh = 100;  // trigger refresh immediately
     } else _kq_head = _kq_tail = 0;
   }
-
   userLedHandler();
 
 #ifdef PIN_BUZZER
@@ -3432,7 +3424,6 @@ void UITask::loop() {
       _deferred_prefs_save = false;
     }
   }
-
   if (curr) curr->poll();
   updateDisplayActivity();
 
@@ -3499,7 +3490,6 @@ void UITask::loop() {
 #ifdef PIN_VIBRATION
   vibration.loop();
 #endif
-
   if ((int32_t)(millis() - next_batt_chck) >= 0) {
     uint16_t raw = AbstractUITask::getBattMilliVolts();
     if (raw > 0) {
@@ -3534,7 +3524,6 @@ void UITask::loop() {
       notifyLowBattery();
     next_batt_chck = millis() + 8000;
   }
-
 }
 
 // CONTRACT: every ZenPrefs field that keys on a contact pubkey/prefix is

@@ -55,63 +55,8 @@ class ConfigMaintenance {
           changed = true;
           break;
         case 1:
-          // Zen no longer ships the legacy Bot, Trail, Live Share, Locator,
-          // Clock Tools or user-GPIO features. Keep their bytes in ZenPrefs so
-          // the established file layout remains readable, but erase dormant
-          // configuration once so it cannot reactivate accidentally.
-          changed |= clearBytes(&prefs.bot_enabled, sizeof(prefs.bot_enabled));
-          changed |= clearBytes(&prefs.bot_channel_enabled, sizeof(prefs.bot_channel_enabled));
-          changed |= clearBytes(&prefs.bot_channel_idx, sizeof(prefs.bot_channel_idx));
-          changed |= clearBytes(prefs.bot_trigger, sizeof(prefs.bot_trigger));
-          changed |= clearBytes(prefs.bot_reply_dm, sizeof(prefs.bot_reply_dm));
-          changed |= clearBytes(prefs.bot_reply_ch, sizeof(prefs.bot_reply_ch));
-          changed |= clearBytes(prefs.bot_trigger_ch, sizeof(prefs.bot_trigger_ch));
-          changed |= clearBytes(&prefs.bot_commands_enabled, sizeof(prefs.bot_commands_enabled));
-          changed |= clearBytes(&prefs.bot_quiet_start, sizeof(prefs.bot_quiet_start));
-          changed |= clearBytes(&prefs.bot_quiet_end, sizeof(prefs.bot_quiet_end));
-          changed |= clearBytes(&prefs.trail_interval_idx, sizeof(prefs.trail_interval_idx));
-          changed |= clearBytes(&prefs.trail_min_delta_idx, sizeof(prefs.trail_min_delta_idx));
-          changed |= clearBytes(&prefs.trail_units_idx, sizeof(prefs.trail_units_idx));
-          changed |= clearBytes(&prefs.trail_show_pace, sizeof(prefs.trail_show_pace));
-          changed |= clearBytes(&prefs.track_shared_loc, sizeof(prefs.track_shared_loc));
-          changed |= clearBytes(&prefs.loc_share_enabled, sizeof(prefs.loc_share_enabled));
-          changed |= clearBytes(&prefs.loc_share_target_type, sizeof(prefs.loc_share_target_type));
-          changed |= clearBytes(&prefs.loc_share_channel_idx, sizeof(prefs.loc_share_channel_idx));
-          changed |= clearBytes(prefs.loc_share_dm_prefix, sizeof(prefs.loc_share_dm_prefix));
-          changed |= clearBytes(&prefs.loc_share_move_idx, sizeof(prefs.loc_share_move_idx));
-          changed |= clearBytes(&prefs.loc_share_interval_idx, sizeof(prefs.loc_share_interval_idx));
-          changed |= clearBytes(&prefs.loc_share_heartbeat_idx, sizeof(prefs.loc_share_heartbeat_idx));
-          changed |= clearBytes(&prefs.locator_enabled, sizeof(prefs.locator_enabled));
-          changed |= clearBytes(&prefs.locator_has_target, sizeof(prefs.locator_has_target));
-          changed |= clearBytes(&prefs.locator_radius_idx, sizeof(prefs.locator_radius_idx));
-          changed |= clearBytes(&prefs.locator_mode, sizeof(prefs.locator_mode));
-          changed |= clearBytes(&prefs.locator_lat_1e6, sizeof(prefs.locator_lat_1e6));
-          changed |= clearBytes(&prefs.locator_lon_1e6, sizeof(prefs.locator_lon_1e6));
-          changed |= clearBytes(prefs.locator_label, sizeof(prefs.locator_label));
-          changed |= clearBytes(&prefs.locator_target_kind, sizeof(prefs.locator_target_kind));
-          changed |= clearBytes(prefs.locator_key, sizeof(prefs.locator_key));
-          changed |= clearBytes(&prefs.trail_autopause_idx, sizeof(prefs.trail_autopause_idx));
-          changed |= clearBytes(&prefs.locator_beeper, sizeof(prefs.locator_beeper));
-          changed |= clearBytes(&prefs.gps_avg_idx, sizeof(prefs.gps_avg_idx));
-          changed |= clearBytes(&prefs.alarm_on, sizeof(prefs.alarm_on));
-          changed |= clearBytes(&prefs.alarm_hour, sizeof(prefs.alarm_hour));
-          changed |= clearBytes(&prefs.alarm_min, sizeof(prefs.alarm_min));
-          changed |= clearBytes(&prefs.alarm_repeat_mask, sizeof(prefs.alarm_repeat_mask));
-          changed |= clearBytes(&prefs.trail_autosave_lowbatt, sizeof(prefs.trail_autosave_lowbatt));
-          changed |= clearBytes(&prefs.bot_dm_scope, sizeof(prefs.bot_dm_scope));
-          changed |= clearBytes(&prefs.bot_room_enabled, sizeof(prefs.bot_room_enabled));
-          changed |= clearBytes(prefs.bot_room_prefix, sizeof(prefs.bot_room_prefix));
-          changed |= clearBytes(prefs.bot_trigger_room, sizeof(prefs.bot_trigger_room));
-          changed |= clearBytes(prefs.bot_reply_room, sizeof(prefs.bot_reply_room));
-          changed |= clearBytes(&prefs.bot_commands_ch, sizeof(prefs.bot_commands_ch));
-          changed |= clearBytes(&prefs.bot_commands_room, sizeof(prefs.bot_commands_room));
-          changed |= clearBytes(&prefs.bot_actions_dm, sizeof(prefs.bot_actions_dm));
-          changed |= clearBytes(&prefs.bot_actions_ch, sizeof(prefs.bot_actions_ch));
-          changed |= clearBytes(&prefs.bot_actions_room, sizeof(prefs.bot_actions_room));
-          changed |= clearBytes(&prefs.gpio1_mode, sizeof(prefs.gpio1_mode));
-          changed |= clearBytes(&prefs.gpio2_mode, sizeof(prefs.gpio2_mode));
-          changed |= clearBytes(&prefs.gpio3_mode, sizeof(prefs.gpio3_mode));
-          changed |= clearBytes(&prefs.gpio4_mode, sizeof(prefs.gpio4_mode));
+          // Retired settings are discarded by the legacy file decoder.
+          prefs.pet_enabled=0;
           prefs.zen_config_schema = 2;
           changed = true;
           break;
@@ -159,7 +104,7 @@ class ConfigMaintenance {
 public:
   enum : uint16_t { CURRENT_SCHEMA = 7 };
 
-  static bool migrateMelodySchema(ZenPrefs& prefs, uint32_t file_schema) {
+  static bool migrateMelodySchema(ZenPrefs& prefs, uint32_t file_schema, uint64_t legacy_set=0, uint64_t legacy_two=0) {
     if (file_schema >= 0xC0DE002A) return false;
     prefs.notif_melody_dm = BuiltinMelodies::migrateLegacyGlobal(prefs.notif_melody_dm, false);
     prefs.notif_melody_ch = BuiltinMelodies::migrateLegacyGlobal(prefs.notif_melody_ch, true);
@@ -168,14 +113,12 @@ public:
       prefs.dm_melody[i].slot = BuiltinMelodies::migrateLegacyOverride(prefs.dm_melody[i].slot);
     for (uint8_t i = 0; i < 64; i++) {
       uint64_t mask = 1ULL << i;
-      if (prefs.ch_notif_melody_set & mask) {
-        uint8_t legacy = (prefs.ch_notif_melody_2 & mask) ? 2 : 1;
+      if (legacy_set & mask) {
+        uint8_t legacy = (legacy_two & mask) ? 2 : 1;
         NotificationPreferences::setChannelMelody(
             &prefs, i, BuiltinMelodies::migrateLegacyOverride(legacy));
       }
     }
-    prefs.ch_notif_melody_set = 0;
-    prefs.ch_notif_melody_2 = 0;
     return true;
   }
 
