@@ -1,17 +1,37 @@
 #pragma once
 #include "TraceTimingPolicy.h"
 #include "PublicResponseQueue.h"
+#include <helpers/UTF8Helpers.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 // Independent of the result report. Owns observation, never radio allocation.
 class TraceRequestAcknowledgement {
 public:
-  bool begin(uint32_t now, uint32_t seconds, uint32_t watchdog, const char* name = nullptr) {
-    cancel(); _state = WAITING; _began = _due = now; _watchdog = _tx_budget = watchdog;
-    int length = snprintf(_text, sizeof(_text), "%s%sTrace requested, please wait up to %lu seconds.",
-                          name ? name : "", name ? ": " : "", (unsigned long)seconds);
-    if (length < 0 || length >= (int)sizeof(_text)) { cancel(); return false; }
+  bool begin(uint32_t now, uint32_t seconds, uint32_t watchdog, const char* name = nullptr,
+             const char* destination = nullptr, const char* fallback = nullptr) {
+    cancel();
+    char suffix[64];
+    int tail = snprintf(suffix, sizeof(suffix), ", please wait up to %lu seconds.", (unsigned long)seconds);
+    int head = snprintf(_text, sizeof(_text), "%s%sTrace requested%s",
+                        name ? name : "", name ? ": " : "", destination ? " to " : "");
+    if (head < 0 || tail < 0 || head + tail > PublicResponseQueue::MAX_PART_LENGTH) return false;
+    size_t length = 0;
+    if (destination) {
+      size_t available = PublicResponseQueue::MAX_PART_LENGTH - head - tail;
+      length = mesh::validUtf8PrefixLength(destination, available);
+      while (length && destination[length - 1] == ' ') --length;
+      if (!length) {
+        destination = fallback;
+        if (!destination || !destination[0] || strlen(destination) > available) return false;
+        length = mesh::validUtf8PrefixLength(destination, available);
+        if (length != strlen(destination)) return false;
+      }
+      memcpy(_text + head, destination, length);
+    }
+    memcpy(_text + head + length, suffix, tail + 1);
+    _state = WAITING; _began = _due = now; _watchdog = _tx_budget = watchdog;
     return true;
   }
   bool active() const { return _state != IDLE; }

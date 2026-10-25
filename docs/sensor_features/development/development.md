@@ -348,6 +348,26 @@ The earlier [acknowledgement plan](../../upgrades/sensor-trace-request-ack-plan.
 and [initial validation](../../upgrades/validation/sensor-trace-request-ack.md)
 record the superseded conservative timeout policy.
 
+## Named destination acknowledgement
+
+The destination overload of `RepeaterNameCache::resolvePrefix` returns a copied
+full key and full display label from the same uniquely matching entry. It clears
+both outputs for unknown/ambiguous prefixes. It preserves words such as
+`Repeater`, unlike the compact hop-label formatter, and normalizes whitespace
+without altering persisted names or the cache schema. Unusable names use the
+lowercase two-byte prefix as a label; they never replace the full protocol key.
+
+`TraceRequestAcknowledgement::begin` optionally formats `Trace requested to Y`.
+The complete message is copied at acceptance. Its existing buffer size is
+unchanged; bounded destination-only UTF-8 truncation keeps the fixed timeout
+suffix. Tests cover exact fit, overflow, invalid UTF-8/fallback, mutable input,
+queue retry/cache rename/eviction, full-key authenticated discovery, both public
+channels and scoped network replies. Bare acknowledgement, compact hop names and
+the 60-second cap remain unchanged.
+
+See the [implementation plan](../../upgrades/sensor-trace-destination-ack-plan.md)
+and [validation record](../../upgrades/validation/sensor-trace-destination-ack.md).
+
 ## Trace lifecycle recovery review
 
 Recovery regressions now attempt another trace after success, discovery timeout,

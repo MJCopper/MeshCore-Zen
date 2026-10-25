@@ -139,7 +139,7 @@ public:
                                    const uint8_t* data, size_t length) override {
     auto packet = Mesh::createGroupDatagram(type, channel, data, length);
     if (packet && complete_trace_ack_immediately && length > 5 &&
-        std::string((const char*)data + 5, length - 5).find("Trace requested, please wait up to ") != std::string::npos) {
+        std::string((const char*)data + 5, length - 5).find("Trace requested") != std::string::npos) {
       isolated_ack_packet = packet;
       isolated_acknowledgements.emplace_back((const char*)data + 5, length - 5);
     }

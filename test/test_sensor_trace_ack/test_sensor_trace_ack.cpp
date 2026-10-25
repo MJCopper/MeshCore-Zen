@@ -231,7 +231,7 @@ TEST_F(TraceAck, TargetedAcknowledgementPrecedesAuthenticatedDiscovery) {
   char text[60]; snprintf(text, sizeof(text), "Alice: !hillvue trace %02x%02x", target.pub_key[0], target.pub_key[1]);
   radio.incoming = command(text, 2, &channel.channel(1), 2); tick(100);
   ASSERT_EQ(1u, radio.sent.size());
-  EXPECT_EQ("BME680 Sensor: Trace requested, please wait up to 60 seconds.", publicText(0, &channel.channel(1)));
+  EXPECT_EQ("BME680 Sensor: Trace requested to Target, please wait up to 60 seconds.", publicText(0, &channel.channel(1)));
   EXPECT_EQ(2, parse(0).getPathHashSize());
   afterAck(); ASSERT_EQ(2u, radio.sent.size()); EXPECT_EQ(PAYLOAD_TYPE_REQ, parse(1).getPayloadType());
   finish(301);
@@ -397,6 +397,47 @@ TEST(TraceBudget, ProbeAndDiscoveryLimitsPreserveShorterAirtimePolicy) {
   discovery.limitTimeout(2000); discovery.started(&p, 200);
   EXPECT_EQ(1000u, discovery.remaining(200));
   discovery.limitTimeout(500); EXPECT_EQ(500u, discovery.remaining(200));
+}
+
+TEST(TraceAckState, NamedDestinationPreservesWordsAndCopiesMutableInputs) {
+  TraceRequestAcknowledgement ack;
+  char name[] = "Sensor", target[] = "Hilltop Repeater";
+  ASSERT_TRUE(ack.begin(100, 60, 1000, name, target, "7188"));
+  std::string expected = "Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.";
+  EXPECT_EQ(expected, ack.text()); name[0] = 'X'; target[0] = 'X';
+  int packet; ack.queued(&packet); ack.failed(&packet, 200, true);
+  EXPECT_EQ(expected, ack.text()); EXPECT_TRUE(ack.ready(450));
+  ack.queued(&packet); ack.failed(&packet, 500, false); EXPECT_FALSE(ack.active());
+}
+
+TEST(TraceAckState, NamedMessageExactFitAndOverflowShortenOnlyDestination) {
+  TraceRequestAcknowledgement ack;
+  std::string tail = ": Trace requested to Hilltop Repeater, please wait up to 60 seconds.";
+  std::string name(160 - tail.size(), 'N');
+  ASSERT_TRUE(ack.begin(100,60,1000,name.c_str(),"Hilltop Repeater","7188"));
+  EXPECT_EQ(160u, strlen(ack.text())); EXPECT_EQ(name + tail, ack.text());
+  name += 'N';
+  ASSERT_TRUE(ack.begin(100,60,1000,name.c_str(),"Hilltop Repeater","7188"));
+  EXPECT_EQ(160u, strlen(ack.text()));
+  EXPECT_EQ(name + ": Trace requested to Hilltop Repeate, please wait up to 60 seconds.", ack.text());
+  std::string impossible(160, 'N');
+  EXPECT_FALSE(ack.begin(100,60,1000,impossible.c_str(),"Hilltop Repeater","7188"));
+  EXPECT_FALSE(ack.active());
+}
+
+TEST(TraceAckState, NamedLabelUtf8AndFallbackRespectAvailableBytes) {
+  TraceRequestAcknowledgement ack;
+  std::string overhead = ": Trace requested to , please wait up to 60 seconds.";
+  std::string name(160 - overhead.size() - 4, 'N');
+  ASSERT_TRUE(ack.begin(100,60,1000,name.c_str(),"\xc3\xa9\xc3\xa9\xc3\xa9","7188"));
+  EXPECT_EQ(name + ": Trace requested to \xc3\xa9\xc3\xa9, please wait up to 60 seconds.", ack.text());
+  ASSERT_TRUE(ack.begin(100,60,1000,name.c_str(),"\xff","7188"));
+  EXPECT_EQ(name + ": Trace requested to 7188, please wait up to 60 seconds.", ack.text());
+  ASSERT_TRUE(ack.begin(100,60,1000,"Sensor","","7188"));
+  EXPECT_STREQ("Sensor: Trace requested to 7188, please wait up to 60 seconds.",ack.text());
+  name += 'N';
+  EXPECT_FALSE(ack.begin(100,60,1000,name.c_str(),"\xf0\x9f\x8f\x94","7188"));
+  EXPECT_FALSE(ack.active());
 }
 
 int main(int argc, char** argv) { ::testing::InitGoogleTest(&argc, argv); return RUN_ALL_TESTS(); }

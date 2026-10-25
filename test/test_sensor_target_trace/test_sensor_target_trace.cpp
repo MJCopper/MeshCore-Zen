@@ -11,10 +11,10 @@ protected:
   mesh::LocalIdentity target;
   TransportKey scope{};
 
-  void advertise(const mesh::Identity& id, const char* name = "Target") {
+  void advertise(const mesh::Identity& id, const char* name = "Target", uint32_t timestamp = 1) {
     uint8_t app[MAX_ADVERT_DATA_SIZE];
     auto length = AdvertDataBuilder(ADV_TYPE_REPEATER, name).encodeTo(app);
-    bot.onAdvertRecv(nullptr, id, 1, app, length);
+    bot.onAdvertRecv(nullptr, id, timestamp, app, length);
   }
   void SetUp() override {
     SensorIntegration::SetUp();
@@ -656,6 +656,58 @@ TEST_P(TargetRoutes, DiscoveredRouteIncludesTargetAndBothWidthsThroughTenRepeate
 }
 INSTANTIATE_TEST_SUITE_P(AllLengthsBothWidths, TargetRoutes,
     ::testing::Combine(::testing::Values(1, 2), ::testing::Range(1, 11)));
+
+TEST_F(TargetTrace, NamedAcknowledgementUsesFullIdentityRatherThanNameOrPrefixForDiscovery) {
+  mesh.complete_trace_ack_immediately = false;
+  advertise(target,"Hilltop Repeater",2);
+  auto other = mesh::LocalIdentity(&random); advertise(other,"Hilltop Repeater");
+  begin(2,1,true);
+  ASSERT_EQ(1u, radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0,&channel.channel(1)));
+  finish(200); tick(201);
+  ASSERT_EQ(2u, radio.sent.size()); EXPECT_GE(requestTag(1),1800000000u);
+  auto req = parse(radio.sent[1]);
+  uint8_t secret[32], data[MAX_PACKET_PAYLOAD]; other.calcSharedSecret(secret,mesh.self_id);
+  EXPECT_EQ(0,mesh::Utils::MACThenDecrypt(secret,data,req.payload+2,req.payload_len-2));
+  finish(301); EXPECT_EQ(32,pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, MissingDisplayNameFallsBackToPrefixButStillAuthenticatesWithFullKey) {
+  mesh.complete_trace_ack_immediately = false; advertise(target,"   ",2);
+  begin(1,0,true);
+  ASSERT_EQ(1u,radio.sent.size());
+  char expected[120]; snprintf(expected,sizeof(expected),"BME680 Sensor: Trace requested to %02x%02x, please wait up to 60 seconds.",target.pub_key[0],target.pub_key[1]);
+  EXPECT_EQ(expected,publicText(0)); finish(200); tick(201);
+  ASSERT_EQ(2u,radio.sent.size()); EXPECT_GE(requestTag(1),1800000000u); finish(301);
+}
+
+TEST_F(TargetTrace, NamedAckAndDiscoveryStayFrozenAcrossQueueRetryAndCacheRename) {
+  mesh.complete_trace_ack_immediately = false; mesh.reject_group = 1;
+  advertise(target,"Hilltop Repeater",2); begin(); EXPECT_TRUE(radio.sent.empty());
+  advertise(target,"Renamed Repeater",3); mesh.node_name = "Renamed Sensor";
+  tick(350); tick(351); ASSERT_EQ(1u,radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0));
+  finish(451); tick(452); ASSERT_EQ(2u,radio.sent.size());
+  EXPECT_GE(requestTag(1),1800000000u); finish(552); EXPECT_EQ(32,pool.getFreeCount());
+  radio.incoming = command("Bob: !hillvue trace cancel"); tick(600); tick(3000); finish(3100);
+  radio.incoming = command(text(target).c_str()); tick(4000);
+  ASSERT_EQ(4u,radio.sent.size());
+  EXPECT_EQ("Renamed Sensor: Trace requested to Renamed Repeater, please wait up to 60 seconds.",publicText(3));
+  finish(4100); tick(4101); finish(4201); EXPECT_EQ(32,pool.getFreeCount());
+}
+
+TEST_F(TargetTrace, AcceptedDestinationSurvivesEvictionDuringAckRetry) {
+  mesh.complete_trace_ack_immediately = false; mesh.reject_group = 1;
+  advertise(target,"Hilltop Repeater",2); begin();
+  for (uint8_t i=0;i<48;i++) {
+    auto other = target; other.pub_key[0]=0xa0; other.pub_key[1]=i; other.pub_key[31]=i;
+    advertise(other,"Replacement");
+  }
+  tick(350); tick(351); ASSERT_EQ(1u,radio.sent.size());
+  EXPECT_EQ("BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.",publicText(0));
+  finish(451); tick(452); ASSERT_EQ(2u,radio.sent.size());
+  EXPECT_GE(requestTag(1),1800000000u); finish(552); EXPECT_EQ(32,pool.getFreeCount());
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -108,7 +108,7 @@ private:
   mesh::PacketScope trace_scope;
 
   bool traceBusy() const { return _prelude || discovery.pending() || trace_probe.isActive() || trace_report.active(); }
-  bool beginAcknowledgement(uint32_t now);
+  bool beginAcknowledgement(uint32_t now, const char* destination = nullptr, const char* fallback = nullptr);
   void endTraceWork(uint32_t now);
   void pumpAcknowledgement(uint32_t now);
   bool expireTransaction(uint32_t now);

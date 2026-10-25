@@ -89,7 +89,7 @@ protected:
                        uint8_t* data, size_t length) override {
     if (length > 5) {
       std::string message((char*)data + 5, strnlen((char*)data + 5, length - 5));
-      if (message.find("Trace requested, please wait up to ") != std::string::npos)
+      if (message.find("Trace requested") != std::string::npos)
         acknowledgements.push_back(message);
       else messages.push_back(message);
     }
@@ -248,7 +248,7 @@ protected:
       std::string message((char*)data + 5, strnlen((char*)data + 5, length > 5 ? length - 5 : 0));
       // reports() describes final outcomes; acknowledgements still traverse the
       // real medium and are asserted separately below.
-      if (message.find("Trace requested, please wait up to ") == std::string::npos)
+      if (message.find("Trace requested") == std::string::npos)
         result.push_back(message);
     }
     return result;
@@ -593,6 +593,7 @@ TEST_P(TargetedNetworkRoutes, AuthenticatedScopedDiscoveryAndLoopReachSelectedRe
   auto width = std::get<0>(GetParam()), ch = std::get<1>(GetParam());
   targetedRequest(width, ch); runUntil(15000);
   ASSERT_EQ(1u, relay(0).acknowledgements.size());
+  EXPECT_EQ("BME680 Sensor: Trace requested to Target, please wait up to 60 seconds.", relay(0).acknowledgements[0]);
   ASSERT_EQ(1u, relay(0).messages.size());
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("avg SNR"));
   EXPECT_NE(std::string::npos, relay(0).messages[0].find("3 Target"));

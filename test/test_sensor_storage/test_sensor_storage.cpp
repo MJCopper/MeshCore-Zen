@@ -213,6 +213,60 @@ TEST(SensorStorage, RealSignaturesAndSharedSecretsAreCompatible) {
   EXPECT_EQ(0, memcmp(sa, sb, sizeof(sa)));
 }
 
+TEST(SensorStorage, DestinationLookupPreservesFullNameAndFullIdentity) {
+  RepeaterNameCache cache;
+  auto id = identity(0x71); id.pub_key[1] = 0x88; id.pub_key[31] = 0x99;
+  advert(cache, id, "  Hilltop   Repeater  ", 1);
+  uint8_t key[32]{}; char label[32];
+  ASSERT_EQ(RepeaterNameCache::UNIQUE, cache.resolvePrefix(id.pub_key, key, label, sizeof(label)));
+  EXPECT_EQ(0, memcmp(id.pub_key, key, 32)); EXPECT_STREQ("Hilltop Repeater", label);
+  char hop[32]; cache.formatLabel(id.pub_key, 2, hop, sizeof(hop));
+  EXPECT_STREQ("Hilltop", hop); // Compact hop policy deliberately stays separate.
+}
+
+TEST(SensorStorage, DestinationUnknownAndAmbiguousClearAllOutputs) {
+  RepeaterNameCache cache; auto id = identity(0x71); id.pub_key[1] = 0x88;
+  uint8_t key[32]; char label[32]; memset(key, 0xff, sizeof(key)); strcpy(label, "stale");
+  EXPECT_EQ(RepeaterNameCache::UNKNOWN, cache.resolvePrefix(id.pub_key, key, label, sizeof(label)));
+  uint8_t zero[32]{}; EXPECT_EQ(0, memcmp(key, zero, 32)); EXPECT_STREQ("", label);
+  advert(cache, id, "Hilltop Repeater", 1);
+  auto other = id; other.pub_key[31] = 1; advert(cache, other, "Hilltop Repeater", 1);
+  memset(key, 0xff, sizeof(key)); strcpy(label, "stale");
+  EXPECT_EQ(RepeaterNameCache::AMBIGUOUS, cache.resolvePrefix(id.pub_key, key, label, sizeof(label)));
+  EXPECT_EQ(0, memcmp(key, zero, 32)); EXPECT_STREQ("", label);
+}
+
+TEST(SensorStorage, DestinationNamesNormalizeWhitespaceAndFallbackWithoutInventingIdentity) {
+  const char* names[] = {"", "   ", "\t\n\x7f", "\xff", "Hill\tTop\nRPT", "Repeater", "Hill \xf0\x9f\x8f\x94"};
+  const char* expected[] = {"7188", "7188", "7188", "7188", "Hill Top RPT", "Repeater", "Hill \xf0\x9f\x8f\x94"};
+  for (size_t i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
+    RepeaterNameCache cache; auto id = identity(0x71); id.pub_key[1] = 0x88;
+    if (i == 3) {
+      // Builder strips malformed UTF-8; exercise a named raw advert explicitly.
+      uint8_t raw[] = {uint8_t(ADV_TYPE_REPEATER | ADV_NAME_MASK), 0xff};
+      cache.onAdvert(id, 1, raw, sizeof(raw), g_mock_millis);
+    } else advert(cache, id, names[i], 1);
+    uint8_t key[32]{}; char label[32];
+    auto result = cache.resolvePrefix(id.pub_key, key, label, sizeof(label));
+    if (i == 0) { EXPECT_EQ(RepeaterNameCache::UNKNOWN, result); continue; } // No name field is not admitted.
+    ASSERT_EQ(RepeaterNameCache::UNIQUE, result);
+    EXPECT_STREQ(expected[i], label); EXPECT_EQ(0, memcmp(key, id.pub_key, 32));
+  }
+}
+
+TEST(SensorStorage, DestinationMaximumUtf8NameAndSnapshotSurviveCacheReplacement) {
+  RepeaterNameCache cache; auto id = identity(0x71); id.pub_key[1] = 0x88;
+  std::string long_name = std::string(29, 'a') + "\xf0\x9f\x8f\x94";
+  advert(cache, id, long_name.c_str(), 1);
+  uint8_t key[32]{}; char label[32];
+  ASSERT_EQ(RepeaterNameCache::UNIQUE, cache.resolvePrefix(id.pub_key, key, label, sizeof(label)));
+  EXPECT_EQ(std::string(29, 'a'), label); // Incomplete stored UTF-8 tail cannot leak onto radio.
+  advert(cache, id, "New Name", 2);
+  EXPECT_EQ(std::string(29, 'a'), label); EXPECT_EQ(0, memcmp(key, id.pub_key, 32));
+  char current[32]; cache.resolvePrefix(id.pub_key, key, current, sizeof(current));
+  EXPECT_STREQ("New Name", current);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

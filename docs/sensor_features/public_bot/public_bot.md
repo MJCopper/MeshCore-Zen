@@ -150,6 +150,28 @@ application jitter:
 BME680 Sensor: Trace requested, please wait up to 60 seconds.
 ```
 
+For `!hillvue trace 7188`, if the known repeater is named `Hilltop Repeater`,
+the acknowledgement is instead:
+
+```text
+BME680 Sensor: Trace requested to Hilltop Repeater, please wait up to 60 seconds.
+```
+
+The four-character prefix must resolve to exactly one known full public key.
+The full key is used for authenticated discovery; the name is only a display
+label. The acknowledgement preserves the full stored display name, including
+words such as `Repeater`, independently of compact hop labels. Whitespace is
+normalized and UTF-8 is kept intact. A known identity without a usable name uses
+`7188` as its label. An unknown or ambiguous identity retains the existing error
+and starts neither acknowledgement nor discovery.
+
+Destination, sensor prefix and reply context are frozen when the request is
+accepted, including during allocation/queue retries. A later rename or cache
+eviction cannot change that pending request. The acknowledgement stays within
+one 160-byte public message; if necessary, only the destination label is shortened
+at a UTF-8 boundary. Bare trace acknowledgement and final result formatting are
+unchanged.
+
 The entire operation has a fixed **60-second maximum**, starting when the command
 is accepted. It includes acknowledgement, discovery, settling, probes, retries
 and final reporting. A successful trace finishes early. The final five seconds

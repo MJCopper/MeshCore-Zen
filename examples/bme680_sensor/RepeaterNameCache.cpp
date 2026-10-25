@@ -256,13 +256,34 @@ void RepeaterNameCache::formatPath(const mesh::Packet* packet, char* dest, size_
 }
 
 RepeaterNameCache::Lookup RepeaterNameCache::resolvePrefix(const uint8_t prefix[2],
-                                                         uint8_t key[PUB_KEY_SIZE]) const {
-  bool found = false;
+                         uint8_t key[PUB_KEY_SIZE], char* destination, size_t size) const {
+  // Key and label are a single snapshot of one full identity, never a hop label.
+  memset(key, 0, PUB_KEY_SIZE);
+  if (destination && size) destination[0] = 0;
+  const Entry* match = nullptr;
   for (uint8_t i = 0; i < _count; i++) {
     if (memcmp(_entries[i].pub_key, prefix, 2)) continue;
-    if (found) { memset(key, 0, PUB_KEY_SIZE); return AMBIGUOUS; }
-    memcpy(key, _entries[i].pub_key, PUB_KEY_SIZE);
-    found = true;
+    if (match) return AMBIGUOUS;
+    match = &_entries[i];
   }
-  return found ? UNIQUE : UNKNOWN;
+  if (!match) return UNKNOWN;
+  memcpy(key, match->pub_key, PUB_KEY_SIZE);
+  if (destination && size) {
+    char display[sizeof(match->name)]{};
+    size_t valid = mesh::validUtf8PrefixLength(match->name, sizeof(match->name) - 1);
+    size_t used = 0;
+    bool space = false;
+    for (size_t i = 0; i < valid; i++) {
+      unsigned char ch = match->name[i];
+      if (ch <= 0x20 || ch == 0x7F) { space = used != 0; continue; }
+      if (space) display[used++] = ' ';
+      space = false;
+      display[used++] = ch;
+    }
+    size_t length = mesh::validUtf8PrefixLength(display, size - 1);
+    while (length && display[length - 1] == ' ') --length;
+    if (length) { memcpy(destination, display, length); destination[length] = 0; }
+    else if (size >= 5) snprintf(destination, size, "%02x%02x", prefix[0], prefix[1]);
+  }
+  return UNIQUE;
 }

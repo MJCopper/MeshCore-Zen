@@ -31,11 +31,11 @@ void SensorBotService::begin(FILESYSTEM* fs) {
   _profile = _transport.radioProfile();
 }
 
-bool SensorBotService::beginAcknowledgement(uint32_t now) {
+bool SensorBotService::beginAcknowledgement(uint32_t now, const char* destination, const char* fallback) {
   uint32_t air = _transport.estimateAirtime(MAX_TRANS_UNIT);
   if (!air) return false;
   if (!trace_ack.begin(now, TraceTransactionBudget::seconds(),
-                       TraceTimingPolicy::transmitWatchdog(air), _transport.nodeName())) return false;
+                       TraceTimingPolicy::transmitWatchdog(air), _transport.nodeName(), destination, fallback)) return false;
   _deadline = now + TraceTransactionBudget::DURATION_MILLIS;
   _transaction = _prelude = true;
   return true;
@@ -492,7 +492,8 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
     _targeted = targeted;
     if (targeted) {
       uint8_t key[PUB_KEY_SIZE]{};
-      auto found = repeater_names.resolvePrefix(prefix, key);
+      char destination[32], fallback[5];
+      auto found = repeater_names.resolvePrefix(prefix, key, destination, sizeof(destination));
       if (found != RepeaterNameCache::UNIQUE) {
         char error[64];
         snprintf(error, sizeof(error), "Trace: %s repeater %02x%02x",
@@ -506,7 +507,8 @@ void SensorBotService::onGroupDataRecv(mesh::Packet* packet, uint8_t type, const
       }
       // Replies and discovery use the same captured scope; unresolved command
       // scope may have selected a usable default for this outbound transaction.
-      if (!beginAcknowledgement(_transport.now())) {
+      snprintf(fallback, sizeof(fallback), "%02x%02x", prefix[0], prefix[1]);
+      if (!beginAcknowledgement(_transport.now(), destination, fallback)) {
         sendPublicResponse("Trace: unsupported timing configuration", context); return;
       }
       trace_context = context;
