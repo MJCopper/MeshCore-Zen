@@ -9,7 +9,7 @@ Zen extends the official [MeshCore](https://github.com/meshcore-dev/MeshCore)
 companion firmware with a standalone messaging interface for the Seeed Wio
 Tracker L1.
 
-Current release: **Zen v2.2.58**, based on **MeshCore v1.18.0**.
+Current release: **Zen v2.2.62**, based on **MeshCore v1.18.0**.
 
 ## Supported hardware
 
@@ -32,9 +32,11 @@ for charging and bootloader DFU flashing. Firmware is available from the
 - UTF-8 text, monochrome emoji display and four insertable chat emoji.
 - Clock, unread shortcut, GPS time sync, power-aware polling and GPS course-over-ground.
 - Starred contacts, rooms and channels, plus an editable four-contact speed dial.
+- [Infrastructure Node List](docs/design/zen_infrastructure_node_list.md) for repeaters, room servers and sensors, using compact references to existing MeshCore records.
 - Automatic CardKB support through the Grove I2C port.
 - PIN-protected Child Mode, configurable notifications, RAM-only DND and scheduled Quiet Time.
 - On-device radio, advert, notification and home-page settings.
+- Offline radio presets generated from a [reviewed MeshCore API snapshot](docs/design/zen_radio_presets.md).
 - Low-battery protection, emergency mode and learned runtime estimation.
 - Node discovery, companion repeater mode, ringtone editor and RAM event log.
 - Remote repeater, room and sensor administration from the Node List action menu.

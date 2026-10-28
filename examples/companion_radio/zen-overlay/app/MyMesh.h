@@ -10,6 +10,7 @@
 #include "zen/SensorTelemetry.h"
 #include "zen/RepeaterSignalMonitor.h"
 #include "zen/SignalReception.h"
+#include "zen/NodeListModel.h"
 #include "zen/TimezonePolicy.h"
 #include "zen/ConfigMaintenance.h"
 #include "zen/FloodScopeView.h"
@@ -35,7 +36,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.58"
+#define FIRMWARE_VERSION "v2.2.62"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -263,6 +264,10 @@ public:
     return _repeater_signal.history(index,out);
   }
   void enterCLIRescue();
+
+  unsigned nodeListCount(zen::NodeListModel::Kind kind) const;
+  bool readNodeListRecord(zen::NodeListModel::Kind kind, unsigned index, zen::NodeListModel::Record& out);
+  uint32_t nodeListDiscoveryGeneration() const { return _node_list_discovery_generation; }
 
   int  getRecentlyHeard(AdvertPath dest[], int max_num);
   int  getDiscoverResults(DiscoverResult dest[], int max_count);
@@ -804,6 +809,7 @@ private:
   #define DISCOVER_RESULTS_MAX 16
   DiscoverResult  _discover_results[DISCOVER_RESULTS_MAX];
   int             _discover_count;
+  uint32_t        _node_list_discovery_generation=0;
   uint32_t        _pending_node_discover_tag;
   unsigned long   _pending_node_discover_until;
   bool            _pending_node_discover_silent;

@@ -10,7 +10,7 @@ class PathDetailsView {
   zen::PathAttemptSnapshot _attempt{};
 
   bool contact(ContactInfo& out) const {
-    for (int i = 0; i < the_mesh.getNumContacts(); i++) {
+    for (int i = MAX_ANON_CONTACTS; i < the_mesh.getTotalContactSlots(); i++) {
       if (the_mesh.getContactByIdx(i, out) &&
           memcmp(out.id.pub_key, _key, PUB_KEY_SIZE) == 0) return true;
     }
@@ -21,7 +21,7 @@ class PathDetailsView {
     int matches = 0;
     char name[32]{};
     ContactInfo candidate;
-    for (int i = 0; i < the_mesh.getNumContacts(); i++) {
+    for (int i = MAX_ANON_CONTACTS; i < the_mesh.getTotalContactSlots(); i++) {
       if (!the_mesh.getContactByIdx(i, candidate) ||
           memcmp(candidate.id.pub_key, hash, width)) continue;
       if (++matches > 1) break;

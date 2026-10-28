@@ -24,6 +24,10 @@ jobs:
           fetch-depth: 0
       - name: Setup Build Environment
         uses: ./.github/actions/setup-build-environment
+      - name: Verify offline preset snapshot and generator
+        run: |
+          python3 tools/zen_radio_presets.py --check
+          python3 -B -m unittest discover -s test -p 'test_zen_radio_presets.py'
       - name: Verify MeshCore boundary
         run: python3 tools/check_zen_baseline.py
       - name: Verify pinned transport extensions reject drift

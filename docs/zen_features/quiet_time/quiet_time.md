@@ -12,7 +12,9 @@ and wake in connected Auto when Screen Wake is On. Source Off and Child Mode
 restrictions continue to block local alerts.
 
 Configure **Quiet Time**, **Quiet from** and **Quiet until** under
-**Settings › Notifications**. Defaults are Off, 21:00 and 07:00.
+**Settings › Notifications**. Factory defaults are On, 21:00 and 07:00.
+These apply to fresh installations and factory resets; existing saved On/Off
+choices and schedules are preserved.
 
 The schedule uses the timezone in **Settings › System** and may cross midnight.
 City mode applies daylight-saving changes automatically; see the

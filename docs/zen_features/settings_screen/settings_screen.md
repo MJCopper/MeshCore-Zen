@@ -128,8 +128,13 @@ See the [Sensors guide](../sensors/sensors.md) for navigation and login behaviou
 ## Radio
 
 TX power, preset, frequency, spreading factor, bandwidth and coding rate. Preset
-changes apply the frequency, bandwidth, SF and CR together. Frequency uses a
-validated digit editor.
+changes apply the frequency, bandwidth, SF and CR together. Built-in presets
+come from a reviewed official MeshCore API snapshot and use Previous/Next pages.
+If a built-in recommends a path-hash size, selecting it also applies that network
+setting. An unspecified hash size and saved user RF presets leave the current
+hash mode unchanged. Installing firmware does not change saved radio settings.
+See the [preset snapshot workflow](../../design/zen_radio_presets.md). Frequency
+uses a validated digit editor.
 
 **Flood Scope** sets the saved default region for message floods and flood
 adverts. Enter a region name (or leave it empty for no scope), confirm the

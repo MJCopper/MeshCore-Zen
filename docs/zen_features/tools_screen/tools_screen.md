@@ -5,13 +5,18 @@
 | Tool | Purpose |
 | ---- | ------- |
 | Discover Repeaters | Scan for zero-hop repeaters and add results as contacts |
-| Node List | Browse, filter, inspect, ping and manage known nodes |
+| Node List | Inspect and manage repeaters, room servers and sensors |
 | Repeater Mode | Toggle the companion repeater backend |
 | Ringtone Editor | Edit and preview two 16-note chromatic notification melodies |
 | Diagnostics | View device, radio, mesh and runtime information |
 
-Node List opens on **All**. Use Left/Right for the Fav, All, Comp, Rpt, Room and
-Snsr filters; hold Enter for actions available to the selected node.
+Node List opens on **All** and contains repeaters, room servers and sensors.
+Use Left/Right to cycle **All → Fav → Rpt → Room → Snsr**; hold Enter for actions
+available to the selected node. Fav contains starred infrastructure nodes.
+Companions remain in the normal contact and messaging interfaces, including their
+existing speed-dial shortcuts. Untyped recent adverts are excluded from this
+management view; typed discovery results can still be added as contacts.
+The shared contact, advert and trace stores are unchanged.
 
 Diagnostics includes a RAM-only Events tab containing the 16 most recent
 operational warnings and errors. Newest events appear first, `W` and `E` mark

@@ -24,6 +24,9 @@ TEST(ConfigMaintenance, FreshDefaultsRemainCurrentWithoutLegacyMigration) {
   EXPECT_FALSE(zen::ConfigMaintenance::apply(prefs));
   EXPECT_EQ(1, prefs.bluetooth_enabled);
   EXPECT_EQ(1, prefs.keyboard_type);
+  EXPECT_EQ(1, prefs.quiet_time_enabled);
+  EXPECT_EQ(21 * 60, prefs.quiet_time_start_min);
+  EXPECT_EQ(7 * 60, prefs.quiet_time_end_min);
   EXPECT_EQ((uint16_t)(1U << 11), prefs.child_visible_pages);
   EXPECT_EQ(1, prefs.gps_adaptive);
 }
@@ -115,6 +118,20 @@ TEST(ConfigMaintenance, NormalizesZenOverlayValues) {
   EXPECT_EQ(0, prefs.page_order_set);
   EXPECT_EQ('\0', prefs.custom_msgs[0][sizeof(prefs.custom_msgs[0]) - 1]);
   EXPECT_EQ('\0', prefs.user_radio_presets[0].name[0]);
+}
+
+TEST(ConfigMaintenance, FactoryResetRestoresQuietTimeDefaultWithoutChangingBaseline) {
+  ZenPrefs prefs;
+  prefs.ble_pin = 123456;
+  prefs.quiet_time_enabled = 0;
+  prefs.quiet_time_start_min = 10;
+  prefs.quiet_time_end_min = 20;
+  prefs.resetZen();
+  zen::PrefsDefaults::apply(prefs);
+  EXPECT_EQ(1, prefs.quiet_time_enabled);
+  EXPECT_EQ(21 * 60, prefs.quiet_time_start_min);
+  EXPECT_EQ(7 * 60, prefs.quiet_time_end_min);
+  EXPECT_EQ(123456u, prefs.ble_pin);
 }
 
 int main(int argc, char** argv) {

@@ -13,6 +13,7 @@ public:
     prefs.pet_enabled = 0;
     prefs.child_visible_pages = ZenPrefs::HP_FAVOURITES;
     prefs.child_rooms_enabled = 0;
+    prefs.quiet_time_enabled = 1;
     prefs.quiet_time_start_min = 21 * 60;
     prefs.quiet_time_end_min = 7 * 60;
     prefs.bluetooth_enabled = 1;

@@ -1,10 +1,13 @@
 """Expose Zen-owned extensions before the unmodified MeshCore source tree."""
 
 import os
+import subprocess
+import sys
 
 Import("env")
 
 project = env.subst("$PROJECT_DIR")
+subprocess.run([sys.executable, os.path.join(project, "tools", "zen_radio_presets.py"), "--check"], check=True)
 env.Prepend(CPPPATH=[
     os.path.join(project, "examples", "companion_radio", "zen-overlay", "src"),
     os.path.join(project, "examples", "companion_radio", "zen-overlay",

@@ -4,21 +4,11 @@
 #include "../RadioPresets.h"
 #include "../ZenPrefs.h"
 
-// Shared "radio preset" picker used by both Settings › Radio and Tools ›
-// Repeater. Both edit the same 4 user preset slots in ZenPrefs and build the
-// same popup layout; they differ only in which freq/bw/sf/cr fields they target
-// (the companion's own params vs. the dedicated repeater profile) and in what
-// runs when a value is applied. This struct owns the popup + save/delete state
-// and the lookup/save logic; the owning screen passes a Target pointing at its
-// fields and handles apply()/dirty/keyboard/alert on the Result it returns.
-//
-// Popup layout (built by open()):
-//   [0]                       = "+ Save current..."
-//   [1 .. RADIO_PRESET_COUNT] = built-in presets
-//   [.. + user_count]         = saved user presets (empty slots skipped)
-//   [last, if user_count > 0] = "- Delete preset..."
+// Bounded, offline preset picker. Sixteen built-ins per page leave room for
+// save, four user presets, delete and both navigation rows in the shared menu.
+// User presets retain their existing four-RF-parameter format.
 struct RadioPresetPicker {
-  // The four radio fields this picker reads and writes.
+  // Explicit user selection also applies optional built-in network metadata.
   struct Target {
     float*   freq;
     float*   bw;
@@ -40,40 +30,56 @@ struct RadioPresetPicker {
   bool      saving   = false;   // keyboard is open to name a new preset
   bool      deleting = false;   // menu is showing the delete sub-list
   int8_t    confirm_slot = -1;  // slot awaiting destructive-action confirmation
+  uint8_t   page = 0; // Fits the existing ARM object padding.
+  static constexpr int PAGE_SIZE = 16;
+  static_assert(PAGE_SIZE + ZenPrefs::USER_RADIO_PRESET_MAX + 4 <= PopupMenu::PM_MAX_ITEMS,
+                "Preset page exceeds popup capacity");
 
   static bool matches(const Target& t, float freq, float bw, uint8_t sf, uint8_t cr) {
     return radioParamsMatchPreset(*t.freq, *t.bw, *t.sf, *t.cr, freq, bw, sf, cr);
   }
 
-  // Display name for the target: a built-in preset, a saved user preset, or
-  // "Custom" if the params don't exactly match any of them.
+  static bool matchesBuiltin(ZenPrefs* p, const Target& t, const RadioPreset& r) {
+    return p && matches(t, r.freq, r.bw, r.sf, r.cr) &&
+      (!r.path_hash_size || p->getRadioPrefs()->getHashMode() + 1 == r.path_hash_size);
+  }
+
+  int matchingBuiltin(ZenPrefs* p, const Target& t) const {
+    int generic = -1;
+    for (int i = 0; i < RADIO_PRESET_COUNT; ++i) {
+      if (!matchesBuiltin(p, t, RADIO_PRESETS[i])) continue;
+      if (RADIO_PRESETS[i].path_hash_size) return i;
+      if (generic < 0) generic = i;
+    }
+    return generic;
+  }
+
   const char* currentName(ZenPrefs* p, const Target& t) const {
     if (!p) return "Custom";
-    for (int i = 0; i < RADIO_PRESET_COUNT; i++) {
-      const RadioPreset& r = RADIO_PRESETS[i];
-      if (matches(t, r.freq, r.bw, r.sf, r.cr)) return r.name;
-    }
-    for (int i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; i++) {
-      const auto& u = p->user_radio_presets[i];
+    int builtin = matchingBuiltin(p, t);
+    if (builtin >= 0) return RADIO_PRESETS[builtin].name;
+    for (const auto& u : p->user_radio_presets)
       if (u.name[0] && matches(t, u.freq, u.bw, u.sf, u.cr)) return u.name;
-    }
     return "Custom";
   }
 
-  // Position of the target within the popup list built by open(), or -1
-  // ("Custom") if nothing matches.
+  int builtinStart() const { return int(page) * PAGE_SIZE; }
+  int builtinCount() const {
+    int count = RADIO_PRESET_COUNT - builtinStart();
+    return count < PAGE_SIZE ? count : PAGE_SIZE;
+  }
+  int pageCount() const { return (RADIO_PRESET_COUNT + PAGE_SIZE - 1) / PAGE_SIZE; }
+
   int currentListIndex(ZenPrefs* p, const Target& t) const {
     if (!p) return -1;
-    for (int i = 0; i < RADIO_PRESET_COUNT; i++) {
-      const RadioPreset& r = RADIO_PRESETS[i];
-      if (matches(t, r.freq, r.bw, r.sf, r.cr)) return i + 1;
-    }
-    int pos = RADIO_PRESET_COUNT + 1;
-    for (int i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; i++) {
-      const auto& u = p->user_radio_presets[i];
+    int builtin = matchingBuiltin(p, t);
+    if (builtin >= builtinStart() && builtin < builtinStart() + builtinCount())
+      return 1 + builtin - builtinStart();
+    int row = 1 + builtinCount();
+    for (const auto& u : p->user_radio_presets) {
       if (!u.name[0]) continue;
-      if (matches(t, u.freq, u.bw, u.sf, u.cr)) return pos;
-      pos++;
+      if (matches(t, u.freq, u.bw, u.sf, u.cr)) return row;
+      ++row;
     }
     return -1;
   }
@@ -97,23 +103,30 @@ struct RadioPresetPicker {
     return true;
   }
 
-  void open(ZenPrefs* p, const Target& t, const char* title) {
-    deleting = false;
-    confirm_slot = -1;
+  void buildPage(ZenPrefs* p, const Target& t, const char* title, bool navigation = false) {
     menu.begin(title, 6);
     menu.addItem("+ Save current...");
-    for (int i = 0; i < RADIO_PRESET_COUNT; i++) menu.addItem(RADIO_PRESETS[i].name);
+    for (int i = builtinStart(); i < builtinStart() + builtinCount(); ++i)
+      menu.addItem(RADIO_PRESETS[i].name);
     user_count = 0;
-    if (p) {
-      for (int i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; i++) {
-        if (!p->user_radio_presets[i].name[0]) continue;
-        menu.addItem(p->user_radio_presets[i].name);
-        user_slot[user_count++] = (uint8_t)i;
-      }
+    if (p) for (int i = 0; i < ZenPrefs::USER_RADIO_PRESET_MAX; ++i) {
+      if (!p->user_radio_presets[i].name[0]) continue;
+      menu.addItem(p->user_radio_presets[i].name);
+      user_slot[user_count++] = uint8_t(i);
     }
-    if (user_count > 0) menu.addItem("- Delete preset...");
-    int idx = currentListIndex(p, t);
-    menu.setSelected(idx >= 0 ? idx : 0);
+    if (user_count) menu.addItem("- Delete preset...");
+    if (page) menu.addItem("< Previous presets");
+    if (page + 1 < pageCount()) menu.addItem("Next presets >");
+    int selected = currentListIndex(p, t);
+    menu.setSelected(selected >= 0 ? selected : navigation ? 1 : 0);
+  }
+
+  void open(ZenPrefs* p, const Target& t, const char* title) {
+    saving = deleting = false;
+    confirm_slot = -1;
+    int builtin = matchingBuiltin(p, t);
+    page = builtin >= 0 ? uint8_t(builtin / PAGE_SIZE) : 0;
+    buildPage(p, t, title);
   }
 
   // Reuses `menu` for a second-level list of just the saved user presets (their
@@ -134,7 +147,7 @@ struct RadioPresetPicker {
   // Handle the index the popup reports as SELECTED. Mutates target fields on a
   // built-in/user pick; deletes a slot in the delete sub-list. See Result.
   Result onSelected(int idx, ZenPrefs* p, const Target& t) {
-    if (!p) return NONE;
+    if (!p || idx < 0 || idx >= menu.count()) return NONE;
     if (confirm_slot >= 0) {
       Result r = NONE;
       if (idx == 0) {
@@ -150,15 +163,16 @@ struct RadioPresetPicker {
       return NONE;
     }
     const int builtin_base = 1;
-    const int user_base    = builtin_base + RADIO_PRESET_COUNT;
+    const int user_base    = builtin_base + builtinCount();
     const int delete_idx   = user_base + user_count;
     if (idx == 0) {
       saving = true;
       return START_SAVE;
     }
     if (idx >= builtin_base && idx < user_base) {
-      const RadioPreset& r = RADIO_PRESETS[idx - builtin_base];
+      const RadioPreset& r = RADIO_PRESETS[builtinStart() + idx - builtin_base];
       *t.freq = r.freq; *t.bw = r.bw; *t.sf = r.sf; *t.cr = r.cr;
+      if (r.path_hash_size) p->getRadioPrefs()->setHashMode(r.path_hash_size - 1);
       return APPLIED;
     }
     if (idx >= user_base && idx < delete_idx) {
@@ -168,6 +182,22 @@ struct RadioPresetPicker {
     }
     if (user_count > 0 && idx == delete_idx) {
       openDelete(p);
+      return NONE;
+    }
+    int navigation = delete_idx + (user_count > 0 ? 1 : 0);
+    if (page) {
+      if (idx == navigation) {
+        --page;
+        const char* title = menu._title;
+        buildPage(p, t, title, true);
+        return NONE;
+      }
+      ++navigation;
+    }
+    if (page + 1 < pageCount() && idx == navigation) {
+      ++page;
+      const char* title = menu._title;
+      buildPage(p, t, title, true);
     }
     return NONE;
   }

@@ -40,6 +40,7 @@ void File::close(){if(fs && writing)fs->mutation();fs=nullptr;}
 #define FILESYSTEM SettingsFS
 #include "../../examples/companion_radio/zen-overlay/app/zen/ZenStore.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/BaselinePrefsFingerprint.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/ZenPrefsDefaults.h"
 using namespace zen;
 static std::vector<uint8_t> encode(const ZenSettings& p,uint32_t gen=1){std::vector<uint8_t> b(ZenPrefsCodec::MAX_ENCODED_SIZE);auto n=ZenPrefsCodec::encode(p,gen,b.data(),b.size());EXPECT_GT(n,0u);b.resize(n);return b;}
 static std::vector<uint8_t> fixture(int version){std::ifstream f("test/fixtures/zen_settings/v"+std::to_string(version)+".bin",std::ios::binary);return {std::istreambuf_iterator<char>(f),std::istreambuf_iterator<char>()};}
@@ -210,4 +211,51 @@ TEST(ZenSettingsStore, ValidOlderPrimaryDoesNotPermitOverwritingNewerRecoveryFil
     ZenStore store;store.begin(&fs,nullptr);EXPECT_FALSE(store.load(p));EXPECT_TRUE(store.newerVersion());EXPECT_FALSE(store.save(p));EXPECT_EQ(before,fs.files);
   }
 }
+
+TEST(ZenSettingsStore, SavedQuietTimeChoiceAndScheduleOverrideNewFactoryDefaults) {
+  for(uint8_t enabled : {0, 1}) {
+    SettingsFS fs;
+    ZenStore store;
+    store.begin(&fs, nullptr);
+    ZenPrefs saved;
+    zen::PrefsDefaults::apply(saved);
+    saved.quiet_time_enabled = enabled;
+    saved.quiet_time_start_min = 20 * 60;
+    saved.quiet_time_end_min = 6 * 60;
+    ASSERT_TRUE(store.save(saved));
+    ZenPrefs restored;
+    zen::PrefsDefaults::apply(restored);
+    ASSERT_EQ(1, restored.quiet_time_enabled);
+    ZenStore reboot;
+    reboot.begin(&fs, nullptr);
+    ASSERT_TRUE(reboot.load(restored));
+    zen::PrefsDefaults::normalize(restored);
+    EXPECT_EQ(enabled, restored.quiet_time_enabled);
+    EXPECT_EQ(20 * 60, restored.quiet_time_start_min);
+    EXPECT_EQ(6 * 60, restored.quiet_time_end_min);
+  }
+}
+
+TEST(ZenSettingsStore, LegacySavedQuietTimeChoiceOverridesNewFactoryDefault) {
+  for(int version : {1, 2}) for(uint8_t enabled : {0, 1}) {
+    auto bytes = fixture(version);
+    for(size_t at = 13; at < bytes.size() - 4;) {
+      uint8_t tag = bytes[at];
+      uint16_t length = bytes[at + 1] | uint16_t(bytes[at + 2]) << 8;
+      size_t body = at + 3;
+      if(tag == 2) bytes[body] = enabled;
+      if(tag == 9) bytes[body + 2611] = enabled;
+      at = body + length;
+    }
+    rehash(bytes);
+    ZenPrefs restored;
+    zen::PrefsDefaults::apply(restored);
+    ASSERT_TRUE(ZenPrefsCodec::decode(restored, bytes.data(), bytes.size()));
+    zen::PrefsDefaults::normalize(restored);
+    EXPECT_EQ(enabled, restored.quiet_time_enabled);
+    EXPECT_EQ(21 * 60, restored.quiet_time_start_min);
+    EXPECT_EQ(7 * 60, restored.quiet_time_end_min);
+  }
+}
+
 int main(int argc,char** argv){::testing::InitGoogleTest(&argc,argv);return RUN_ALL_TESTS();}

@@ -1,3 +1,4 @@
+#include "zen/NodeListAccess.h"
 #include "MyMesh.h"
 #include "zen/RepeaterTiming.h"
 #include "zen/ZenPrefsDefaults.h"
@@ -481,6 +482,33 @@ void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path
 
 static int sort_by_recent(const void *a, const void *b) {
   return ((AdvertPath *) b)->recv_timestamp - ((AdvertPath *) a)->recv_timestamp;
+}
+
+static_assert(ADV_TYPE_CHAT==1 && ADV_TYPE_REPEATER==2 && ADV_TYPE_ROOM==3 && ADV_TYPE_SENSOR==4,
+              "Node List type filters must match MeshCore advert types");
+
+// Read-only Node List projection. The provider never returns a retained pointer
+// or copies paths. The baseline bulk APIs and phone protocol remain unchanged.
+unsigned MyMesh::nodeListCount(zen::NodeListModel::Kind kind) const {
+  switch(kind) {
+    case zen::NodeListModel::CONTACT:return getNumContacts();
+    case zen::NodeListModel::ADVERT:return ADVERT_PATH_TABLE_SIZE;
+    case zen::NodeListModel::DISCOVERY:return _discover_count;
+  }
+  return 0;
+}
+
+bool MyMesh::readNodeListRecord(zen::NodeListModel::Kind kind,unsigned index,
+                               zen::NodeListModel::Record& out) {
+  switch(kind) {
+    case zen::NodeListModel::CONTACT:
+      return zen::NodeListAccess::contact<MyMesh,ContactInfo>(*this,index,MAX_ANON_CONTACTS,out);
+    case zen::NodeListModel::DISCOVERY:
+      return zen::NodeListAccess::discovery(*this,_discover_results,_discover_count,index,out);
+    case zen::NodeListModel::ADVERT:
+      return zen::NodeListAccess::advert(advert_paths,ADVERT_PATH_TABLE_SIZE,index,out);
+  }
+  return false;
 }
 
 int MyMesh::getRecentlyHeard(AdvertPath dest[], int max_num) {
@@ -1342,7 +1370,10 @@ bool MyMesh::sendNodeDiscoverReq(bool silent) {
   }
   _pending_node_discover_until = futureMillis(8000);
   _pending_node_discover_silent = silent;
-  if (!silent) _discover_count = 0;
+  if (!silent) {
+    _discover_count = 0;
+    ++_node_list_discovery_generation;
+  }
   uint32_t since = 0;
   memcpy(&data[6], &since, 4);
   auto pkt = createControlData(data, sizeof(data));

@@ -6,12 +6,12 @@
   },
   "app/MyMesh.cpp": {
     "baseline_sha256": "4c9f283f596407dd85387ef6c9ecf6802f3c5a8c2891b7420325a97731d03be9",
-    "overlay_sha256": "eb9557add6cce19bbed25fb5d9ff4471df5e091b952115232049df41680d92c4",
+    "overlay_sha256": "a66532a5fec467bd76e9ef8489ca09c96d1106d43f11f9c27e106d0d99b51f56",
     "reason": "Zen companion integration; baseline protocol, storage and radio ownership is parity-guarded."
   },
   "app/MyMesh.h": {
     "baseline_sha256": "2401a22b5fb58397da5c80b96ec437739472b3085c1669a543624c1346383478",
-    "overlay_sha256": "b358ac8a3f6c64f025b453c9906ba238ab08a3bdfb077250eeecf86ac925ced4",
+    "overlay_sha256": "90c2003a26cd50f10120c9e6a41269960832927c34c084a9f7b66060ab8f7b77",
     "reason": "Zen companion integration API over BaseChatMesh."
   },
   "app/main.cpp": {
