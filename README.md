@@ -1,4 +1,4 @@
-## Flood text doubler — v1.18.0-doubler.2
+## Flood text doubler — v1.18.0-doubler.3
 
 Optional repeater builds for Xiao nRF52 WIO and RAK4631 send flood channel text
 twice, with a random 500–800 ms gap after the first transmission completes.

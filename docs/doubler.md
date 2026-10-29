@@ -1,6 +1,6 @@
 # Flood channel text doubler
 
-Current release: **v1.18.0-doubler.2**, based on MeshCore v1.18.0.
+Current release: **v1.18.0-doubler.3**, based on MeshCore v1.18.0.
 
 This opt-in repeater firmware sends flood channel text twice. It covers Public,
 hashtag channels and private channels without knowing their names or keys.
@@ -27,10 +27,10 @@ python3 variants/doubler/build.py
 Pass `--pio /path/to/pio` if needed. Outputs are:
 
 ```text
-.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.2.uf2
-.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.2.uf2
-.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.2.ota.zip
-.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.2.ota.zip
+.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.3.uf2
+.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.3.uf2
+.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.3.ota.zip
+.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.3.ota.zip
 .pio/build/doubler-manifest.json
 ```
 
@@ -59,34 +59,48 @@ settings before testing; flashing does not reset a node's saved preferences.
 
 After a successful **local** first TX completion, a fresh random delay of
 500–800 ms inclusive is chosen. This does not confirm reception by another node.
-The same packet is requeued, preserving its header, payload, path and transport
+The same packet is retained, preserving its header, payload, path and transport
 codes byte for byte. It does not pass through flood routing a second time.
 
 The gap is nonblocking: receive processing and other queued traffic continue.
-The repeat becomes eligible after the chosen delay and can occur later due to
-other traffic, existing channel checks, or the airtime budget. Both transmissions
-are logged, counted, and charged to the normal TX budget. The baseline's CAD
-timeout/force-send behaviour remains unchanged; this is not a guarantee that a
-repeat can never overlap a busy channel.
+The repeat becomes eligible after the chosen delay, with a fixed expiry at
+**3,000 ms after the first local TX completion**. Waiting never refreshes that
+deadline. Expired waiting packets are freed even while the radio is transmitting
+another packet or the airtime budget is exhausted. A second transmission may
+start before expiry and finish afterward; an active transmission is never aborted.
+
+Waiting repeats live in the module's own bounded list, outside the normal
+outbound queue. Normal packets that are due always go first. When only a repeat
+is ready, busy reception or insufficient budget simply defers it without changing
+the shared CAD/backoff timers. Optional-only busy or budget waits have their own
+200 ms retry pause, avoiding continuous CAD scans without delaying normal
+packets or refreshing the expiry. An optional repeat never uses the baseline's
+busy-channel timeout to force a transmission. A final check drops the repeat if
+it has expired or reception has begun during TX preparation. Normal packets keep
+the baseline's channel and force-send behaviour. Both completed transmissions
+are logged, counted, and charged to the normal TX budget.
 
 The repeater's 32-packet pool is protected by limiting pending repeats to four
-and scheduling them only when at least four free slots remain. Repeats use queue
-priority 254, below normal forwarding priorities. Under pressure the optional
-repeat is skipped; under sustained higher-priority traffic it can be delayed.
+and scheduling them only when at least four free slots remain. Under pressure
+the optional repeat is skipped; sustained normal traffic makes waiting repeats
+expire. These held packets use pool slots but are not included in the normal
+outbound queue-length statistic.
 This is best effort, not a promise that every eligible packet reaches the air
 twice. Failed starts and timed-out transmissions are released without additional
 attempts. A repeat never schedules a third transmission.
 
 Stock 1.18 repeaters recognise the identical copy through normal duplicate
 suppression. Their shared cache retains 160 hashes by insertion order, not a
-fixed timeout. A restart, sufficient intervening insertions or an unusually
-delayed repeat can allow it to be processed again. A second TX also consumes
+fixed timeout. A restart or sufficient intervening insertions can still allow a
+repeat to be processed again; three seconds is not a remote-cache guarantee.
+A second TX also consumes
 power and creates another interval when this repeater cannot receive.
 
 ## Integration and future upstream merges
 
-The policy is in `src/helpers/FloodTextDoubler.h`. Its four pending pointers are
-local bookkeeping only: no Packet fields, wire format, hash, persistent settings
+The policy is in `src/helpers/FloodTextDoubler.h`. Its four pending records hold
+the packet pointer, ready time and expiry. These are local bookkeeping only:
+no Packet fields, wire format, hash, persistent settings
 or routing logic are changed.
 
 The only core integration points are:
@@ -98,13 +112,24 @@ The only core integration points are:
    selected delay.
 2. `Dispatcher::onPacketReleased(Packet*)`: clears optional bookkeeping before
    an outbound packet returns to the pool, including failures and invalid TX.
+3. `Dispatcher::serviceOptionalPackets(uint32_t, const Packet* active)`: runs on
+   every loop to release expired waiting copies. The active packet is excluded.
+4. `Dispatcher::getOptionalPacket(uint32_t)`: borrows a ready, unexpired copy;
+   selection transfers it to the dispatcher. It is selected only when no normal
+   packet is due, and its record remains until completion/release.
+5. `Dispatcher::deferOptionalPackets(uint32_t)`: applies the module's local retry
+   pause on optional-only busy/budget waits, without updating normal timers.
+6. `Dispatcher::allowPacketStart(Packet*, uint32_t)`: checks optional expiry and
+   reception immediately before starting the radio. Rejected copies are freed.
+
+All hooks default to inactive behaviour. Optional-only waits bypass shared
+busy/backoff updates, while normal packets follow the existing dispatcher path.
 
 `examples/simple_repeater/MyMesh.h` connects those hooks only when
 `FLOOD_TEXT_DOUBLER` is defined. `variants/doubler/platformio.ini` defines it for
-the custom builds and owns the release version. The policy relies on the
-repeater's `StaticPoolPacketManager`, whose outbound queue has the same capacity
-as its pool: a held packet always has room to be requeued. A different packet
-manager must provide that guarantee or add explicit enqueue-failure handling.
+the custom builds and owns the release version. The policy holds packets already
+allocated from the repeater's static pool; waiting copies need neither a new
+allocation nor an outbound queue insertion.
 
 When updating upstream, review the TX-completion/release hooks, pool ownership,
 parent environment names and packet classification, then rerun tests and both
@@ -124,7 +149,9 @@ The doubler suite uses the production dispatcher, static pool, RNG mapping,
 queue, serialization and duplicate table with a fake radio and clock. It covers
 classification, both delay endpoints, fresh random draws, identical copies,
 bounded repeats, priorities, reception, budget deferral, failure/timeout cleanup,
-pool reuse, duplicate input, and 32-bit queue deadline rollover. Routing and
+pool reuse, duplicate input, exact expiry boundaries, cleanup during other TX,
+busy/budget starvation, normal-traffic ordering and CAD isolation, final-start
+guards, and 32-bit delay/expiry rollover. Routing and
 cryptographic interoperability still require hardware validation: native tests
 use the repository's noncryptographic crypto mocks.
 
@@ -155,6 +182,9 @@ not establish these results.
 8. Exercise bursts and bidirectional traffic. Check repeats remain bounded,
    ordinary traffic takes priority, TX accounting includes both copies, and the
    node does not reset or lose packet-pool capacity during sustained operation.
+   Keep the channel busy past three seconds and verify the optional copy expires
+   rather than transmitting later. Verify normal traffic retains its own CAD
+   wait and is not delayed by a prior optional-only busy wait.
 9. Alternate stock and doubler firmware over comparable hill-link test periods
    on the same board, antenna and settings. Record unique message delivery,
    latency, airtime, duplicates, failures and reverse-direction reception.

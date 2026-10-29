@@ -164,6 +164,12 @@ protected:
   // Return true only when the hook takes ownership of the completed packet.
   virtual bool retainAfterTransmit(Packet* packet, uint32_t completed_at) { return false; }
   virtual void onPacketReleased(Packet* packet) { }
+  // Optional packets wait outside the normal queue. Service may release waiting
+  // packets, but must never release active. Selection transfers ownership here.
+  virtual void serviceOptionalPackets(uint32_t now, const Packet* active) { }
+  virtual Packet* getOptionalPacket(uint32_t now) { return nullptr; }
+  virtual void deferOptionalPackets(uint32_t now) { }
+  virtual bool allowPacketStart(Packet* packet, uint32_t now) { return true; }
   virtual const char* getLogDateTime() { return ""; }
 
   virtual float getAirtimeBudgetFactor() const;

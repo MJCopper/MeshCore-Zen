@@ -142,6 +142,20 @@ protected:
   void onPacketReleased(mesh::Packet* packet) override {
     flood_text_doubler.forget(packet);
   }
+  void serviceOptionalPackets(uint32_t now, const mesh::Packet* active) override {
+    while (auto packet = flood_text_doubler.takeExpired(now, active)) releasePacket(packet);
+  }
+  mesh::Packet* getOptionalPacket(uint32_t now) override {
+    return flood_text_doubler.nextReady(now);
+  }
+  void deferOptionalPackets(uint32_t now) override {
+    flood_text_doubler.deferReady(now);
+  }
+  bool allowPacketStart(mesh::Packet* packet, uint32_t now) override {
+    if (!flood_text_doubler.isRepeat(packet)) return true;
+    if (_radio->isReceiving()) return false;
+    return flood_text_doubler.canStart(packet, (uint32_t)_ms->getMillis());
+  }
 #endif
 
   float getAirtimeBudgetFactor() const override {

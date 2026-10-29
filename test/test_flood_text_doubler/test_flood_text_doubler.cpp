@@ -28,6 +28,10 @@ class FakeRadio : public Radio {
 public:
   bool transmitting = false, complete = false, busy = false, fail = false;
   unsigned finishes = 0;
+  unsigned busyChecks = 0, busyOnCheck = 0;
+  unsigned airtimeChecks = 0, advanceOnAirtimeCheck = 0;
+  unsigned advanceMs = 0;
+  FakeClock* clock = nullptr;
   std::vector<std::vector<uint8_t>> frames;
   std::vector<uint8_t> incoming;
 
@@ -39,7 +43,10 @@ public:
     incoming.clear();
     return len;
   }
-  uint32_t getEstAirtimeFor(int) override { return 100; }
+  uint32_t getEstAirtimeFor(int) override {
+    if (++airtimeChecks == advanceOnAirtimeCheck && clock) clock->now += advanceMs;
+    return 100;
+  }
   float packetScore(float, int) override { return 1; }
   bool startSendRaw(const uint8_t* bytes, int len) override {
     if (fail) { fail = false; return false; }
@@ -55,7 +62,10 @@ public:
     finishes++;
   }
   bool isInRecvMode() const override { return !transmitting; }
-  bool isReceiving() override { return busy; }
+  bool isReceiving() override {
+    busyChecks++;
+    return busy || (busyOnCheck && busyChecks >= busyOnCheck);
+  }
 };
 
 class TestDispatcher : public Dispatcher {
@@ -77,6 +87,16 @@ protected:
     return enabled && doubler.onTransmitComplete(packet, *_mgr, rng, completed_at);
   }
   void onPacketReleased(Packet* packet) override { doubler.forget(packet); }
+  void serviceOptionalPackets(uint32_t now, const Packet* active) override {
+    if (enabled) while (auto packet = doubler.takeExpired(now, active)) releasePacket(packet);
+  }
+  Packet* getOptionalPacket(uint32_t now) override { return enabled ? doubler.nextReady(now) : nullptr; }
+  void deferOptionalPackets(uint32_t now) override { if (enabled) doubler.deferReady(now); }
+  bool allowPacketStart(Packet* packet, uint32_t) override {
+    if (!enabled || !doubler.isRepeat(packet)) return true;
+    if (_radio->isReceiving()) return false;
+    return doubler.canStart(packet, (uint32_t)_ms->getMillis());
+  }
   void logTx(Packet*, int) override { static_cast<FakeClock*>(_ms)->now += logDelay; }
   float getAirtimeBudgetFactor() const override { return budgetFactor; }
   unsigned long getDutyCycleWindowMs() const override { return budgetWindow; }
@@ -97,7 +117,7 @@ protected:
   StaticPoolPacketManager manager{32};
   TestDispatcher dispatcher{radio, clock, manager};
 
-  void SetUp() override { dispatcher.begin(); }
+  void SetUp() override { radio.clock = &clock; dispatcher.begin(); }
   void tick(unsigned long ms = 1) { clock.now += ms; dispatcher.loop(); }
   Packet* packet(uint8_t route = ROUTE_TYPE_FLOOD, uint8_t type = PAYLOAD_TYPE_GRP_TXT) {
     Packet* p = dispatcher.obtainNewPacket();
@@ -305,7 +325,7 @@ TEST_F(DoublerTest, ExactlyFourFreeSlotsStillAllowRepeat) {
 
 TEST_F(DoublerTest, ExplicitReleaseClearsRepeatBookkeeping) {
   send(packet()); finish();
-  Packet* p = manager.removeOutboundByIdx(0);
+  Packet* p = dispatcher.doubler.nextReady((uint32_t)clock.now + 500);
   ASSERT_NE(nullptr, p);
   dispatcher.releasePacket(p);
   EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
@@ -318,7 +338,7 @@ TEST_F(DoublerTest, PendingRepeatsAreBounded) {
   for (unsigned i = 0; i < 5; i++) { send(packet()); finish(); }
   EXPECT_EQ(4u, dispatcher.doubler.pendingCount());
   // All repeats have lower priority than originals. Drain them and check leaks.
-  for (unsigned i = 0; i < 4; i++) { tick(1000); finish(); }
+  for (unsigned i = 0; i < 4; i++) { tick(150); finish(); }
   EXPECT_EQ(9u, radio.frames.size());
   EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
   EXPECT_EQ(32, manager.getFreeCount());
@@ -341,14 +361,14 @@ TEST_F(DoublerTest, DuplicateReceptionDoesNotCreateAnotherPair) {
   EXPECT_EQ(32, manager.getFreeCount());
 }
 
-TEST_F(DoublerTest, QueueDeadlineWrapsAtThirtyTwoBits) {
-  // Native unsigned long is 64-bit; test the policy/production queue directly
+TEST_F(DoublerTest, RepeatDelayWrapsAtThirtyTwoBits) {
+  // Native unsigned long is 64-bit; test the policy timestamps directly
   // with the actual uint32_t timestamps used on the nRF52.
   Packet* p = packet();
   uint32_t now = UINT32_MAX - 200;
   ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, now));
-  EXPECT_EQ(nullptr, manager.getNextOutbound(now + 499));
-  EXPECT_EQ(p, manager.getNextOutbound(now + 500));
+  EXPECT_EQ(nullptr, dispatcher.doubler.nextReady(now + 499));
+  EXPECT_EQ(p, dispatcher.doubler.nextReady(now + 500));
   EXPECT_FALSE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, now + 600));
   dispatcher.releasePacket(p);
   EXPECT_EQ(32, manager.getFreeCount());
@@ -361,6 +381,183 @@ TEST_F(DoublerTest, RepeatedUseDoesNotExhaustPool) {
     ASSERT_EQ(0u, dispatcher.doubler.pendingCount());
   }
   EXPECT_EQ(400u, radio.frames.size());
+}
+
+
+TEST_F(DoublerTest, RepeatMayStartJustBeforeExpiryAndFinishAfterIt) {
+  send(packet()); finish(); tick(2999);
+  ASSERT_EQ(2u, radio.frames.size());
+  tick();  // now expired, but the active transmission must not be freed
+  EXPECT_TRUE(radio.transmitting);
+  EXPECT_EQ(1u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(31, manager.getFreeCount());
+  finish();
+  EXPECT_EQ(32, manager.getFreeCount());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+}
+
+TEST_F(DoublerTest, RepeatCannotStartAtExpiry) {
+  send(packet()); finish(); tick(3000);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  EXPECT_EQ(0, manager.getOutboundTotal());
+}
+
+TEST_F(DoublerTest, RepeatCannotStartAfterExpiry) {
+  send(packet()); finish(); tick(5000);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, WaitingRepeatExpiresWhileNormalPacketIsTransmitting) {
+  send(packet()); finish();
+  dispatcher.sendPacket(packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_ACK), 1);
+  tick(2990);
+  ASSERT_TRUE(radio.transmitting);
+  ASSERT_EQ(2u, radio.frames.size());
+  tick(10);  // waiting repeat expires; active normal TX is left alone
+  EXPECT_TRUE(radio.transmitting);
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(31, manager.getFreeCount());
+  finish();
+  EXPECT_EQ(32, manager.getFreeCount());
+  EXPECT_EQ(2u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, BusyWaitingDoesNotRefreshExpiryOrForceRepeat) {
+  send(packet()); finish();
+  radio.busy = true;
+  tick(500);
+  tick(2499);
+  EXPECT_EQ(1u, dispatcher.doubler.pendingCount());
+  tick();
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  tick(5000);  // beyond baseline CAD force-send timeout
+  EXPECT_EQ(1u, radio.frames.size());
+  radio.busy = false;
+  tick();
+  EXPECT_EQ(1u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, BudgetBlockedRepeatStillExpires) {
+  dispatcher.budgetFactor = 99;
+  dispatcher.budgetWindow = 10000;
+  dispatcher.begin();
+  send(packet()); finish(); tick(3000);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ContinuousNormalTrafficKeepsOrderAndExpiresRepeat) {
+  send(packet()); finish();
+  for (unsigned i = 0; i < 31; i++) {
+    Packet* normal = packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_ACK);
+    normal->payload[0] = i;
+    send(normal); finish();
+    ASSERT_EQ(i + 2, radio.frames.size());
+    EXPECT_EQ(i, radio.frames.back()[4]);  // header, path length, two path bytes
+  }
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  send(packet()); finish(); tick(500); finish();
+  EXPECT_EQ(34u, radio.frames.size());  // expired records can be reused
+}
+
+TEST_F(DoublerTest, MultipleExpiredCopiesReleaseDistinctPoolSlots) {
+  for (unsigned i = 0; i < 4; i++) { send(packet()); finish(); }
+  EXPECT_EQ(4u, dispatcher.doubler.pendingCount());
+  tick(3000); tick(5000);
+  EXPECT_EQ(4u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  std::vector<Packet*> allocated;
+  for (unsigned i = 0; i < 32; i++) {
+    Packet* p = manager.allocNew();
+    ASSERT_NE(nullptr, p);
+    for (auto previous : allocated) EXPECT_NE(previous, p);
+    allocated.push_back(p);
+  }
+  EXPECT_EQ(nullptr, manager.allocNew());
+  for (auto p : allocated) dispatcher.releasePacket(p);
+}
+
+TEST_F(DoublerTest, OptionalBusyWaitDoesNotDelayNewNormalPacket) {
+  send(packet()); finish();
+  radio.busy = true;
+  tick(500);
+  radio.busy = false;
+  send(packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_ACK));  // no optional 200 ms backoff
+  ASSERT_EQ(2u, radio.frames.size());
+  EXPECT_EQ(PAYLOAD_TYPE_ACK, (radio.frames.back()[0] >> PH_TYPE_SHIFT) & PH_TYPE_MASK);
+  finish(); tick(101); finish();  // optional retry pause does not affect normal TX
+  EXPECT_EQ(3u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, OptionalBusyWaitDoesNotStartNormalCadTimer) {
+  send(packet()); finish();
+  radio.busy = true;
+  tick(500); tick(2000);
+  dispatcher.sendPacket(packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_ACK), 1);
+  tick();  // normal packet starts its own baseline CAD wait here
+  tick(500); tick(3001);
+  EXPECT_EQ(1u, radio.frames.size());
+  tick(501);  // now normal packet's own CAD timer exceeds four seconds
+  ASSERT_EQ(2u, radio.frames.size());
+  EXPECT_EQ(PAYLOAD_TYPE_ACK, (radio.frames.back()[0] >> PH_TYPE_SHIFT) & PH_TYPE_MASK);
+  finish();
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+}
+
+TEST_F(DoublerTest, OptionalBusyChecksHaveLocalBackoffWithoutExtendingExpiry) {
+  send(packet()); finish();
+  radio.busy = true;
+  tick(500);
+  auto checks = radio.busyChecks;
+  tick(199);
+  EXPECT_EQ(checks, radio.busyChecks);
+  tick();
+  EXPECT_EQ(checks + 1, radio.busyChecks);
+  tick(2300);  // three seconds total; local retry pauses do not refresh expiry
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  EXPECT_EQ(1u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, FinalGuardDropsRepeatWhenReceptionStartsAfterInitialCheck) {
+  send(packet()); finish();
+  radio.busyOnCheck = radio.busyChecks + 2;  // idle at scheduler check, busy at final guard
+  tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, FinalGuardDropsRepeatThatExpiresDuringPreparation) {
+  send(packet()); finish();
+  radio.advanceOnAirtimeCheck = radio.airtimeChecks + 2;
+  radio.advanceMs = 1;  // expiry crossed during final airtime/serialization preparation
+  tick(2999);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ExpiryWrapsAtThirtyTwoBits) {
+  Packet* p = packet();
+  uint32_t now = UINT32_MAX - 1000;
+  ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, now));
+  EXPECT_EQ(p, dispatcher.doubler.nextReady(now + 2999));
+  EXPECT_EQ(nullptr, dispatcher.doubler.takeExpired(now + 2999, nullptr));
+  EXPECT_FALSE(dispatcher.doubler.canStart(p, now + 3000));
+  EXPECT_EQ(nullptr, dispatcher.doubler.nextReady(now + 3000));
+  EXPECT_EQ(p, dispatcher.doubler.takeExpired(now + 3000, nullptr));
+  dispatcher.releasePacket(p);
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
 }
 
 int main(int argc, char** argv) {
