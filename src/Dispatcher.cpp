@@ -112,7 +112,7 @@ void Dispatcher::loop() {
       } else {
         n_sent_direct++;
       }
-      releasePacket(outbound);  // return to pool
+      if (!retainAfterTransmit(outbound, (uint32_t)(outbound_start + t))) releasePacket(outbound);
       outbound = NULL;
     } else if (millisHasNowPassed(outbound_expiry)) {
       MESH_DEBUG_PRINTLN("%s Dispatcher::loop(): WARNING: outbound packed send timed out!", getLogDateTime());
@@ -319,7 +319,7 @@ void Dispatcher::checkSend() {
 
     if (len + outbound->payload_len > MAX_TRANS_UNIT) {
       MESH_DEBUG_PRINTLN("%s Dispatcher::checkSend(): FATAL: Invalid packet queued... too long, len=%d", getLogDateTime(), len + outbound->payload_len);
-      _mgr->free(outbound);
+      releasePacket(outbound);
       outbound = NULL;
     } else {
       memcpy(&raw[len], outbound->payload, outbound->payload_len); len += outbound->payload_len;
@@ -365,6 +365,7 @@ Packet* Dispatcher::obtainNewPacket() {
 }
 
 void Dispatcher::releasePacket(Packet* packet) {
+  onPacketReleased(packet);
   _mgr->free(packet);
 }
 

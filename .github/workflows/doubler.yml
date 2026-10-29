@@ -1,0 +1,26 @@
+name: Doubler tests and firmware
+
+on:
+  push:
+    branches: [meshcore/doubler]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-build-environment
+      - name: Test doubler and baseline behaviour
+        run: pio test -e native_doubler -e native -e native_kiss_modem
+      - name: Build and verify both repeater targets
+        run: python3 variants/doubler/build.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: doubler-firmware
+          if-no-files-found: error
+          path: |
+            .pio/build/*_repeater_doubler/*.uf2
+            .pio/build/*_repeater_doubler/*.ota.zip
+            .pio/build/doubler-manifest.json

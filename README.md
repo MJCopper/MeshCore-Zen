@@ -1,3 +1,10 @@
+## Flood text doubler — v1.18.0-doubler.2
+
+Optional repeater builds for Xiao nRF52 WIO and RAK4631 send flood channel text
+twice, with a random 500–800 ms gap after the first transmission completes.
+UF2 and OTA upgrade ZIPs are available for both targets. See
+[build instructions, design and hardware test procedure](docs/doubler.md).
+
 ## About MeshCore
 
 MeshCore is a lightweight, portable C++ library that enables multi-hop packet routing for embedded projects using LoRa and other packet radios. It is designed for developers who want to create resilient, decentralized communication networks that work without the internet.

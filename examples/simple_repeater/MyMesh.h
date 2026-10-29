@@ -37,6 +37,10 @@
 #include <helpers/RoutingPolicy.h>
 #include "RateLimiter.h"
 
+#ifdef FLOOD_TEXT_DOUBLER
+#include <helpers/FloodTextDoubler.h>
+#endif
+
 #ifdef WITH_BRIDGE
 extern AbstractBridge* bridge;
 #endif
@@ -96,6 +100,9 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   RegionEntry* recv_pkt_region;
   TransportKey default_scope;
   RateLimiter discover_limiter, anon_limiter;
+#ifdef FLOOD_TEXT_DOUBLER
+  FloodTextDoubler flood_text_doubler;
+#endif
   uint32_t pending_discover_tag;
   unsigned long pending_discover_until;
   bool region_load_active;
@@ -128,6 +135,15 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   bool isLooped(const mesh::Packet* packet, const uint8_t max_counters[]);
 
 protected:
+#ifdef FLOOD_TEXT_DOUBLER
+  bool retainAfterTransmit(mesh::Packet* packet, uint32_t completed_at) override {
+    return flood_text_doubler.onTransmitComplete(packet, *_mgr, *getRNG(), completed_at);
+  }
+  void onPacketReleased(mesh::Packet* packet) override {
+    flood_text_doubler.forget(packet);
+  }
+#endif
+
   float getAirtimeBudgetFactor() const override {
     return _prefs.airtime_factor;
   }
