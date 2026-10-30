@@ -2,8 +2,7 @@
 
 [Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
 
-Zen keeps the system clock in UTC and applies a local offset only when displaying
-or evaluating local time. Changing the time zone does not rewrite the clock.
+Choose the time zone used by the Clock, Quiet Time, messages and diagnostics.
 
 Open **Settings › System › Time Zone**. Use Up/Down to select the mode or value,
 Left/Right to change it, and Back to apply the selection. Zen saves only when the
@@ -30,10 +29,8 @@ Supported cities are:
 | Europe | London, Paris |
 | United States | New York, Chicago, Denver, Los Angeles |
 
-Sydney, Melbourne, Hobart and Canberra use Australian eastern daylight-saving
-rules. Adelaide uses the corresponding central rule. Brisbane, Perth and Darwin
-do not apply daylight saving. Auckland, London, Paris and the listed US cities
-use their respective embedded seasonal rules.
+City mode handles daylight saving where applicable. Brisbane, Perth and Darwin
+stay on standard time.
 
 The rules are intentionally compact and do not contain a complete worldwide
 time-zone database. If a government changes its daylight-saving law, a firmware
@@ -61,9 +58,6 @@ The selected mode is applied consistently to:
 
 GPS and companion time synchronisation still provide UTC. They do not overwrite
 the selected city or fixed offset.
-
-All consumers use the same local-time service, so DST boundaries and day
-wrapping cannot differ between the Clock, Quiet Time and event timestamps.
 
 Existing installations retain their previous fixed UTC offset during migration.
 Selecting City opts into the embedded daylight-saving rules.

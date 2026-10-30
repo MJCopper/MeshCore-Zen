@@ -1,15 +1,16 @@
 # Virtual Pet
 
+[Back to README](../../README.md)
+
 Enable **Settings → System → Zen Pet** to show the pet page after Favourites.
 The default is Off. The enable switch is saved in Zen settings; pet progress uses
 a separate checkpoint. Reboot restores the last valid save, without offline ageing.
 Unsaved progress is lost. If no checkpoint exists, enabling creates a new starter.
 Turning Off and On during the same boot preserves the pet.
 
-Press Enter for Feed, Train, Evolve, Details, Daily Rewards and Save Pet.
-Hold Enter opens Details.
-Up/Down selects an action; Back closes the menu, then returns to Clock.
-Left/Right changes carousel pages. CardKB Enter and Escape work normally.
+Press Enter for **Feed, Train, Evolve, Details, Daily Rewards** and **Save Pet**.
+Hold Enter opens Details. Up/Down selects an action; Back closes the menu, then
+returns to Clock. Left/Right changes home pages.
 
 ## Saving
 
@@ -17,12 +18,9 @@ Save Pet makes a one-off verified checkpoint. It reports Pet saved or Already
 saved, or a specific storage/battery failure. Repeated requests are coalesced.
 Saving a sleeping pet does not wake it. Training must finish or be cancelled first.
 
-A new starter receives an initial save. Automatic saves occur at the first safe
-local midnight at least 24 hours after the previous checkpoint (manual saves
-included). A recent manual save can therefore skip the next midnight. Before time
-synchronization, saves use a 24-hour uptime interval. A restored pet starts a new
-24-hour guard. Clock/timezone changes cannot bypass that guard; backward dates
-do not reopen an already processed day. Deferred saves do not create catch-up writes.
+A new starter is saved automatically. Later automatic saves happen at a safe
+local midnight, at least 24 hours after the last save. Before the clock is set,
+Zen uses a 24-hour interval. Save Pet lets you keep progress sooner.
 
 No automatic writes occur while disabled, on shutdown, or for individual care
 actions. Automatic failures are logged silently with hourly retry backoff.
@@ -31,27 +29,29 @@ Internal-flash fallback writes wait until Bluetooth is switched off. External fl
 uses the existing Zen storage path. Actual flash operations include filesystem
 metadata and replacement, not just the small 96-byte snapshot payload.
 
-Checkpoints preserve care values, progression, temperament, remaining cooldown,
-fractional care credits, reward allowances and deferred rewards. Games, animations,
-notification queues and the temporary Wake Up override are not restored. New mesh
-rewards are conservatively blocked after restore until a safe reward-day rollover;
-saved pending rewards can still apply once.
-
 The versioned, checksummed `/zen_pet` record uses verified staging and recovery
 through `/zen_pet.tmp` and `/zen_pet.bak`, independently of MeshCore baseline files.
 Corrupt candidates are not automatically overwritten that boot; Save Pet can replace
 them. A newer unsupported schema is preserved and write-locked. Filesystem operations
 run from the main loop, never from rendering, input or mesh callbacks.
 
-Sprout has twelve levels and 189 named forms, ending in 64 possible final forms.
-Entering an even level offers two evolution choices; entering an odd level
-offers one. Every evolution is explicitly confirmed, with a name and preview.
-Sprout starts with balanced short tentacles. Bramble's descendants retain them;
-Flutter's descendants develop feet. Later branches inherit horns, wings, ears,
-crowns or side fins without requiring growth at each evolution. Portraits use
-symmetric 16×16 artwork, displayed at 16 pixels through level 4 and 32 pixels
-from level 5 where space permits. Smaller spaces use the native size rather
-than uneven scaling. Details shows the requirements for the next evolution.
+## Care and evolution
+
+Sprout has twelve levels and 189 forms. Open **Details** for current care values
+and the requirements for the next evolution. **Evolve** shows the available
+names and portraits and asks for confirmation.
+
+- **Feed:** uses one food, restores 25 fullness and adds 1 Bond.
+- **Train:** a win uses 20 energy and 10 fullness, adds 1 Bond and awards XP.
+  The reward starts at 20 XP and increases by 10 per level. Rest five minutes
+  between wins; the menu shows the remaining time.
+- Food replenishes every four enabled hours, up to five.
+- Energy recovers 10 per hour, or 20 while sleeping.
+- Fullness falls by 5 per awake hour at normal battery levels.
+
+Low battery increases hunger: 6 per hour at 25–49%, 7 at 10–24%, and 8 below
+10%. Charging reduces this as the battery recovers, but does not feed the pet.
+Details can show **Charge to reduce hunger**. Sleep and Low Power pause hunger.
 
 | Current level | XP needed for next level | Bond needed |
 |---|---:|---:|
@@ -67,15 +67,16 @@ than uneven scaling. Details shows the requirements for the next evolution.
 | 10 | 28,810 | 80 |
 | 11 | 41,050 | 100 |
 
-XP is cumulative, not spent on evolution. Evolution spends the required Bond,
-keeping any surplus. Bond caps at 100 and does not decay or penalise lost games.
-Existing saved pets retain their current Bond. Level 12 is the final form.
+
+XP is cumulative. Evolution spends the required Bond and keeps any surplus;
+Bond caps at 100 and does not decay or decrease after a lost game. Even levels
+offer two evolution choices; odd levels offer one. Regular care without mesh
+bonuses takes roughly 60 days to reach level 12; missed care and low battery
+can make it slower.
+
 At level 12, **Retire** replaces Evolve. Earn 100 retirement XP and 10 Bond:
-training wins add 20 retirement XP, and eligible mesh XP counts normally.
-Lifetime XP stays capped; only activity after reaching level 12 counts.
-Details shows progress, and selecting Retire reports any remaining requirements.
-Good care without mesh bonuses reaches retirement readiness after about 16
-hours in the host simulation—roughly one care day, not a mandatory timed wait.
+training wins add 20 retirement XP, and eligible mesh XP also counts. Details
+shows your progress.
 
 When ready, confirm **Retire pet? Start a new pet**; No is selected initially.
 Sleeping, Low Power and Pet Off prevent retirement. A verified checkpoint must
@@ -87,66 +88,21 @@ mesh allowances remain consumed. Retirement adds one explicit checkpoint write.
 Snapshot schema 2 preserves retirement progress and reads schema 1 with zero
 retirement XP; neither baseline storage nor settings schema changes.
 
-The target is about 60 days without mesh bonuses: the host simulation sleeps
-22:00–06:00, feeds regularly, wins training while retaining at least 25 fullness,
-and evolves promptly. It reaches level 12 after 433 wins. Approximate cumulative
-days for levels 2–12 are 0.25, 0.9, 1.9, 3.5, 5.9, 9.9, 15.9, 23.9, 33.9, 45.9
-and 60.3. This is a care-based estimate, not a minimum-age requirement; bonuses,
-training habits, missed care and Low Power change it.
+## Sleep
 
-Level 10 Heart forms mature into Wardens; Spirit forms become Sages at level 11.
-Level 12 offers Titan/Crown or Oracle/Astral respectively, keeping the inherited
-Oak, Ash, Pine, Elm, Leaf, Bloom, Rush, Lily, Flame, Coal, Light, Star, Rain, Snow,
-Wind or Sky prefix. For example: Oakheart → Oakwarden → Oaktitan or Oakcrown.
-Evolution choices use roomy rows with a name on the left and a square 16×16
-neutral portrait on the right. Previews share the actual pet's artwork and face.
-Small displays show one choice at a time; surfaces too small for a native
-portrait retain the names. Form identities, progression and saves are unchanged.
-Feeding consumes one food, restores 25 fullness and adds 1 Bond.
-Training consumes 20 energy/10 fullness and adds 1 Bond, at most once every
-five minutes. Attempting training during rest shows the remaining time rounded
-up to whole minutes, such as **Rest 2 minutes** or **Rest 1 minute**. It is
-calculated when attempted, not continuously refreshed. Pet Off and Low Power
-pause rest time. Its XP reward starts at 20 and increases by 10 per level;
-progressively larger evolution thresholds keep later levels more demanding.
-Costs, XP, Bond and cooldown apply only after winning a training minigame.
-Food replenishes every four enabled hours, up to five.
-Energy recovers 10 per hour, or 20 while sleeping. Fullness falls 5 per awake hour.
+The pet sleeps during the configured Quiet Time hours even when notification
+Quiet Time is Off. Equal start/end times disable scheduled sleep; an unset
+clock leaves the pet awake.
 
-Low battery increases passive hunger: 50–100% loses 5 fullness per awake hour,
-25–49% loses 6, 10–24% loses 7, and below 10% loses 8. Recovery requires two
-percentage points above a band boundary to prevent fluctuating readings changing
-the rate repeatedly. Unknown readings use 5. Charging reduces the rate as battery
-recovers, but does not feed the pet. In Details, Down shows **Charge to reduce
-hunger** when the rate is increased; Up returns to the first rows.
-Sleep and Low Power still pause hunger, including emergency operation. Training
-costs and food replenishment are unchanged. Existing hunger alerts apply normally;
-there are no extra battery alerts, hardware samples, timers or flash writes.
-The 60-day estimate assumes the normal rate; prolonged low battery slows progress.
-With the same reference care routine and a fixed rate throughout, host simulations
-reach level 12 in about 60, 78, 105 and 106 days at rates 5, 6, 7 and 8 respectively.
-Real charging cycles vary the rate, so these are comparisons rather than forecasts.
-`PetBatteryPolicy` translates the existing cached battery percentage; the engine
-accounts elapsed time at its previous rate before applying a new rate.
-
-The pet sleeps during the configured Quiet Time hours, even when notification
-Quiet Time is Off. Before time synchronization it stays awake; identical start
-and end times disable scheduled sleep. Local timezone and DST apply.
-While sleeping, select **Wake Up** in the care menu to wake it for 30 minutes.
-It resumes sleep if still within the schedule. This RAM-only override clears on
-reboot, Pet Off or leaving the sleep period; it does not change notifications or
-override Low Power. Feeding, training and deferred rewards work normally while awake.
-Low Power pauses it; display sleep stops animation.
-The pet never sends mesh packets or saves gameplay. Its alerts use Zen's normal
-sound and screen-wake policy.
-Care timers use runtime elapsed time, independent of GPS, timezone and clock sync.
+Choose **Wake Up** to keep it awake for 30 minutes. This does not change
+notification settings or override Low Power. Turning Pet Off, restarting or
+leaving the sleep period clears the temporary wake choice. Low Power pauses
+care; display sleep stops animation.
 
 ## Training games
 
-Select **Train** for one randomly chosen game. Enter starts after the instructions.
-Each Train selection randomly chooses from all games except the previous one.
-Cancelling and reopening selects a different game. Each session allows one
-explicit retry with the same game and puzzle; selection history is RAM-only.
+Choose **Train**, read the instructions and press Enter to start. Zen selects
+a game different from the previous one. One retry repeats the same puzzle.
 
 | Game | Goal | Controls |
 |---|---|---|
@@ -156,113 +112,41 @@ explicit retry with the same game and puzzle; selection history is RAM-only.
 | Find Your Pet | Track the pet through five box swaps | Left/Right, Enter |
 | Which One Changed? | Select the changed geometric symbol | Left/Right, Enter |
 
+
 Back cancels without cost or reward. Failed games also cost nothing.
-Find Your Pet reveals the pet for three seconds, closes the boxes for one second,
-then highlights each of five swap pairs without arrows. OLED uses short
-sliding swaps; E-INK uses discrete frames, with pauses between swaps. Left/Right
-stops at the edges and highlights the chosen box. Enter opens it and reveals the
-pet's actual location before Won/Lost. Retry repeats the original hiding place
-and swaps. Leaving the game or pressing Back cancels without cost, including
-during the answer reveal; rewards apply only after the reveal completes.
-Follow the Arrows replaces each empty box with the correctly entered arrow.
-Completed arrows stay visible; unanswered boxes stay empty. A wrong input fails
-the attempt. Retry clears the entered arrows and repeats the same sequence.
-Which One Changed? shows the original shapes, covers each with a solid white
-square for three seconds, then reveals one changed shape. Left/Right and Enter
-are ignored while covered; Back still cancels. Both displays use the same
-three-second cover, and retries retain the original shapes and change.
-Catch the Food has five evenly spaced lanes and starts in the centre. Left/Right
-moves one lane and stops at the edges. Catch three of five random drops to win;
-retries retain the drop sequence. Drop speed remains slower on E-INK.
-Perfect Timing uses target widths of 5, 3 and 2 positions over its three turns.
-Each target has a different random placement. Targets remain fixed during a
-turn and repeat on retry. Marker speed stays unchanged; each turn starts outside
-its target to prevent repeated Enter presses from winning.
-Training requirements are checked before starting and again before rewards.
-Scheduled pet sleep (unless temporarily woken), Low Power, Pet Off, screen sleep,
-leaving the page or an interrupting popup cancels the game. Active training
-temporarily holds the screen on, with a 60-second player inactivity limit.
-Watching memory previews and swaps does not consume that allowance; it restarts
-when player control returns. A game's own timeout still applies. Won!/Lost!
-results immediately start a fresh normal display timeout. Manual screen-off and safety restrictions always take precedence.
-The pet page and care menu alone do not hold the screen on. CardKB uses the
-existing mapped arrow/Enter/Escape keys.
+Training costs, XP, Bond and rest time apply only after a win.
 
-OLED movement is discrete and modest-rate. E-INK uses slower steps and longer
-memory previews. Memory/puzzle state advances only for input or phase changes;
-animated games update only while visible. Normal carousel status refreshes remain
-in place. Games use local pseudorandom state,
-not MeshCore's radio RNG, and add no packets, flash writes or background timers.
+- **Follow the Arrows:** repeat the previewed sequence; a wrong direction ends
+  the attempt.
+- **Catch the Food:** move one lane at a time and catch three of five drops.
+- **Perfect Timing:** press Enter as the marker reaches the target, three times.
+- **Find Your Pet:** watch the box swaps, then choose and open a box.
+- **Which One Changed?:** remember the shapes before they are covered, then
+  select the changed one.
 
-Short game effects follow Notification mode, Silent/DND, Quiet Time and volume.
-Arrows have direction tones during preview and correct-input ticks; Food has
-catch/miss tones; Timing has hit pings; Find Your Pet has reveal/swap cues; Changed
-Shape has reveal/cover cues. Won! and Lost! retain their result melodies without
-duplicate final-step sounds. Gameplay remains usable muted. `PetGameAudio` maps
-model cues to sound-only events: no popups, screen wakes, or background timers.
-Busy audio or a notification drops an effect instead of queuing stale playback.
+Training keeps the screen on. A 60-second inactivity limit starts when you
+have control, not while watching a preview. Back, leaving the page, screen-off,
+Pet Off, scheduled sleep or Low Power cancels training. Manual screen-off and
+safety restrictions always take precedence.
+
+Training games run locally and send no mesh traffic.
+E-ink games use slower movement and longer previews. Games remain usable
+without sound; effects follow notification mode, volume, Quiet Time and DND.
 
 ## Personality
 
-On OLED, an awake pet wanders in one-pixel steps every randomly chosen
-0.5–1.5 seconds, within four pixels horizontally and two vertically of its
-resting position. Available space reduces these limits for larger forms;
-portrait size takes priority. Its face and attached expressions move with it;
-speech bubbles and statistics stay still. Movement never drifts outside its bounds.
-Menus, games, notifications, screen sleep and Low Power stop the shuffle and
-return it to centre. E-ink stays static. Movement is RAM-only and never wakes
-the screen or extends its timeout.
+Each pet is Playful, Calm, Curious or Stubborn; check Details to see its nature.
+Personality changes expressions and remarks, not care costs, rewards or
+progression. OLED pets wander and animate; E-ink pets use static poses.
+Menus, games and notifications pause idle reactions.
 
-Each new pet is randomly Playful, Calm, Curious or Stubborn. Its nature appears
-in Details (Up/Down scrolls) and persists through evolution and same-boot Off/On.
-Personality is cosmetic: care costs, cooldown, XP, Bond, game selection and
-evolution requirements do not change. Temperament is included in checkpoints.
-
-Feeding produces a happy expression, winning a proud one and losing a brief sulk.
-The pet looks sleepy in the 15 minutes before its configured bedtime and excited
-when ready to evolve. Bedtime follows the pet's existing local-time schedule,
-including DST, even if notification Quiet Time is Off. Unsynchronized time,
-identical sleep endpoints and a Wake Up override disable bedtime anticipation.
-Actual sleep and Low Power take precedence over cosmetic reactions.
-
-Short, temperament-specific phrases appear in a speech bubble only on the
-ordinary pet page, never in care menus, games or notifications. Bubbles last four
-seconds, are spaced at least 30 seconds apart and avoid immediate repeats.
-Idle remarks require two minutes of visible page time. A greeting requires five
-minutes away; navigating care menus does not count. Action reactions expire on
-their original deadline even if a menu or notification obscures them—there is
-no delayed queue. Existing Won!/Lost! popups and sounds remain unchanged.
-
-Battery recovery gives a relaxed or delighted expression. It requires cached
-external power and a rise of at least three percentage points sustained across
-distinct battery samples for two minutes. Further reactions require another
-ten-point rise and at least ten minutes. Unknown readings or disconnection reset
-the observer; voltage rebound without external power does not qualify. A powered
-connection is not proof of active charging. Recovery gives no fullness, energy,
-XP or Bond and does not change the battery hunger policy.
-
-While visible, the pet occasionally blinks, looks around, tilts, hops or stretches.
-Temperament weights these quirks. OLED uses a few bounded frames, no faster than
-the existing 500 ms animation cadence; E-INK uses static poses, with personality
-redraws at least five seconds apart. OLED shuffle redraws follow their random
-deadlines; when movement is suppressed, ordinary redraws slow to five seconds.
-Speech and movement stay inside the portrait area. Opaque one- or two-line
-bubbles overlay its top for four seconds without shrinking the pet or changing
-movement bounds. They may cover part of the pet; the full portrait returns when
-they expire. Text that cannot fit is omitted rather than covering statistics.
-
-Menus, training and notifications suppress quirks and bubbles. Display sleep,
-Pet Off, leaving the page, scheduled sleep and Low Power clear transient activity.
-There is no catch-up animation, screen wake, extra battery sampling, flash write,
-mesh traffic or background timer. `PetPersonality`, `PetPersonalityAssets`,
-`PetPortraitLayout` and `PetPersonalityView` separate state, constant
-phrases/expressions, safe geometry and rendering.
-Their local PRNG is independent of both training and MeshCore randomness.
+A pet can look sleepy before bedtime, excited when ready to evolve, happy
+after feeding or proud after a win. Charging recovery can also prompt a reaction;
+it gives no fullness, energy, XP or Bond.
 
 ## Daily mesh rewards
 
-Open **Care → Daily Rewards** to see progress. Enter opens details; Back returns.
-The five care actions scroll when they do not all fit on screen.
+Open **Care → Daily Rewards** to see progress; Enter opens details.
 
 | Activity | Daily reward |
 |---|---:|
@@ -270,6 +154,7 @@ The five care actions scroll when they do not all fit on screen.
 | First channel message with a heard relay, or acknowledged room message | 15 XP shared |
 | First two-way DM conversation with the same contact | 5 Bond |
 | First interaction with a favourited contact or room | 3 Bond |
+
 
 Bond milestones overlap: a favourite interaction earns 3, then a two-way
 conversation adds 2. If the conversation happens first, it earns all 5.
@@ -279,36 +164,20 @@ Phone and Zen messages count equally; retries and repeated confirmations do not.
 Favourite interaction means an acknowledged send or a new incoming message.
 Room delivery means server acknowledgement, not confirmation from every guest.
 
-Child Mode applies its existing contact, room and channel permissions.
-Quiet Time reserves rewards until the pet wakes, including across midnight.
-Low Power ignores new interactions but retains rewards already earned.
-Turning the pet Off discards pending rewards and partial conversations without
-renewing the daily allowance. Reward allowances are included in pet checkpoints.
+Phone and Zen messages count equally. Sending must be acknowledged or a channel
+relay heard; simply queuing a message or receiving a broadcast does not count.
+Room acknowledgement confirms delivery to the server, not every guest.
 
-Once time is synchronized, allowances follow the configured local date.
-Before synchronization they use a rolling 24-hour uptime window.
-Synchronization and clock/timezone corrections do not directly renew allowances;
-after a correction, a 20-hour guard prevents repeated resets. This can delay
-one renewal. Details shows whether local time or uptime is in use.
+Rewards follow Child Mode permissions. Quiet Time defers them until the pet
+wakes. Low Power ignores new interactions but retains earned rewards. Turning
+Pet Off discards pending rewards without renewing the day's allowance.
 
-Tracking uses fixed-size tables: eight conversation contacts, sixteen outgoing
-attempts and eight recent incoming fingerprints. Heavy traffic can evict old
-evidence and miss a reward, but never changes message delivery or retries.
-Reward tracking adds no radio transmissions or timers; it is saved only with pet checkpoints.
+Allowances follow the local date once the clock is set, or a 24-hour uptime
+window beforehand. Correcting the clock can delay the next renewal. Saved
+pets may need to reach the next safe reward-day rollover before earning new
+rewards; saved pending rewards can still apply.
 
 ## Pet alerts
-
-Alerts are active whenever Zen Pet is On, with no additional saved preference.
-Care-menu labels stay fixed. Feeding, Wake Up, unavailable actions and manual
-training cancellation use soundless popups, retaining the menu and selection.
-While a notification covers the care menu or its detail views, Enter/Back only
-dismisses it. Other navigation is ignored until dismissal or automatic expiry.
-Queued keys from the dismissal burst are discarded; a fresh Enter activates the
-same selected option. Training keeps its normal controls and cancellation rules.
-Sleeping and Low Power refusals remain visible. Training wins/losses and confirmed
-evolutions use their existing dedicated alerts without duplicate action popups.
-They use the existing notification mode, Silent/DND, screen-wake and volume
-settings. Notifications Off mutes sound; popups still appear normally.
 
 | Event | Notification | Sound |
 |---|---|---|
@@ -320,35 +189,15 @@ settings. Notifications Off mutes sound; popups still appear normally.
 | Training reward is applied | Won! | Three rising victory notes |
 | Training attempt fails, including gameplay timeout | Lost! | Three descending notes |
 
-XP and Bond bonuses combine into one alert and show only points actually added.
-When a bonus unlocks evolution, the combined alert uses the ready melody.
-Feeding keeps its visual feedback without a reward alert. Each training attempt
-reports Won or Lost once; cancellation is silent. A Lost popup preserves the retry
-screen. Training results use the shared notification policies and RAM-only queue.
-If manually woken during Quiet Time, training results still display, but their
-sound remains muted. Background pet alerts remain deferred.
 
 Hunger alerts occur once per threshold until feeding raises fullness above 40.
-Very hungry replaces an unshown Hungry alert. Stale hunger/readiness alerts
-are cancelled before presentation. Readiness is announced once per level.
-Confirmed evolutions are queued, so quick successive evolutions are not lost.
+Readiness is announced once per level. Bonuses that arrive together share one
+alert. Cancelled training is silent; a Lost result keeps the retry available.
 
-Quiet Time defers alerts until the pet wakes. Low Power pauses presentation.
-Turning Pet Off clears pending alerts. Pet popups wait for existing alerts to
-clear, are lower priority than messages/warnings, and are spaced five seconds
-apart. Notification-only screen wakes still last five seconds.
-Alert tracking remains RAM-only and uses the existing pet update, not a new timer.
+Popups use normal notification sound and screen-wake settings. Quiet Time
+defers background alerts until the pet wakes; Low Power pauses them, and Pet
+Off clears them. Messages and warnings take priority.
 
-The optional implementation lives in `zen-overlay/app/zen/pet/` and is excluded
-with `ZEN_FEATURE_PET=0`. OLED uses idle/reaction poses; E-ink uses static poses.
-Evolution data, graphics, care logic and presentation are separate modules.
-`PetArtAssets` contains constant silhouettes; `PetPortraitDrawing` shares face
-and body rendering between the pet page and `PetEvolutionView`. The care
-simulation is host-test-only and adds no firmware timers or saved state.
-`PetTrainingGames` owns only game state; `PetTrainingView` draws it. `PetEngine`
-remains responsible for training eligibility, costs, rewards and cooldown.
-`PetMeshRewards`, `PetRewardDay` and `PetRewardsView` isolate rewards, day handling
-and presentation from MeshCore and the ordinary Zen messaging UI.
-`PetNotifications` collects pet events and holds its short immutable melodies;
-Zen's shared notification coordinator and sound dispatcher present them.
-There are no pet-to-pet battles or pet protocol packets.
+While a popup covers the care menu, Enter or Back dismisses it. Press Enter
+again to use the selected action. Deliberately waking a pet during Quiet Time
+allows games, but their results remain muted.

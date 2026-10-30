@@ -1,90 +1,47 @@
 # GPS and Course
 
-[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
+[Back to README](../../../README.md)
 
-## GPS home page
-
-The GPS home page shows the configured polling cadence, current receiver state,
-position, altitude, satellite count and direction of travel.
-
-The receiver state is separate from the saved GPS setting:
+The GPS home page shows position, altitude, satellites, receiver state and
+direction of travel. The left side shows the selected polling mode; the right
+side shows what the receiver is doing.
 
 | State | Meaning |
 | ----- | ------- |
 | Off | GPS is disabled |
-| Sleep | Timed polling is enabled and the receiver is between acquisitions |
-| Search | The receiver is powered but does not yet have a usable fix |
-| Fix | The receiver is powered and has a valid fix |
+| Sleep | Waiting between position checks; the age of the last fix is shown |
+| Search | Looking for a usable fix |
+| Fix | A current position is available |
 | HW Off | The hardware GPS switch is off |
 
-While sleeping, the state includes the age of the most recent fix, for example
-`Sleep <1m`, `Sleep 12m` or `Sleep 2h`. The fix and its age are held in RAM and
-do not create flash writes.
+- **Enter:** turn GPS on or off for this session.
+- **Hold Enter:** open **Settings › System › GPS Polling**.
+- **Settings › System › GPS:** choose whether GPS starts enabled.
 
-Each receiver session is identified as Continuous, Scheduled, Adaptive, Time
-Sync, Manual or Emergency. This prevents a temporary clock-sync acquisition
-from being treated as a normal location poll.
+The last position remains visible while sleeping or searching. Dashes mean no
+position has been obtained yet.
 
-- Press **Enter** to turn GPS on or off for the current session. This does not
-  alter the saved startup setting.
-- Hold **Enter** to open **Settings › System › GPS Polling**.
-- Use **Settings › System › GPS** to save whether GPS is enabled after startup.
+## Choose a polling mode
 
-## Polling and power
+| Mode | Best suited to |
+| ---- | -------------- |
+| Continuous | Frequent position and direction updates; higher power use |
+| Adaptive | Continuous tracking with a good fix, less frequent searches when reception is poor |
+| 2 / 5 / 15 / 30 min / 1 h | Periodic position checks with standby between checks |
 
-GPS polling can be Continuous, Adaptive, 2 min, 5 min, 15 min, 30 min or 1 h.
-The factory default is GPS power Off with Adaptive selected, so enabling GPS
-uses Adaptive without requiring another settings change.
-Continuous keeps the receiver powered. A timed mode powers it only for an
-acquisition and then returns it to standby for the selected interval. The next
-interval begins after the receiver returns to standby.
+Factory settings are GPS Off with Adaptive selected. Adaptive initially allows
+five minutes to find a good fix. After sustained poor reception it uses shorter
+searches with two-minute, then five-minute rests. A good fix restores continuous
+tracking.
 
-Adaptive starts with a five-minute acquisition allowance. Once it has a good
-fix, it remains continuous while that fix is useful. If fix quality remains poor
-for five minutes, it changes to 90-second searches separated by two-minute
-standby periods. After 15 minutes in backoff, standby increases to five minutes.
-A good fix returns immediately to continuous tracking. The backoff state is held
-only in RAM and does not write preferences.
+Timed modes search for up to 90 seconds. A stable stationary fix can finish
+sooner; movement allows a short direction-capture period. Repeated failures
+increase the wait between searches, up to twice the chosen interval. A good
+fix restores the normal interval.
 
-Enabling GPS or changing its polling mode starts a new acquisition allowance.
-Temporary time-sync and emergency claims release back to the selected polling
-policy; Adaptive receives a fresh five-minute search and timed modes a new
-90-second acquisition. Reapplying unchanged settings preserves the active policy.
-Fixes expire after five seconds without a fresh valid GPS sentence. The page
-retains the last received position while searching or sleeping, and shows dashes
-until the first fix. Satellite count and HDOP remain available during Search.
-
-A timed acquisition ends when one of these conditions is met:
-
-- a stationary, acceptable-quality fix has remained stable for four seconds;
-- movement is detected and a 25-second movement capture has completed; or
-- the 90-second acquisition limit is reached.
-
-The movement window starts when movement is first detected and is not extended
-by continued movement. Constant movement therefore does not turn a timed mode
-into Continuous mode.
-
-A completed fix requires HDOP 4.0 or better. If HDOP is unavailable, eight or
-more satellites are accepted as the fallback quality test. After consecutive
-90-second failures, Zen delays the second and subsequent retries to 2× the
-chosen interval. Backoff never exceeds 2× and the absolute delay remains capped
-at two hours. A successful fix immediately clears the backoff. This is runtime
-behaviour only; the saved polling selection never changes.
-
-If the display is off, pressing Back to wake it clears a pending failure backoff
-and starts an acquisition immediately. Timed modes receive one normal retry;
-Adaptive receives a fresh five-minute search allowance. If Adaptive is already
-searching, the receiver is not restarted and only its deadline is extended.
-Notification and alarm wakes do not reset GPS backoff.
-
-During Low Power, GPS remains disabled. GPS enabled manually for the ten-minute
-Emergency window stays continuous and bypasses Adaptive backoff until that
-window ends. The GPS page shows `Retry Xm` while Adaptive is in standby.
-
-Timed modes usually consume much less power than Continuous because the GPS
-hardware is in standby between acquisitions. The receiver uses its normal
-measurement rate whenever it is awake. Poor reception increases consumption
-because an unsuccessful acquisition can remain active for the full 90 seconds.
+Wake the screen with Back to request a fresh search during a failure backoff.
+Notification wakes do not restart GPS searches. The page shows **Retry Xm**
+when Adaptive is resting.
 
 ## Direction display
 
@@ -92,72 +49,35 @@ The bottom line is a course-over-ground display. It calculates direction from
 GPS movement and is not a magnetic compass, so it cannot determine which way the
 device is pointing while stationary.
 
-While moving, a 32-position tape scrolls around the current direction. The eight
-named points are separated by three dots, with every dot representing another
-11.25° course increment. The inverted centre label or dot is the direction of
-travel. Zen accepts live course after
-approximately 10 m of plausible movement at 0.8 knots or faster. Moderate HDOP
-raises the required movement to reduce GPS jitter. It smooths the five most
-recent course samples and applies boundary hysteresis so the tape does not
-continually scroll between adjacent increments. The finer display is an
-approximate course indication rather than a claim of 11.25° GPS accuracy.
+The centred, inverted direction on the scrolling tape shows your live course.
+It normally needs about 10 m of movement at 0.8 knots or faster; poor-quality
+fixes need more movement. After stopping, **Last: direction** can remain for
+15 minutes, then changes to **No course**.
 
-Brief loss of fix or a short speed drop is tolerated. When movement stops, the
-last live direction is shown as `Last: NE` for up to 15 minutes. It then changes
-to `No course` unless a newer direction source is available.
+With timed polling, **Travel: direction** compares successive good fixes after
+at least 20 m of movement. Shorter moves can accumulate before a direction is
+shown. Travel is the straight-line direction between fixes, not the route
+followed. It expires after twice the polling interval, with a 15-minute minimum
+and a two-hour maximum for the available intervals.
 
-## Direction with timed polling
+## Time and location privacy
 
-Timed polling may not remain awake long enough for a continuous course, so Zen
-also compares completed polling fixes. Movement of at least 20 m between good
-fixes produces a result such as `Travel: SW`; moderate HDOP raises this threshold
-to 30 m. Several shorter moves can accumulate from the previous accepted anchor.
-
-Travel is the straight-line bearing between the fixes, not the route travelled.
-Its lifetime is twice the selected polling interval, with a minimum of 15 minutes
-and a maximum of two hours with the available polling choices. A failed
-acquisition retains the previous Travel
-result. A successful acquisition without enough movement clears the displayed
-Travel result while retaining the anchor for later accumulated movement.
-Temporary Time Sync acquisitions are excluded from live and Travel course
-calculation.
-
-The display chooses the freshest useful source in this order:
-
-1. live course while GPS movement is being tracked;
-2. Travel calculated between completed timed acquisitions;
-3. the last live course retained after stopping;
-4. `No course`.
-
-## Time, privacy and Low Power Mode
-
-At boot, Zen can temporarily power GPS to set the clock even when saved GPS is
-Off. The first attempt lasts up to five minutes, followed by 90-second hourly
-attempts for 48 hours. `SYNC TIME` remains on the Clock page until time is set,
-even after automatic GPS attempts finish. A companion connection can also set
-the time.
+Zen may briefly use GPS to set the clock even when saved GPS power is Off.
+See [Clock](../clock_screen/clock_screen.md) for time-sync behaviour.
 
 Location is included in self adverts only when **Settings › Advert › GPS
-Details** is set to Share. The same privacy setting applies to manual, automatic
-and companion-triggered adverts.
+Details** is set to Share. This applies to manual, automatic and
+companion-triggered adverts.
 
-Low Power Mode turns GPS off. During its ten-minute Emergency Mode, GPS remains
-off initially but may be enabled manually from the emergency or GPS home page.
-
-**Tools › Diagnostics › Location** shows the effective GPS purpose, receiver
-and fix state, fix age, satellites, HDOP, Adaptive phase, next acquisition,
-course source, most recent lifecycle event, time-sync state and synchronization
-source. These values are RAM-only. Bluetooth companion clock updates use the
-**App** source.
+During Low Power, GPS remains disabled. GPS enabled manually for the ten-minute
+Emergency window stays continuous and bypasses Adaptive backoff until that
+window ends. The GPS page shows `Retry Xm` while Adaptive is in standby.
 
 ## Troubleshooting
 
-- Move outdoors with a clear view of the sky if Search persists or acquisitions
-  repeatedly reach 90 seconds.
-- If polling is waiting in failure backoff, turn the screen off and wake it with
-  Back to request an immediate new acquisition.
-- Check the Wio Tracker hardware GPS switch if `HW Off` is displayed.
-- A valid position without a direction is normal when stationary or before the
-  minimum movement distance has been reached.
-- Long polling intervals provide lower power consumption but make Travel updates
-  less frequent.
+- Move outdoors with a clear view of the sky if Search persists.
+- Check the hardware GPS switch when **HW Off** appears.
+- No direction is normal while stationary or before enough movement.
+- Longer polling intervals save power but update position and Travel less often.
+- **Tools › Diagnostics › Location** shows fix age, satellite count, fix quality
+  and the next search time.

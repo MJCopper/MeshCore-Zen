@@ -1,6 +1,6 @@
 # Radio, GPS, Bluetooth and Adverts
 
-[Back to README](https://github.com/MJCopper/MeshCore-Zen/blob/zen/main/README.md)
+[Back to README](../../../README.md)
 
 ## Radio
 
@@ -9,76 +9,25 @@ TX power and noise floor. Hold Enter to open **Settings › Radio**. A preset
 changes frequency, bandwidth, spreading factor and coding rate together.
 All communicating nodes must use compatible radio settings.
 
-The toolbar signal indicator estimates recent repeater-link quality from the
-SNR of routed traffic and repeater adverts. Direct companion traffic is ignored.
-Three bars represent high link margin, two medium and one low; a cross means no
-fresh measurement or that the radio is unavailable. The value is averaged in
-RAM and expires after two hours.
-
-When the user wakes the display with Back and the last measurement is over 30
-minutes old, Zen performs one silent repeater-only discovery. Notification and
-alarm wakes do not trigger it, and unsuccessful scans are limited to one attempt
-per 30 minutes. Discovery is authoritative: the strongest response becomes the
-new reading, or the indicator changes to a cross after the eight-second window
-when no repeater answers. Manual Discover Repeaters scans behave the same way.
-See the [Signal Indicator guide](../signal_indicator/signal_indicator.md) for
-measurement sources, thresholds, timing and troubleshooting.
+The toolbar shows up to four bars for recent reception quality. A hollow
+triangle with X means no current measurement; standalone X means no repeaters
+answered discovery or the radio is unavailable. See
+[Signal Indicator](../signal_indicator/signal_indicator.md).
 
 ## GPS
 
-See the dedicated [GPS and Course guide](../gps/gps.md) for the screen layout,
-power behaviour, acquisition quality, retry backoff and course-over-ground
-operation.
+The GPS home page shows position, receiver state and direction of movement.
 
-The GPS home page shows polling mode, receiver state, position, altitude,
-satellites and a scrolling course-over-ground tape. Eight named directions and
-the three 11.25° dot increments between each direction form 32 positions. The
-first row keeps the
-power and polling states separate: the left side always shows the configured
-polling cadence, while the right side shows **Off**, **Sleep**, **Search** or
-**Fix** from the actual receiver state. Temporary time-sync acquisitions therefore
-show Search or Fix even when saved GPS power is Off. While sleeping, the state
-also shows the age of the last fix, such as **Sleep 12m** or **Sleep 2h**.
-The centred, inverted
-direction is the direction of movement. A bearing is accepted after about 10 m
-of accumulated, plausible movement at 0.8 knots or faster. Brief fix loss and
-speed dips are tolerated, recent course samples are circularly smoothed, and
-sector hysteresis prevents flicker near direction boundaries. After stopping,
-**Last: direction** remains available for 15 minutes in RAM, then changes to
-**No course**.
+- **Enter:** turn GPS on or off for this session.
+- **Hold Enter:** open **Settings › System › GPS Polling**.
+- **Settings › System › GPS:** save the startup choice.
 
-For timed polling, Zen separately compares completed polling fixes in RAM.
-Movement of at least 20 m is shown as **Travel: direction**; moderate HDOP raises
-the live and Travel distance thresholds, while poor HDOP is rejected. Short
-polling moves accumulate against the last accepted endpoint. A failed poll
-retains the last Travel result, while a successful short poll clears its display.
-Travel expires after twice the polling interval, bounded to 15 minutes–12 hours.
-It is the straight-line direction between fixes, not the route followed.
+Choose Continuous, Adaptive or timed polling to balance updates and power use.
+**Sleep** includes the age of the last position; **Search** means a fix is not
+ready. Direction comes from movement, not a magnetic compass.
 
-Timed acquisition still has a 90-second cap. A stationary fix completes after
-four seconds of acceptable quality. Once movement is detected, its 25-second
-capture window starts at that detection and remains latched. Completion requires
-HDOP 4.0 or better, or at least eight satellites when HDOP is unavailable.
-After consecutive 90-second failures, only the runtime retry delay backs off to
-2×, capped at two hours; it never exceeds twice the configured interval. The
-configured polling selection is not changed, and the normal interval resumes
-immediately after a successful fix.
-A physical Back-button wake clears a pending failure backoff and makes one retry
-due immediately. Notification and alarm wakes do not affect GPS polling.
-
-This is not a magnetic heading. Press Enter to turn GPS on or off for the
-current session without writing to flash. Hold Enter to open
-**Settings › System › GPS Polling**.
-
-Saved GPS power and polling are separate settings. Polling can be Continuous,
-Adaptive, 2 min, 5 min, 15 min, 30 min or 1 h. Adaptive remains continuous
-while it has a good fix, then uses short retry windows after sustained loss.
-Timed polling obtains a stable
-fix, sleeps the receiver, then repeats after the selected interval. Settings
-changes are staged and applied and saved only when leaving Settings.
-
-At boot, Zen can temporarily use GPS to set the clock even when its saved GPS
-power setting is Off. See the [Clock guide](../clock_screen/clock_screen.md).
+Zen may briefly run GPS to set the clock even when saved GPS power is Off.
+See [GPS and Course](../gps/gps.md) for modes and troubleshooting.
 
 ## Bluetooth
 
@@ -90,15 +39,9 @@ PIN at each boot or retain a fixed six-digit PIN. PIN changes take effect after
 reboot. Zen does not expose the companion protocol over USB; USB remains
 available for charging and bootloader DFU flashing.
 
-MeshCore owns Bluetooth initialization, advertising, pairing, bond storage,
-reconnection, packet framing and the companion protocol. Zen supplies only the
-requested On/Off state and restrictions from Child Mode, Low Power and Emergency
-Mode through one policy adapter. It observes connection changes for the RAM
-diagnostic log without replacing or delaying MeshCore callbacks. Pairing bonds
-remain in MeshCore's internal storage; normal Zen setting saves use external
-flash. MeshCore's own settings retain their baseline internal `/prefs.json`
-path. The two stores are not mirrored, and neither path rewrites or erases
-Bluetooth bonds.
+Child Mode and Low Power can temporarily disable Bluetooth without changing
+its saved setting. Check [Battery and Low Power Mode](../power/power.md) if
+Bluetooth remains unavailable.
 
 ## Adverts and location privacy
 

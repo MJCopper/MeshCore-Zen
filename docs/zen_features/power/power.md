@@ -18,12 +18,6 @@ Bluetooth, stops automatic retries, and uses minimum OLED brightness with a
 five-second display timeout. CardKB remains usable while the display is awake.
 External power leaves Low Power mode and restores the saved settings.
 
-Saved settings express the user's requested state; temporary restrictions do
-not overwrite them. Zen resolves Low Power, Child Mode, Emergency Mode,
-notification wakes and temporary GPS time-sync requests in RAM, then applies
-only hardware states that changed. This avoids extra flash writes and
-background polling.
-
 **Tools › Diagnostics › Power** shows the applied display, CardKB, GPS,
 Bluetooth and radio states. **Applied** means they match current policy;
 **Pending** identifies a transition that could not be confirmed and will be
@@ -57,25 +51,16 @@ Charging is inferred from USB power; completion is inferred from voltage, not
 reported by the charger. The tick remains until voltage falls below **4.12 V**
 or USB is disconnected. Reconnecting below 4.15 V shows the bolt again.
 
-In battery-icon mode, charging retains the white battery-level bar. A white
-lightning bolt with a black outline is centred over it, alternating on/off every
-second. Completion uses the same full-width white level bar and black padding as a
-regular full battery, with a centred white tick outlined in black. The shell
-retains its original width and height (14 × 7 pixels on OLED), top-aligned
-with the other status icons. Bolt and tick share the same overlay position; their outlines
-can mask the shell without making it taller.
-Percentage and voltage modes retain their values and show a flashing white bolt
-or steady white tick beside them. Charging schedules a redraw at each one-second
-phase boundary while the home page is visible, including E-ink; actual visible
-cadence is limited by the display's refresh duration. It does not wake sleeping
-displays. With USB power and an invalid battery sample, a plug symbol indicates
-external power with unknown charge status. An invalid sample clears the full
-latch; a subsequent valid sample must reach 4.15 V to show the tick again.
-Unplugging restores the usual battery display.
+The battery-level bar remains visible while the lightning bolt flashes once
+per second. Percentage and voltage modes keep their values beside the charging
+symbol. E-ink updates can be slower because of the display's refresh time.
+
+A plug symbol means external power is present but the charge reading is
+unavailable. Disconnecting USB restores the normal battery display.
 
 State is checked with the existing battery sample every eight seconds and uses
 the smoothed voltage, so the indication may lag a connection or voltage change.
 A changed status refreshes the visible home-page top bar without waking a
-sleeping display. Status is held only in RAM. The existing percentage estimate
+sleeping display. The percentage estimate
 reaches 100% at 4.12 V; that estimate is independent of the 4.15 V completion
-indicator. Shutdown, Low Power and runtime-estimation policies are unchanged.
+indicator.

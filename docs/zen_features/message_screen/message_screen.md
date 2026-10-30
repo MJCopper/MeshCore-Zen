@@ -36,26 +36,16 @@ attempts. Without a path it makes up to three flood attempts. An ACK stops the
 sequence immediately.
 
 Hold Enter on a saved direct-message contact and choose **Path details** to
-inspect its current learned route, hash width and latest send result. The
-route and attempt summary are RAM-only; a path that received no ACK remains
-summarised after Zen falls back to flooding. Unknown or ambiguous hop hashes
-remain in hex, while unique matches to saved contacts show their names. This
-is not a live reachability test and sends no radio request.
+inspect its learned route and latest send result. Known hops show contact
+names; unknown or ambiguous hops show their hashes. This is not a live
+reachability test and sends no radio request.
 
 ## Text entry
 
-The default on-screen layout is predictive T9; ABC is selectable under
-**Settings › Keyboard**. Message fields provide:
-
-- a 4,000-word Australianised completion dictionary;
-- cursor-safe UTF-8 editing and encoded-length enforcement;
-- up to twelve completion choices, accepted with a trailing space;
-- previous-word ranking covering 2,000 common words and eight likely followers;
-- high-confidence chat phrase prediction, contraction handling and ranked
-  sentence openings;
-- placeholders for time, GPS and active sensors;
-- automatic sentence capitalisation, including after a reply mention;
-- an emoji picker for 👍, 👎, 🙂 and 🙁.
+Choose predictive **T9** (default) or **ABC** under **Settings › Keyboard**.
+Suggestions adapt to the previous word and common chat phrases. Message fields
+support time, location and sensor placeholders, automatic capitalisation, and
+an emoji picker for 👍, 👎, 🙂 and 🙁.
 
 Predictive T9 includes the common single-letter words `a` and `I` as the first
 choices for keys 2 and 4 respectively.

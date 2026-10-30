@@ -54,12 +54,22 @@ reaches 0% and shuts down at 3.3 V.
 
 ## Notifications
 
-Mode controls notification sound: On sounds even when a phone is
-connected; Off is silent; Auto sounds when no client is connected. Changing
-Mode updates its row without a sound or popup, and saves on exit. Messages are
-still received and counted in every mode. Eligible message and new-contact
-popups appear whenever the display is on, regardless of Mode, Quiet Time or
-DND. A source set to Off or blocked by Child Mode has no local alert.
+| Setting | What it does |
+| ------- | ------------ |
+| Mode: On | Sounds even with a phone connected |
+| Mode: Off | Silences notification sounds |
+| Mode: Auto | Sounds when no client is connected |
+| Screen Wake: Off | Leaves a sleeping display off |
+| Screen Wake: On | Wakes when notification mode permits a local alert |
+| Screen Wake: Always | Wakes even when sounds are suppressed |
+
+Messages and unread counts continue in every mode. Permitted popups appear
+while the display is on; a source set to Off or blocked by Child Mode has no
+local alert. Notification wakes last five seconds unless a button is pressed.
+
+Set **Quiet Time**, **Quiet from** and **Quiet until** here. Triple-press Back
+for temporary Do Not Disturb. See [Quiet Time](../quiet_time/quiet_time.md) for
+schedule, sound overrides and the crossed-speaker icon.
 
 Screen Wake controls a sleeping display: Off never wakes for these alerts; On
 wakes when Mode permits a local alert; Always wakes even with Mode Off, a
@@ -78,19 +88,16 @@ so routine status messages cannot immediately replace them.
 
 ## Sound
 
-Volume, DM/channel/new-contact/advert melodies and advert sound scope.
-**New Sound** defaults to None and applies only when an advert adds a contact
-to the local table. It is independent of **AD Sound**, which applies to routine
-adverts. Requested Discover results do not play AD Sound. Notification sounds
-can use Message, Kerplop, Chime, Ripple, Beacon, Cheer, Orbit, Alert, Custom1,
-Custom2 or None. Any sound can be assigned
-globally or to an individual contact or channel. Custom melodies are edited in
-**Tools › Ringtone Editor**. Each supports up to 16 notes or pauses, chromatic
-pitches from C through B, octaves 4–7, four note lengths and five tempos.
-Accidentals are shown as sharps; use the enharmonic sharp for a flat note.
-Use Left/Right to select a melody and Enter to preview it. Manual previews also
-play during Notifications Off, Quiet Time and DND; selecting None remains silent.
-Preview does not save the selection; settings save on Back.
+Choose volume and melodies for direct messages, channels, new contacts and
+adverts. **New Sound** applies only when an advert adds a contact; **AD Sound**
+applies to routine adverts. Discover results do not play AD Sound.
+
+Use Left/Right to choose a melody and Enter to preview it. Previews can sound
+during Notifications Off, Quiet Time or DND; None stays silent. Save with Back.
+Contact and channel menus can override the global melody.
+
+Edit Custom1 and Custom2 under **Tools › Ringtone Editor**. Each supports up to
+16 notes or pauses, with pitch, octave, note length and tempo controls.
 
 ## Advert
 
@@ -105,42 +112,30 @@ queued.
 
 ## Home Pages
 
-Enter toggles a page and Left/Right changes its order. Clock is fixed first;
-Messages and Settings remain available. Position 1 is the first page after
-Clock.
+Enter toggles a page; Left/Right changes its order. Clock stays first, and
+Messages and Settings remain available. Position 1 is the first page after Clock.
 
 Default order: Messages, Favourites, Sensors, GPS, Advert, Bluetooth, Radio,
-Tools, Settings.
-
-Sensors lists saved sensor nodes. Open a node to fetch its telemetry; Up/Down
-scrolls one value at a time, Enter refreshes and Back returns to the list.
-Channels appear in descending order, with values kept in their original order
-within each channel. Only telemetry labels and values are shown. Requests use
-the node's existing path and access permissions. After no reply, Zen tries
-blank-password ACL login. Confirmed access retries telemetry automatically;
-otherwise Enter offers administrator-password login followed by one retry.
-There is no background polling.
-Sensors is enabled by default on fresh settings. Enable it here on existing
-devices. It is hidden while Child Mode is locked.
-
-See the [Sensors guide](../sensors/sensors.md) for navigation and login behaviour.
+Tools, Settings. Enable Sensors here on existing devices if it is missing;
+it is hidden in locked Child Mode. See [Sensors](../sensors/sensors.md).
 
 ## Radio
 
-TX power, preset, frequency, spreading factor, bandwidth and coding rate. Preset
-changes apply the frequency, bandwidth, SF and CR together. Built-in presets
-come from a reviewed official MeshCore API snapshot and use Previous/Next pages.
-If a built-in recommends a path-hash size, selecting it also applies that network
-setting. An unspecified hash size and saved user RF presets leave the current
-hash mode unchanged. Installing firmware does not change saved radio settings.
-See the [preset snapshot workflow](../../design/zen_radio_presets.md). Frequency
-uses a validated digit editor.
+Choose TX power, a preset, or individual frequency, spreading factor, bandwidth
+and coding-rate values. A preset applies its radio values together. Use
+Previous/Next to browse built-ins, **+ Save current...** to keep a custom preset,
+and **- Delete preset...** to remove one. Up to four custom presets are available.
+Built-ins may also apply a recommended path-hash size; custom presets keep
+the current size. Installing firmware does not change saved radio settings.
 
-**Flood Scope** sets the saved default region for message floods and flood
-adverts. Enter a region name (or leave it empty for no scope), confirm the
-delivery warning, then leave Settings to save. **Msg Flood** shows whether
-message floods currently use the default or a temporary app override.
-**Use Default** clears that override in RAM without changing the saved scope.
+**Flood Scope** sets the default region for message floods and flood adverts.
+Enter a name, or leave it empty for no scope, confirm the delivery warning and
+leave Settings to save. **Msg Flood** shows a temporary app override, if any;
+**Use Default** clears it and returns to your saved scope.
+
+Trace guest (Radio section) enables empty-password public guest introduction for
+repeater Trace, On by default. Off retains ordinary discovery and advert-route
+fallback. Trace never automatically uses an administrator password.
 
 ## System
 
@@ -186,12 +181,11 @@ behaviour.
 ## Keyboard
 
 Choose predictive **T9** (default) or **ABC**. Literal fields use multi-tap even
-with T9 selected. **CardKB** is a read-only `Found`/`Missing` status.
-To enter `0` in T9, switch to symbols and press the bottom-right key once.
+with T9 selected. **CardKB** shows Found or Missing.
 
-Word completion is limited to messages. Its 4,000-word Australianised
-dictionary excludes proper names, fragments and unsuitable terms. The smiley
-key opens the four-entry emoji picker.
+In T9, use symbols and press the bottom-right key once to enter `0`. The smiley
+key opens the emoji picker. See [Messages](../message_screen/message_screen.md)
+for word completion and [CardKB](../cardkb/cardkb.md) for keyboard shortcuts.
 
 ## Contacts
 
@@ -212,7 +206,3 @@ as message composition.
 
 See the [Quick Replies guide](../quick_replies/quick_replies.md) for use from a
 conversation.
-
-Trace guest (Radio section) enables empty-password public guest introduction for
-repeater Trace, On by default. Off retains ordinary discovery and advert-route
-fallback. Trace never automatically uses an administrator password.

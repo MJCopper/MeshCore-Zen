@@ -11,7 +11,7 @@
   },
   "app/MyMesh.h": {
     "baseline_sha256": "2401a22b5fb58397da5c80b96ec437739472b3085c1669a543624c1346383478",
-    "overlay_sha256": "c9b9935200c2c112ea5ff4bfeba603ad5260cba28c8b7f455093fadf9c3e7ad8",
+    "overlay_sha256": "47af64def314f7bde57b95c44d6557ee40a387069e11c5af7f706caa767ed5d2",
     "reason": "Zen companion integration API over BaseChatMesh."
   },
   "app/main.cpp": {
