@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../simple_sensor/SensorMesh.h"
-#include "SensorScopeBinding.h"
+#include "SensorFloodBinding.h"
 #include "SensorManagementPolicy.h"
 
 // Thin binding between the upstream sensor runtime and this application's services.
-class Bme680SensorMesh : public SensorScopeBinding<SensorMesh> {
+class Bme680SensorMesh : public SensorFloodBinding<SensorMesh> {
   SensorBotService _bot;
   TimeSeriesData _battery{12 * 24, 5 * 60};
   Trigger _low_batt, _critical_batt;
@@ -15,9 +15,12 @@ class Bme680SensorMesh : public SensorScopeBinding<SensorMesh> {
 public:
   Bme680SensorMesh(mesh::MainBoard& board, mesh::Radio& radio, mesh::MillisecondClock& ms,
                    mesh::RNG& rng, mesh::RTCClock& rtc, mesh::MeshTables& tables)
-      : SensorScopeBinding<SensorMesh>(board, radio, ms, rng, rtc, tables), _bot(*this, sensors.snapshot) { }
+      : SensorFloodBinding<SensorMesh>(board, radio, ms, rng, rtc, tables), _bot(*this, sensors.snapshot) { }
   void begin(FILESYSTEM* fs) {
     SensorMesh::begin(fs);
+    auto status=beginFlood(fs);
+    if(status!=DoublerSettings::VALID && status!=DoublerSettings::DEFAULTED)
+      Serial.printf("multi.flood: settings unavailable (%u), effective mode off\n",(unsigned)status);
     sensors.snapshot.setVoltage(board.getBattMilliVolts() / 1000.0f);
     _bot.begin(fs);
   }
@@ -47,6 +50,7 @@ protected:
     return 1;
   }
   bool handleCustomCommand(uint32_t, char* command, char* reply) override {
+    if(floodCommand(command,reply)) return true;
     if(_bot.tracePolicyCommand(command,reply)) return true;
     if (strcmp(command, "get repeat") == 0) { strcpy(reply, "> off"); return true; }
     if (strncmp(command, "set repeat ", 11) == 0) {
@@ -104,10 +108,17 @@ protected:
     memcpy(reply, &stats, sizeof(stats));
     return sizeof(stats);
   }
-  void onTxStarted(mesh::Packet* packet, uint32_t time) override { _bot.onTxStarted(packet, time); }
+  uint8_t floodHashMode() override { return getNodePrefs()->path_hash_mode; }
+  void onFloodTxStarted(mesh::Packet* packet,uint32_t time,bool repeat) override {
+    if(repeat) _bot.onOptionalTxStarted(time); else _bot.onTxStarted(packet,time);
+  }
   void logRx(mesh::Packet* packet, int, float) override { _bot.observeRoute(packet); }
-  void logTx(mesh::Packet* packet, int length) override { _bot.logTx(packet, length); }
-  void logTxFail(mesh::Packet* packet, int length) override { _bot.logTxFail(packet, length); }
+  void onFloodTxComplete(mesh::Packet* packet,int length,bool repeat) override {
+    if(repeat) _bot.onOptionalTxFinished(now()); else _bot.logTx(packet,length);
+  }
+  void onFloodTxFailed(mesh::Packet* packet,int length,bool repeat) override {
+    if(repeat) _bot.onOptionalTxFinished(now()); else _bot.logTxFail(packet,length);
+  }
   void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t time,
                      const uint8_t* data, size_t length) override {
     _bot.onAdvertRecv(packet, id, time, data, length);

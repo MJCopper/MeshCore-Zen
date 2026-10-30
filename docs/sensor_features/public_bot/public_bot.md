@@ -473,3 +473,12 @@ maximum including the permitted retry branches and reporting is 81 seconds.
 An unknown route advertises 109 seconds (117 with two-byte hashes), reserving
 one conservative ten-repeater probe. A healthy request completes without waiting
 through those unused attempts or maximum-route allowances.
+
+### Optional physical flood copies
+
+The sensor can enable `multi.flood` through the private/local administration CLI.
+Mode 1 adds one best-effort physical copy to bot channel text, including trace
+acknowledgements and reports. Mode 2 also covers locally originated discovery
+and guest-login floods. Direct TRACE probes are excluded. Logical retry counts,
+report ownership and frozen deadlines remain unchanged. See
+[configuration and behaviour](../multi_flood.md).

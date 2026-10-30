@@ -6,7 +6,7 @@
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/StaticPoolPacketManager.h>
 #include <helpers/AdvertDataHelpers.h>
-#include "SensorScopeBinding.h"
+#include "SensorFloodBinding.h"
 #include <helpers/RegionScope.h>
 #include <helpers/ClientACL.h>
 
@@ -20,6 +20,8 @@ public:
   bool transmitting = false;
   unsigned estimates_during_tx = 0;
   unsigned start_calls = 0;
+  unsigned estimate_calls=0,advance_at_estimate=0;
+  uint32_t advance_ms=0;
   uint32_t airtime = 100;
   virtual uint32_t timingProfile() const { return airtime; }
   float last_snr = 0;
@@ -30,6 +32,7 @@ public:
     return count;
   }
   uint32_t getEstAirtimeFor(int) override {
+    if(++estimate_calls==advance_at_estimate) g_mock_millis+=advance_ms;
     if (transmitting) estimates_during_tx++;
     return airtime;
   }
@@ -76,8 +79,15 @@ public:
   TransportKey default_scope{};
   ClientACL management_acl;
   unsigned management_path_updates = 0, management_data_calls = 0;
+  bool raw_forward=false;
   int matched_clients[MAX_CLIENTS]{};
 protected:
+  mesh::DispatcherAction onRecvPacket(mesh::Packet* p) override {
+    return raw_forward?ACTION_RETRANSMIT(1):Mesh::onRecvPacket(p);
+  }
+  virtual void onRadioApplied(float,float,uint8_t,uint8_t) { }
+  virtual void onPacketContextChanged() { }
+  TransportKey captureDefaultScope() const { return default_scope; }
   int searchPeersByHash(const uint8_t* hash) override {
     int count = 0;
     for (int i = 0; i < management_acl.getNumClients() && count < 24; i++)
@@ -109,9 +119,11 @@ protected:
 };
 
 // The integration adapter uses real MeshCore encryption, parsing, dispatcher and pool.
-class TestMesh : public SensorScopeBinding<ScopeTestRuntime> {
+class TestMesh : public SensorFloodBinding<ScopeTestRuntime> {
 public:
   SensorBotService* bot = nullptr;
+  void applyFloodRadio(float f,float bw,uint8_t sf,uint8_t cr) { onRadioApplied(f,bw,sf,cr); }
+  void changeFloodContext() { onPacketContextChanged(); }
   void loop() { if (bot) bot->beforeRadioLoop(); Mesh::loop(); }
   const char* node_name = "BME680 Sensor";
   uint32_t profile = 0;
@@ -132,7 +144,7 @@ public:
   mesh::Packet* isolated_ack_packet = nullptr;
   TestMesh(TestRadio& radio, TestClock& clock, TestRandom& rng, TestRTC& rtc,
             StaticPoolPacketManager& pool, SimpleMeshTables& tables)
-      : SensorScopeBinding<ScopeTestRuntime>(radio, clock, rng, rtc, pool, tables) { }
+      : SensorFloodBinding<ScopeTestRuntime>(radio, clock, rng, rtc, pool, tables) { }
   uint32_t now() override { return g_mock_millis; }
   uint32_t uniqueTime() override { return getRTCClock()->getCurrentTimeUnique(); }
   const char* nodeName() override { return node_name; }
@@ -159,7 +171,7 @@ public:
       if (bot) { bot->onTxStarted(packet, now()); bot->logTx(packet, 0); }
       releasePacket(packet);
     } else if (reject_group) { reject_group--; releasePacket(packet); }
-    else SensorScopeBinding<ScopeTestRuntime>::sendReply(packet, delay, context);
+    else SensorFloodBinding<ScopeTestRuntime>::sendReply(packet, delay, context);
   }
   void sendDirect(mesh::Packet* packet, const uint8_t* path, uint8_t length, uint32_t delay) override {
     if (reject_direct) { reject_direct--; releasePacket(packet); }
@@ -173,9 +185,16 @@ protected:
   bool allowPacketForward(const mesh::Packet*) override { return false; }
   void logRx(mesh::Packet* packet, int, float) override { if (bot) bot->observeRoute(packet); }
   int calcRxDelay(float, uint32_t) const override { return 0; }
-  void onTxStarted(mesh::Packet* packet, uint32_t time) override { if (bot) bot->onTxStarted(packet, time); }
-  void logTx(mesh::Packet* packet, int length) override { if (bot) bot->logTx(packet, length); }
-  void logTxFail(mesh::Packet* packet, int length) override { if (bot) bot->logTxFail(packet, length); }
+  uint8_t floodHashMode() override { return outbound_width?outbound_width-1:0; }
+  void onFloodTxStarted(mesh::Packet* packet,uint32_t time,bool repeat) override {
+    if(bot) { if(repeat) bot->onOptionalTxStarted(time); else bot->onTxStarted(packet,time); }
+  }
+  void onFloodTxComplete(mesh::Packet* packet,int length,bool repeat) override {
+    if(bot) { if(repeat) bot->onOptionalTxFinished(now()); else bot->logTx(packet,length); }
+  }
+  void onFloodTxFailed(mesh::Packet* packet,int length,bool repeat) override {
+    if(bot) { if(repeat) bot->onOptionalTxFinished(now()); else bot->logTxFail(packet,length); }
+  }
   int searchChannelsByHash(const uint8_t* hash, mesh::GroupChannel channels[], int max) override {
     return bot ? bot->searchChannelsByHash(hash, channels, max) : 0;
   }

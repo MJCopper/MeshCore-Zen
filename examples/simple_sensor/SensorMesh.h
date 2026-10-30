@@ -60,7 +60,7 @@ public:
   const char* getRole() override { return FIRMWARE_ROLE; }
   const char* getNodeName() { return _prefs.node_name; }
   NodePrefs* getNodePrefs() { return &_prefs; }
-  void savePrefs() override { _cli.savePrefs(_fs); }
+  void savePrefs() override { _cli.savePrefs(_fs); onPacketContextChanged(); }
   bool formatFileSystem() override;
   void sendSelfAdvertisement(int delay_millis, bool flood) override;
   void updateAdvertTimer() override;
@@ -139,6 +139,8 @@ protected:
   virtual uint8_t firmwareLevel() const { return 1; }
   virtual int handleCustomRequest(uint8_t perms, uint8_t type, const uint8_t* payload,
                                   size_t length, uint8_t* reply, size_t capacity) { return -1; }
+  virtual void onRadioApplied(float, float, uint8_t, uint8_t) { }
+  virtual void onPacketContextChanged() { }
   virtual void onPrefsLoaded(NodePrefs&) { }
   using ClientSaveFilter = bool (*)(ClientInfo*);
   virtual ClientSaveFilter clientSaveFilter() const { return NULL; }

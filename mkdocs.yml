@@ -23,6 +23,7 @@ nav:
   - Hardware and Wiring: sensor_features/hardware/hardware.md
   - Telemetry: sensor_features/telemetry/telemetry.md
   - Public-channel Commands: sensor_features/public_bot/public_bot.md
+  - Optional Multi-flood: sensor_features/multi_flood.md
   - Access and Management: sensor_features/access/access.md
   - Building: building_sensor.md
   - Development and Testing: sensor_features/development/development.md

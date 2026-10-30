@@ -736,3 +736,16 @@ TEST_F(TargetedSensorNetwork, AustraliaNarrowUsesVariablePacketAirtimeAndLoginRe
   EXPECT_EQ(TraceTimingPolicy::floodTimeout(LORA_REFERENCE[0].airtime[57]),bot->timing().login_wait); EXPECT_LE(bot->timing().duration,120000u);
   expectCleanPools();
 }
+
+TEST_F(TargetedSensorNetwork, AustraliaNarrowMultiFloodKeepsGuestLoginAndTraceLogicalOwnership) {
+  for(auto& radio:radios) { radio.phy=&LORA_REFERENCE[0]; radio.phy_index=0; }
+  relay(1).discovery_clients.load(&fs,relay(1).self_id);
+  ASSERT_EQ(DoublerSettings::DEFAULTED,sensor_mesh->beginFlood(&fs));
+  char reply[160]; ASSERT_TRUE(sensor_mesh->floodCommand("set multi.flood 2",reply)); ASSERT_STREQ("OK",reply);
+  targetedRequest(1,0); runUntil(120000);
+  ASSERT_EQ(1u,relay(0).messages.size()); EXPECT_NE(std::string::npos,relay(0).messages[0].find("avg SNR"));
+  EXPECT_EQ(1u,relay(0).acknowledgements.size()); EXPECT_EQ(1u,bot->diagnostics().login_starts);
+  EXPECT_EQ(1u,bot->diagnostics().starts); EXPECT_EQ(1,transmitted(SENSOR,PAYLOAD_TYPE_TRACE));
+  EXPECT_TRUE(bot->diagnostics().login_path); EXPECT_EQ(0u,bot->diagnostics().report_failures);
+  EXPECT_GT(sensor_mesh->floodStats.transmitted,0u); expectCleanPools();
+}

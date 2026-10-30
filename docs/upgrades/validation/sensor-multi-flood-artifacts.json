@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-31",
+  "sensor_version": "v1.18.0-sensor.1",
+  "base_commit": "6f5506a38f65666260e40673cb5a341e66640b18",
+  "working_tree_dirty": true,
+  "artifacts": [
+    {
+      "environment": "Xiao_nrf52_bme680_sensor",
+      "uf2": {
+        "path": ".pio/build/Xiao_nrf52_bme680_sensor/Xiao_nrf52_bme680_sensor.uf2",
+        "bytes": 821760,
+        "sha256": "691ac87438144919ccf743796e7c1468df758c1a40943014b4caa3d25eeb7fd5",
+        "blocks": 1605
+      },
+      "ota": {
+        "path": ".pio/build/Xiao_nrf52_bme680_sensor/firmware.zip",
+        "bytes": 411599,
+        "sha256": "5b416888c9530e93613ceb1071d41a66781809730f925b4d40b61ec5f126f898",
+        "softdevice_req": [
+          291
+        ]
+      },
+      "hex_sha256": "b7dc5762f92b5f875cc059d5f5725dcea30d50cd29ea4e503bd598c7e65d9d22"
+    },
+    {
+      "environment": "Xiao_nrf52_sensor_baseline",
+      "uf2": {
+        "path": ".pio/build/Xiao_nrf52_sensor_baseline/Xiao_nrf52_sensor_baseline.uf2",
+        "bytes": 633344,
+        "sha256": "084f2096cbfb3597c03e017377889737b542fb6ee5a9d712e32fd588a977ed93",
+        "blocks": 1237
+      },
+      "ota": {
+        "path": ".pio/build/Xiao_nrf52_sensor_baseline/firmware.zip",
+        "bytes": 317351,
+        "sha256": "034815cdecb3f73a2b16a98037b40b7593c69f824c1827e5a6cdd915d28e1f94",
+        "softdevice_req": [
+          291
+        ]
+      },
+      "hex_sha256": "292ef52355bec8579bf915364a88e8b4fbe61d38c08270e5498f375a320b600c"
+    },
+    {
+      "environment": "Xiao_nrf52_companion_radio_usb",
+      "uf2": {
+        "path": ".pio/build/Xiao_nrf52_companion_radio_usb/firmware.uf2",
+        "bytes": 745984,
+        "sha256": "58a72d3b502dc7f2ec4d56398ca1aaddbb334ddae712c26da0bfdbc4d0bd27d3",
+        "blocks": 1457
+      },
+      "ota": {
+        "path": ".pio/build/Xiao_nrf52_companion_radio_usb/firmware.zip",
+        "bytes": 373794,
+        "sha256": "f3beb3606b9f3019f77de517cd71ee438fdbe3a75abf704cc1423584e66e0663",
+        "softdevice_req": [
+          291
+        ]
+      },
+      "hex_sha256": "94658c50a8b56688c0ac3e6edf814b37bc5755b0f0bd23040473607d660f329e"
+    },
+    {
+      "environment": "Xiao_nrf52_repeater",
+      "uf2": {
+        "path": ".pio/build/Xiao_nrf52_repeater/firmware.uf2",
+        "bytes": 722944,
+        "sha256": "90c8e29c0bc6e372e49fd43062b940100a5f75c90195eab0f2afd58ff6ca01e0",
+        "blocks": 1412
+      },
+      "ota": {
+        "path": ".pio/build/Xiao_nrf52_repeater/firmware.zip",
+        "bytes": 362131,
+        "sha256": "97383d7fca0102d5b2bcf03d0e83f42080876191b78af0edf41ac5a73f191c81",
+        "softdevice_req": [
+          291
+        ]
+      },
+      "hex_sha256": "fe4c21ef564001efb22a8279fd1ff73db3ba01e9a1f6c810e777b3ee593780f6"
+    },
+    {
+      "environment": "Xiao_nrf52_room_server",
+      "uf2": {
+        "path": ".pio/build/Xiao_nrf52_room_server/firmware.uf2",
+        "bytes": 707584,
+        "sha256": "8580563e90ae0e9c1451e306c0149e4f8458317cbcc095b30035f2d32181af81",
+        "blocks": 1382
+      },
+      "ota": {
+        "path": ".pio/build/Xiao_nrf52_room_server/firmware.zip",
+        "bytes": 354579,
+        "sha256": "d4838707b650ff48f08f94d076194b2387899c2e47f71e5cdf5723f57f4a4ee3",
+        "softdevice_req": [
+          291
+        ]
+      },
+      "hex_sha256": "7c05c5e6d69e7a9d30588963dca2c6423a513a38d3c3c7c6dd341344173985de"
+    }
+  ]
+}

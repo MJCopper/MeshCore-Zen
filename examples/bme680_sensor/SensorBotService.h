@@ -22,6 +22,8 @@ class SensorBotService;
 // Radio ownership stays in the MeshCore adapter; service tests supply this interface.
 class SensorBotTransport {
 public:
+  virtual void tagTracePacket(mesh::Packet*,uint32_t,uint32_t) { }
+  virtual void cancelTraceCopies(uint32_t) { }
   virtual void bindDiscovery(SensorBotService* service) = 0;
   virtual mesh::Packet* queueDiscovery(const uint8_t* key, uint32_t tag, const SensorReplyContext& context) = 0;
   virtual mesh::Packet* queueGuestLogin(const uint8_t* key, uint32_t tag, const SensorReplyContext& context) = 0;
@@ -74,6 +76,8 @@ public:
   void beforeRadioLoop();
 
   void onTxStarted(mesh::Packet* packet, uint32_t now_millis);
+  void onOptionalTxStarted(uint32_t now) { sampleQueues(now); _radio_tx_active=true; sampleQueues(now); }
+  void onOptionalTxFinished(uint32_t now) { _radio_tx_active=false; sampleQueues(now); }
 
   void logTx(mesh::Packet* packet, int);
 
@@ -131,6 +135,7 @@ private:
   uint32_t cachedAirtime(uint8_t length) const { return _airtime[length]; }
   uint32_t workRemaining(uint32_t now) const { return _budget.work(now,_deadline); }
   void sampleQueues(uint32_t now);
+  uint32_t _trace_epoch=0;
   uint32_t _deadline = 0;
   bool _transaction = false, _prelude = false;
   bool _targeted = false;

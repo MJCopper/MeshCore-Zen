@@ -500,3 +500,24 @@ requests. Do not delete both records or invent a timestamp to bypass remote
 replay checks. Without a safe backup or a demonstrably higher trusted bound,
 explicit operator recovery/re-provisioning is needed. No destructive journal
 reset or remote ACL reset is performed automatically.
+
+## Optional sensor flood copies
+
+`SensorFloodBinding<Runtime>` extends the existing scope binding with the
+`meshcore/doubler` policy and a 32-packet origin/operation tracker. Generic
+Dispatcher retain/release/service/select/defer/start hooks default inactive.
+Generic SensorMesh applied-radio and packet-context notifications have no policy
+in the baseline role. The BME680 binding activates them, defaulting to mode 0.
+
+Physical optional callbacks update radio activity independently of logical bot
+callbacks. Trace packets receive a runtime epoch/deadline; closing work cancels
+existing tagged copies, while new terminal parts can retain their own copies.
+This prevents pointer reuse, extra login attempts, repeated multipart advancement
+and copies surviving cancellation. Final admission samples time again after
+radio preparation. No packet/wire format, NodePrefs or baseline serializer changes.
+
+Shared source tests live in `test_flood_text_doubler`; sensor-specific tests in
+`test_sensor_multi_flood` use the same production adapter as firmware. The network
+suite includes mode 2 with variable-length Australia Narrow airtime and real
+Mesh encryption/decryption. See the [feature documentation](../multi_flood.md)
+and [validation](../../upgrades/validation/sensor-multi-flood.md).

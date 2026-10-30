@@ -188,6 +188,7 @@ bool SensorBotService::beginAcknowledgement(uint32_t now,const char* destination
   if(!trace_ack.begin(now,_budget.seconds(),TraceTimingPolicy::transmitWatchdog(air),
       _transport.nodeName(),destination,fallback)) return false;
   _advert_route=false; _attempt_advert[0]=_attempt_advert[1]=false;
+  if(!++_trace_epoch) ++_trace_epoch;
   _accepted_at=now; _deadline=now+_budget.duration;
   _queue_sample=now; _work_queue_used=_report_queue_used=0;
   _count_work_queue=true; _count_report_queue=false;
@@ -236,6 +237,7 @@ void SensorBotService::pumpAcknowledgement(uint32_t now) {
     auto packet = createPublicPart(trace_ack.text(), trace_context, false);
     if (!packet) { trace_diagnostics.allocations_failed++; trace_ack.retry(now); }
     else {
+      _transport.tagTracePacket(packet,_trace_epoch,_deadline);
       uint32_t airtime = cachedAirtime(packet->getRawLength());
       if (!airtime || TraceTimingPolicy::transmitWatchdog(airtime) > workRemaining(now) ||
           !trace_ack.queued(packet, TraceTimingPolicy::transmitWatchdog(airtime))) {
@@ -442,6 +444,7 @@ void SensorBotService::pumpTraceReport(uint32_t now, bool queue_early) {
       trace_diagnostics.allocations_failed++;
       trace_report.retry(now, _transport.rng().nextInt(0, 251));
     } else {
+      _transport.tagTracePacket(packet,_trace_epoch,_deadline);
       trace_report.queued(packet, TraceTimingPolicy::transmitWatchdog(
           cachedAirtime(packet->getRawLength())));
       _transport.sendReply(packet, trace_report.delay(now), trace_report.context());
@@ -552,6 +555,7 @@ void SensorBotService::logTxFail(mesh::Packet* packet, int) {
 }
 
 void SensorBotService::closeTrace(bool preserve_deadline) {
+  _transport.cancelTraceCopies(_trace_epoch);
   for(auto& packet:_control_packets) packet=nullptr;
   _login_route_pending=false;
   auto acknowledgement = (mesh::Packet*)trace_ack.queuedPacket();
@@ -899,6 +903,7 @@ void SensorBotService::pumpDiscovery(uint32_t now) {
     cancelQueued(packet); discovery.budgetExhausted(); ++trace_diagnostics.budget_omissions; return;
   }
   uint8_t index=discovery.login()?(discovery.loginAttempt()==1?1:discovery.loginAttempt()+1):discovery.attempt()==1?0:2;
+  _transport.tagTracePacket(packet,_trace_epoch,_deadline);
   _control_packets[index]=packet;
   trace_diagnostics.control[index].queued=now; trace_diagnostics.control[index].tag=tag;
   discovery.queued(packet,tag,discovery.remaining(now),watchdog);

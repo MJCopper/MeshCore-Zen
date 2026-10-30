@@ -7,6 +7,8 @@ This branch provides dedicated environmental-sensor firmware for a Seeed Studio
 XIAO nRF52840, an SX1262 LoRa radio and a Bosch BME680. It is based on
 **MeshCore v1.18.0** and uses the standard MeshCore sensor protocol.
 
+Current sensor release: **v1.18.0-sensor.1**.
+
 ## Supported hardware
 
 | Component | Requirement |
@@ -28,6 +30,8 @@ wiring table.
 > `#hillvue`. Replies stay on the channel where the command was received,
 > including multipart replies and trace results.
 
+- Optional `multi.flood` duplication of locally originated flood packets, off
+  by default. [Configuration and behaviour](docs/sensor_features/multi_flood.md).
 - Temperature, relative humidity, pressure, calculated altitude and relative
   air-quality telemetry.
 - One sensor sample per minute with the latest result cached in RAM.

@@ -70,6 +70,7 @@ void Dispatcher::loop() {
     next_floor_calib_time = futureMillis(NOISE_FLOOR_CALIB_INTERVAL);
   }
   _radio->loop();
+  serviceOptionalPackets((uint32_t)_ms->getMillis(), outbound);
 
   // check for radio 'stuck' in mode other than Rx
   bool is_recv = _radio->isInRecvMode();
@@ -112,7 +113,7 @@ void Dispatcher::loop() {
       } else {
         n_sent_direct++;
       }
-      releasePacket(outbound);  // return to pool
+      if (!retainAfterTransmit(outbound, (uint32_t)(outbound_start + t))) releasePacket(outbound);
       outbound = NULL;
     } else if (millisHasNowPassed(outbound_expiry)) {
       MESH_DEBUG_PRINTLN("%s Dispatcher::loop(): WARNING: outbound packed send timed out!", getLogDateTime());
@@ -273,12 +274,17 @@ void Dispatcher::processRecvPacket(Packet* pkt) {
 }
 
 void Dispatcher::checkSend() {
-  if (_mgr->getOutboundCount(_ms->getMillis()) == 0) return;
+  bool normal_ready = _mgr->getOutboundCount(_ms->getMillis()) != 0;
+  if (!normal_ready && !getOptionalPacket((uint32_t)_ms->getMillis())) return;
   
   updateTxBudget();
   
   uint32_t est_airtime = _radio->getEstAirtimeFor(MAX_TRANS_UNIT);
   if (tx_budget_ms < est_airtime / MIN_TX_BUDGET_AIRTIME_DIV) {
+    if (!normal_ready) {
+      deferOptionalPackets((uint32_t)_ms->getMillis());
+      return;  // optional traffic must not change normal backoff
+    }
     float duty_cycle = 1.0f / (1.0f + getAirtimeBudgetFactor());
     unsigned long needed = est_airtime / MIN_TX_BUDGET_AIRTIME_DIV - tx_budget_ms;
     next_tx_time = futureMillis((unsigned long)(needed / duty_cycle));
@@ -287,6 +293,10 @@ void Dispatcher::checkSend() {
   
   if (!millisHasNowPassed(next_tx_time)) return;
   if (_radio->isReceiving()) {
+    if (!normal_ready) {
+      deferOptionalPackets((uint32_t)_ms->getMillis());
+      return;  // never force an optional TX or start a CAD timer
+    }
     if (cad_busy_start == 0) {
       cad_busy_start = _ms->getMillis();   // record when CAD busy state started
     }
@@ -302,9 +312,10 @@ void Dispatcher::checkSend() {
       return;
     }
   }
-  cad_busy_start = 0;  // reset busy state
+  if (normal_ready) cad_busy_start = 0;  // optional traffic preserves normal CAD state
 
-  outbound = _mgr->getNextOutbound(_ms->getMillis());
+  outbound = normal_ready ? _mgr->getNextOutbound(_ms->getMillis())
+                          : getOptionalPacket((uint32_t)_ms->getMillis());
   if (outbound) {
     int len = 0;
     uint8_t raw[MAX_TRANS_UNIT];
@@ -319,12 +330,17 @@ void Dispatcher::checkSend() {
 
     if (len + outbound->payload_len > MAX_TRANS_UNIT) {
       MESH_DEBUG_PRINTLN("%s Dispatcher::checkSend(): FATAL: Invalid packet queued... too long, len=%d", getLogDateTime(), len + outbound->payload_len);
-      _mgr->free(outbound);
+      releasePacket(outbound);
       outbound = NULL;
     } else {
       memcpy(&raw[len], outbound->payload, outbound->payload_len); len += outbound->payload_len;
 
       uint32_t max_airtime = _radio->getEstAirtimeFor(len)*3/2;
+      if (!allowPacketStart(outbound, (uint32_t)_ms->getMillis())) {
+        releasePacket(outbound);
+        outbound = NULL;
+        return;
+      }
       outbound_start = _ms->getMillis();
       bool success = _radio->startSendRaw(raw, len);
       if (!success) {
@@ -337,7 +353,7 @@ void Dispatcher::checkSend() {
         return;
       }
       outbound_expiry = futureMillis(max_airtime);
-      onTxStarted(outbound, outbound_start);
+      onTxStarted(outbound, (uint32_t)outbound_start);
 
     #if MESH_PACKET_LOGGING
       Serial.print(getLogDateTime());
@@ -366,13 +382,14 @@ Packet* Dispatcher::obtainNewPacket() {
 }
 
 void Dispatcher::releasePacket(Packet* packet) {
+  onPacketReleased(packet);
   _mgr->free(packet);
 }
 
 void Dispatcher::sendPacket(Packet* packet, uint8_t priority, uint32_t delay_millis) {
   if (!Packet::isValidPathLen(packet->path_len) || packet->payload_len > MAX_PACKET_PAYLOAD) {
     MESH_DEBUG_PRINTLN("%s Dispatcher::sendPacket(): ERROR: invalid packet... path_len=%d, payload_len=%d", getLogDateTime(), (uint32_t) packet->path_len, (uint32_t) packet->payload_len);
-    _mgr->free(packet);
+    releasePacket(packet);
   } else {
     _mgr->queueOutbound(packet, priority, futureMillis(delay_millis));
   }
