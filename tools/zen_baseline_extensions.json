@@ -1,13 +1,17 @@
 {
   "src/Dispatcher.h": {
     "source_commit": "99dc14489bcaf529be7957a998863c5acc8713e8",
-    "sha256": "83d58e0d9eb6008c403ea7e9d443ddea1ed212509d47ee54176e1d245662f63c",
-    "reason": "Sensor trace TX-start callback and safe queued-packet inspection/cancellation; no default dispatch behaviour change."
+    "sha256": "81bee0661ed191347d08a71d6da5581613531e46322698cb9115d07534c63a70",
+    "reason": "Preserve pinned sensor trace TX/queue hooks; sole authorised multi-flood exception adds default-inactive packet retention and optional scheduling. No packet-format or routing changes.",
+    "extension_patch": "tools/zen_multi_flood_dispatcher.patch",
+    "extension_patch_sha256": "e04100e4bf33944ed620aa91b5bcf66a00807d4306ab223a384c28902ad9cdb5"
   },
   "src/Dispatcher.cpp": {
     "source_commit": "99dc14489bcaf529be7957a998863c5acc8713e8",
-    "sha256": "7eb9a8cbd2c85139ded37d72fe0fc5b703ca4fbd84b36189425c52d53f4d4575",
-    "reason": "Sensor trace TX-start callback and safe queued-packet inspection/cancellation; no default dispatch behaviour change."
+    "sha256": "a1f36373ce00ca68389aeb0adb08d1ccbd54e45d44b64a19f3129d3decabcb9a",
+    "reason": "Preserve pinned sensor trace TX/queue hooks; sole authorised multi-flood exception adds default-inactive packet retention and optional scheduling. No packet-format or routing changes.",
+    "extension_patch": "tools/zen_multi_flood_dispatcher.patch",
+    "extension_patch_sha256": "e04100e4bf33944ed620aa91b5bcf66a00807d4306ab223a384c28902ad9cdb5"
   },
   "src/MeshCore.h": {
     "source_commit": "81dbae592ffad40b4212bc0b37e82b38da08f4bc",

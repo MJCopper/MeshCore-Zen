@@ -11,9 +11,7 @@
 #include <helpers/ui/ZenUIScreen.h>
 #include "icons.h"
 #include "UIFramework.h"
-#include "../MyMesh.h"
-
-extern MyMesh the_mesh;
+// UITask.cpp provides the mesh and task boundary before including this screen.
 
 class RepeaterScreen : public ZenUIScreen {
   UITask* _task;
@@ -82,6 +80,7 @@ public:
     if (item == IT_REPEATER && (left || right || enter)) {
       p->setRepeatEn(!p->isRepeatEn());
       _dirty = (p->isRepeatEn() != _initial_enabled);
+      the_mesh.syncMultiFlood();
       _task->showAlert(p->isRepeatEn() ? "Repeater: On" : "Repeater: Off", 900);
       return true;
     }

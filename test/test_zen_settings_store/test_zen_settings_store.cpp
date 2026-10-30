@@ -41,6 +41,7 @@ void File::close(){if(fs && writing)fs->mutation();fs=nullptr;}
 #include "../../examples/companion_radio/zen-overlay/app/zen/ZenStore.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/BaselinePrefsFingerprint.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/ZenPrefsDefaults.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/MultiFloodSetting.h"
 using namespace zen;
 static std::vector<uint8_t> encode(const ZenSettings& p,uint32_t gen=1){std::vector<uint8_t> b(ZenPrefsCodec::MAX_ENCODED_SIZE);auto n=ZenPrefsCodec::encode(p,gen,b.data(),b.size());EXPECT_GT(n,0u);b.resize(n);return b;}
 static std::vector<uint8_t> fixture(int version){std::ifstream f("test/fixtures/zen_settings/v"+std::to_string(version)+".bin",std::ios::binary);return {std::istreambuf_iterator<char>(f),std::istreambuf_iterator<char>()};}
@@ -52,6 +53,7 @@ TEST(ZenSettingsStore, MemoryBudgetsAndEveryTaggedFieldRoundTripWithoutBaselineM
   auto baseline=BaselinePrefsFingerprint::calculate(after);
   for(const auto& field:SETTINGS_FIELDS)for(unsigned i=0;i<field.size;++i)reinterpret_cast<uint8_t*>(&before.zenSettings())[field.offset+i]=uint8_t(field.tag+i);
   for(auto& preset:before.user_radio_presets){strcpy(preset.name,"Narrow");preset.freq=916.575;preset.bw=62.5;preset.sf=7;preset.cr=8;}
+  before.multi_flood_mode=2;
   before.setTracePublicLogin(false);auto bytes=encode(before);uint32_t gen=0;
   ASSERT_TRUE(ZenPrefsCodec::decode(after,bytes.data(),bytes.size(),&gen));EXPECT_EQ(1u,gen);
   EXPECT_EQ(bytes,encode(after));EXPECT_EQ(baseline,BaselinePrefsFingerprint::calculate(after));
@@ -202,7 +204,8 @@ TEST(ZenSettingsStore, FrozenLegacyMappingPreservesEveryActiveField) {
       for(const auto& field:SETTINGS_FIELDS)if(field.tag==tag){ASSERT_EQ(size,field.size);EXPECT_EQ(0,memcmp(expected.data()+at,reinterpret_cast<const uint8_t*>(&p.zenSettings())+field.offset,size))<<unsigned(tag);found=true;++count;break;}
       EXPECT_TRUE(found);at+=size;
     }
-    EXPECT_EQ(sizeof(SETTINGS_FIELDS)/sizeof(SETTINGS_FIELDS[0]),count);
+    size_t legacy_count=0;for(const auto& field:SETTINGS_FIELDS)if(field.legacy!=0xFFFF)++legacy_count;
+    EXPECT_EQ(legacy_count,count);EXPECT_EQ(0,p.multi_flood_mode);
   }
 }
 
@@ -256,6 +259,75 @@ TEST(ZenSettingsStore, LegacySavedQuietTimeChoiceOverridesNewFactoryDefault) {
     EXPECT_EQ(21 * 60, restored.quiet_time_start_min);
     EXPECT_EQ(7 * 60, restored.quiet_time_end_min);
   }
+}
+
+TEST(ZenSettingsStore, MultiFloodDefaultsAndLegacyRecordsFailOff) {
+  ZenPrefs prefs;prefs.multi_flood_mode=2;PrefsDefaults::apply(prefs);EXPECT_EQ(0,prefs.multi_flood_mode);
+  prefs.multi_flood_mode=255;PrefsDefaults::normalize(prefs);EXPECT_EQ(0,prefs.multi_flood_mode);
+  for(int version:{1,2}) { auto old=fixture(version);prefs.multi_flood_mode=2;
+    ASSERT_TRUE(ZenPrefsCodec::decode(prefs,old.data(),old.size()));EXPECT_EQ(0,prefs.multi_flood_mode); }
+  auto old=encode(prefs);bool removed=false;
+  for(size_t at=13;at+3<old.size()-4;) { unsigned size=old[at+1]|unsigned(old[at+2])<<8;
+    if(old[at]==88) { old.erase(old.begin()+at,old.begin()+at+3+size);removed=true;break; }at+=3+size; }
+  ASSERT_TRUE(removed);rehash(old);prefs.multi_flood_mode=2;
+  ASSERT_TRUE(ZenPrefsCodec::decode(prefs,old.data(),old.size()));EXPECT_EQ(0,prefs.multi_flood_mode);
+}
+TEST(ZenSettingsStore, MultiFloodRoundTripValidationAndTransactionalRollback) {
+  SettingsFS fs;ZenStore store;store.begin(&fs,nullptr);ZenPrefs prefs;
+  auto base=BaselinePrefsFingerprint::calculate(prefs);
+  auto save=[&](){return store.save(prefs);};
+  EXPECT_TRUE(MultiFloodSetting::set(prefs,0,save));EXPECT_EQ(0,fs.mutations);
+  for(unsigned mode:{1u,2u,0u}) {
+    ASSERT_TRUE(MultiFloodSetting::set(prefs,mode,save));
+    ZenStore reboot;reboot.begin(&fs,nullptr);ZenPrefs restored;ASSERT_TRUE(reboot.load(restored));EXPECT_EQ(mode,restored.multi_flood_mode);
+    int mutations=fs.mutations;EXPECT_TRUE(MultiFloodSetting::set(prefs,mode,save));EXPECT_EQ(mutations,fs.mutations);
+  }
+  auto files=fs.files;fs.full=true;EXPECT_FALSE(MultiFloodSetting::set(prefs,2,save));EXPECT_EQ(0,prefs.multi_flood_mode);EXPECT_EQ(files,fs.files);
+  EXPECT_FALSE(MultiFloodSetting::set(prefs,255,save));EXPECT_EQ(base,BaselinePrefsFingerprint::calculate(prefs));
+  prefs.multi_flood_mode=3;auto bad=encode(prefs);ZenPrefs restored;restored.multi_flood_mode=1;
+  EXPECT_FALSE(ZenPrefsCodec::decode(restored,bad.data(),bad.size()));EXPECT_EQ(1,restored.multi_flood_mode);
+}
+TEST(ZenSettingsStore, MultiFloodPowerCutsRecoverEitherCommittedMode) {
+  SettingsFS probe;ZenStore trial;trial.begin(&probe,nullptr);ZenPrefs next;next.multi_flood_mode=1;ASSERT_TRUE(trial.save(next));
+  probe.mutations=0;next.multi_flood_mode=2;ASSERT_TRUE(trial.save(next));const int steps=probe.mutations;
+  for(int cut=1;cut<=steps+1;++cut) {
+    SettingsFS fs;ZenStore store;store.begin(&fs,nullptr);ZenPrefs p;p.multi_flood_mode=1;ASSERT_TRUE(store.save(p));
+    fs.cut=cut;fs.mutations=0;p.multi_flood_mode=2;try{store.save(p);}catch(const std::runtime_error&){}
+    fs.cut=0;ZenStore reboot;reboot.begin(&fs,nullptr);ZenPrefs restored;
+    ASSERT_TRUE(reboot.load(restored))<<cut;EXPECT_TRUE(restored.multi_flood_mode==1 || restored.multi_flood_mode==2)<<cut;
+  }
+}
+
+TEST(ZenSettingsStore, HiddenMultiFloodCliPersistsAndQueriesWithoutWriting) {
+  SettingsFS fs;ZenStore store;store.begin(&fs,nullptr);ZenPrefs p;char reply[80]{};
+  auto command=[&](const char* text) {
+    return MultiFloodSetting::handleCommand(text,reply,p.multi_flood_mode,[&](uint8_t mode) {
+      return MultiFloodSetting::set(p,mode,[&](){return store.save(p);});
+    });
+  };
+  EXPECT_TRUE(command("get multi.flood"));EXPECT_STREQ("> 0",reply);EXPECT_EQ(0,fs.mutations);
+  for(uint8_t mode:{uint8_t(1),uint8_t(2),uint8_t(0)}) {
+    char text[32];snprintf(text,sizeof(text),"set multi.flood %u",unsigned(mode));
+    ASSERT_TRUE(command(text));EXPECT_STREQ("OK",reply);EXPECT_EQ(mode,p.multi_flood_mode);
+    ZenStore reboot;reboot.begin(&fs,nullptr);ZenPrefs loaded;ASSERT_TRUE(reboot.load(loaded));EXPECT_EQ(mode,loaded.multi_flood_mode);
+    int writes=fs.mutations;EXPECT_TRUE(command(text));EXPECT_EQ(writes,fs.mutations);
+    EXPECT_TRUE(command("get multi.flood \t\r\n"));EXPECT_EQ(writes,fs.mutations);
+  }
+  EXPECT_TRUE(command("set multi.flood \t1 \r\n"));EXPECT_EQ(1,p.multi_flood_mode);
+  auto files=fs.files;fs.full=true;EXPECT_TRUE(command("set multi.flood 2"));EXPECT_STREQ("Error, save failed",reply);
+  EXPECT_EQ(1,p.multi_flood_mode);EXPECT_EQ(files,fs.files);
+}
+TEST(ZenSettingsStore, HiddenMultiFloodCliStrictlyRejectsMalformedValuesAndDoesNotAdvertiseItself) {
+  char reply[80]{};unsigned calls=0;
+  auto command=[&](const char* text) { return MultiFloodSetting::handleCommand(text,reply,0,[&](uint8_t){++calls;return true;}); };
+  for(const char* text:{"set multi.flood","set multi.flood ","set multi.flood -1","set multi.flood +1",
+      "set multi.flood 3","set multi.flood 255","set multi.flood 01","set multi.flood 1.0",
+      "set multi.flood 1abc","set multi.flood 1 2","get multi.flood 1","get multi.flood junk"}) {
+    ASSERT_TRUE(command(text))<<text;EXPECT_EQ(0, strncmp(reply,"Error",5))<<text;
+  }
+  for(const char* text:{"","g","get","set","help","get multi","get multi.floodx","set multi.floods 1","set radio.sf 7"})
+    EXPECT_FALSE(command(text))<<text;
+  EXPECT_EQ(0u,calls);
 }
 
 int main(int argc,char** argv){::testing::InitGoogleTest(&argc,argv);return RUN_ALL_TESTS();}

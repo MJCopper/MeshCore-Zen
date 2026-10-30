@@ -48,8 +48,7 @@ an upstream counterpart without review fails the boundary check.
 
 `tools/check_zen_baseline.py` verifies the complete shared core, public include
 tree, official Wio variants and complete official companion application against
-the pinned MeshCore 1.18.0 commit, except the two exact sensor Dispatcher files
-listed in `tools/zen_baseline_extensions.json`. It also enforces the reviewed integration
+the pinned MeshCore 1.18.0 commit, except the exact reviewed core extensions listed in `tools/zen_baseline_extensions.json`. It also enforces the reviewed integration
 manifest and requires Zen to compile baseline `DataStore` directly. Run it
 whenever the overlay boundary changes. Update the pinned commit and reviewed
 hashes only as part of an intentional upstream baseline update.
@@ -71,8 +70,9 @@ targets. Release artifacts remain scoped to the two Zen environments.
 
 Repeater Trace deliberately imports the sensor branch's TX-start observer and
 queue-only lookup/cancellation capabilities into `src/Dispatcher.h/.cpp`.
-Those two files are pinned by source commit and SHA-256, not broadly exempted
-from review. Their default callback is empty and queue cancellation cannot
+Those two files preserve the immutable sensor source pin plus the exact
+SHA-256-pinned Dispatcher extension patch. They are not broadly
+exempted from review. Their default callback is empty and queue cancellation cannot
 remove the in-flight packet. A separately pinned one-keyword RTC extension makes `getCurrentTimeUnique()`
 virtual; its default implementation is unchanged. Zen supplies a durable
 sequencer through its overlay, sharing request ordering with companion traffic

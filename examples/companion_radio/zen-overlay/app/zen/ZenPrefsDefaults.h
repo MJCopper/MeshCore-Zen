@@ -10,6 +10,7 @@ namespace zen {
 class PrefsDefaults {
 public:
   static void apply(ZenPrefs& prefs) {
+    prefs.multi_flood_mode = 0;
     prefs.pet_enabled = 0;
     prefs.child_visible_pages = ZenPrefs::HP_FAVOURITES;
     prefs.child_rooms_enabled = 0;
@@ -24,6 +25,7 @@ public:
   }
 
   static void normalize(ZenPrefs& prefs) {
+    if (prefs.multi_flood_mode > 2) prefs.multi_flood_mode = 0;
     if (prefs.pet_enabled > 1) prefs.pet_enabled = 0;
     if (prefs.child_mode_enabled > 1) prefs.child_mode_enabled = 0;
     if (prefs.child_channels_enabled > 1) prefs.child_channels_enabled = 0;

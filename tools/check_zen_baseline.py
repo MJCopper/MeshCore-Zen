@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,8 +82,32 @@ def check_shadows() -> list[str]:
     return errors
 
 
+def reviewed_dispatcher_patch(name: str, expected: bytes, entry: dict) -> bytes:
+    """Apply the sole authorised multi-flood patch to the immutable trace pin."""
+    patch_name = entry.get("extension_patch")
+    if patch_name != "tools/zen_multi_flood_dispatcher.patch":
+        raise ValueError("only the multi-flood Dispatcher patch is permitted")
+    data = (ROOT / patch_name).read_bytes()
+    if hashlib.sha256(data).hexdigest() != entry.get("extension_patch_sha256"):
+        raise ValueError("multi-flood patch digest mismatch")
+    paths = {line[6:] for line in data.decode().splitlines() if line.startswith("+++ b/")}
+    if paths != {"src/Dispatcher.h", "src/Dispatcher.cpp"}:
+        raise ValueError("multi-flood patch must touch only the two Dispatcher files")
+    if entry["source_commit"] != "99dc14489bcaf529be7957a998863c5acc8713e8":
+        raise ValueError("multi-flood must preserve the immutable sensor trace base")
+    with tempfile.TemporaryDirectory() as directory:
+        target = Path(directory) / name
+        target.parent.mkdir(parents=True)
+        target.write_bytes(expected)
+        applied = subprocess.run(["git", "apply", "--unsafe-paths", "--include=" + name, "-"],
+                                 input=data, cwd=directory, capture_output=True, check=False)
+        if applied.returncode:
+            raise ValueError("multi-flood patch no longer applies to its trace base")
+        return target.read_bytes()
+
+
 def checked_core_extensions() -> tuple[set[str], list[str]]:
-    """Only pinned Dispatcher sources and the exact baseline RTC virtual hook are permitted."""
+    """Pinned trace hooks, the sole multi-flood exception and the exact RTC hook."""
     manifest = json.loads((ROOT / "tools/zen_baseline_extensions.json").read_text())
     errors = []
     allowed = {"src/Dispatcher.h", "src/Dispatcher.cpp", "src/MeshCore.h"}
@@ -98,6 +123,11 @@ def checked_core_extensions() -> tuple[set[str], list[str]]:
             if entry['source_commit'] != BASELINE or expected.count(before) != 1:
                 errors.append("RTC extension must be the single virtual hook on the pinned baseline")
             expected = expected.replace(before, after, 1)
+        if name.startswith("src/Dispatcher") and "extension_patch" in entry:
+            try:
+                expected = reviewed_dispatcher_patch(name, expected, entry)
+            except (OSError, ValueError) as error:
+                errors.append(f"invalid multi-flood extension: {name}: {error}")
         digest = hashlib.sha256(expected).hexdigest()
         if source.returncode or digest != entry["sha256"] or expected != (ROOT/name).read_bytes():
             errors.append(f"unreviewed core extension: {name}")
@@ -128,7 +158,7 @@ def main() -> int:
         for error in shadow_errors:
             print(f"  {error}", file=sys.stderr)
         return 1
-    print(f"MeshCore baseline {BASELINE} is unchanged outside pinned Dispatcher/RTC extensions.")
+    print(f"MeshCore baseline {BASELINE} is unchanged outside reviewed trace/RTC hooks and the sole multi-flood exception.")
     print("Zen baseline shadows match the reviewed manifest.")
     return 0
 

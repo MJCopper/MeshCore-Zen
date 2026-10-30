@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -21,20 +22,26 @@ class BaselineExtensionTests(unittest.TestCase):
         for name, content in self.sources.items():
             path = self.root/name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(content)
         (self.root/'tools').mkdir()
+        self.base_sources = {name: subprocess.check_output(["git","show",entry["source_commit"]+":"+name],cwd=REPO)
+                             for name,entry in self.manifest.items()}
+        patch_file="tools/zen_multi_flood_dispatcher.patch"
+        (self.root/patch_file).write_bytes((REPO/patch_file).read_bytes())
         self.write_manifest()
     def tearDown(self):
         self.temp.cleanup()
     def write_manifest(self):
         (self.root/'tools/zen_baseline_extensions.json').write_text(json.dumps(self.manifest))
     def check(self, missing=False):
+        real_run=subprocess.run
         def source(command, **kwargs):
+            if command[1]=="apply":return real_run(command,**kwargs)
             name = command[2].split(':',1)[1]
-            content=self.sources[name]
+            content=self.base_sources[name]
             if name=='src/MeshCore.h': content=content.replace(b'  virtual uint32_t getCurrentTimeUnique() {',b'  uint32_t getCurrentTimeUnique() {')
             return SimpleNamespace(returncode=1 if missing else 0, stdout=content)
         with patch.object(boundary,'ROOT',self.root), patch.object(boundary.subprocess,'run',side_effect=source):
             return boundary.checked_core_extensions()
-    def test_exact_sensor_sources_are_accepted(self):
+    def test_exact_trace_sources_plus_multi_flood_patch_are_accepted(self):
         allowed, errors = self.check()
         self.assertEqual(allowed,set(self.sources)); self.assertEqual(errors,[])
     def test_local_source_drift_is_rejected(self):
@@ -54,6 +61,14 @@ class BaselineExtensionTests(unittest.TestCase):
         self.write_manifest(); self.assertTrue(self.check()[1])
     def test_unavailable_source_commit_is_rejected(self):
         self.assertTrue(self.check(missing=True)[1])
+
+    def test_multi_flood_patch_drift_or_other_base_is_rejected(self):
+        p=self.root/"tools/zen_multi_flood_dispatcher.patch"
+        p.write_bytes(p.read_bytes()+b"\n# drift\n")
+        self.assertTrue(self.check()[1])
+        p.write_bytes((REPO/"tools/zen_multi_flood_dispatcher.patch").read_bytes())
+        self.manifest["src/Dispatcher.h"]["source_commit"]="unreviewed"
+        self.write_manifest();self.assertTrue(self.check()[1])
 
 if __name__ == '__main__':
     unittest.main()

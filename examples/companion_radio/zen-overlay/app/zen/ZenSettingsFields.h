@@ -63,6 +63,7 @@ static constexpr SettingsField SETTINGS_FIELDS[] = {
   {uint16_t(offsetof(ZenSettings,notification_screen_wake)),1,2669,85},
   {uint16_t(offsetof(ZenSettings,notif_melody_new_contact)),1,2670,86},
   {uint16_t(offsetof(ZenSettings,pet_enabled)),1,1470,87},
+  {uint16_t(offsetof(ZenSettings,multi_flood_mode)),1,0xFFFF,88}, // No legacy raw-tail location.
 };
 static constexpr size_t LEGACY_SETTINGS_SIZE=2672;
 static_assert(sizeof(((ZenSettings*)0)->buzzer_volume)==1,"Wire width changed: buzzer_volume");
@@ -122,3 +123,5 @@ static_assert(sizeof(((ZenSettings*)0)->notification_screen_wake)==1,"Wire width
 static_assert(sizeof(((ZenSettings*)0)->notif_melody_new_contact)==1,"Wire width changed: notif_melody_new_contact");
 static_assert(sizeof(((ZenSettings*)0)->pet_enabled)==1,"Wire width changed: pet_enabled");
 }
+
+static_assert(sizeof(((ZenSettings*)0)->multi_flood_mode)==1,"Wire width changed: multi_flood_mode");

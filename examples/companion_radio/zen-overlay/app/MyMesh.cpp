@@ -1477,6 +1477,7 @@ bool MyMesh::startRepeaterTrace(const uint8_t* key,const char* name) {
   if(!key||_ui_login_pending||zen::RemoteLoginAdapter::appBusy(pending_login,_app_login_deadline,millis())||_repeater_trace.active()||(_pending_node_discover_tag&&!millisHasNowPassed(_pending_node_discover_until))||_sensor_state==SENSOR_WAITING)
     return false;
   for(const auto& ping:_ping_results) if(ping.tag&&!ping.received) return false;
+  _multi_flood.cancelTrace();
   _trace_scope=effectiveTraceScope();_trace_scope_mismatches=0;
   const uint32_t context=traceContext();
   if(context!=_trace_context) { _trace_context=context;_repeater_trace.contextChanged(); }
@@ -1560,7 +1561,22 @@ bool MyMesh::onPeerPathRecv(mesh::Packet* packet,int index,const uint8_t* secret
   if(index>=0 && index<MAX_SEARCH_RESULTS && _trace_extra_valid[index])return false;
   return BaseChatMesh::onPeerPathRecv(packet,index,secret,path,len,extra_type,extra,extra_len);
 }
+// The only multi-flood policy lives in Zen. Core hooks have inactive defaults.
+bool MyMesh::setMultiFloodMode(uint8_t mode) {
+  if(!zen::MultiFloodSetting::set(_prefs,mode,[&]() { return saveZenPrefs(); }))return false;
+  syncMultiFlood();return true;
+}
+void MyMesh::syncMultiFlood() {
+  _multi_flood.configure(_prefs.multi_flood_mode,
+    zen::Features::REPEATER && _prefs.isRepeatEn(),radioAvailable() && !_low_power_mode,traceContext());
+  if(!_repeater_trace.active())_multi_flood.cancelTrace();
+  // started() markers protect active TX even when the baseline mesh loop is
+  // suspended by Low Power. Only this module's waiting packets are released.
+  while(auto packet=_multi_flood.takeExpired((uint32_t)_ms->getMillis(),nullptr))releasePacket(packet);
+}
 void MyMesh::onTxStarted(mesh::Packet* packet,uint32_t now) {
+  if(_multi_flood.isRepeat(packet)) { _multi_flood.started(packet);return; }
+  _multi_flood.firstStarted();
   _repeater_trace.txStarted(packet,now);
   if(packet) _manual_adverts.started(packet,now,_radio->getEstAirtimeFor(packet->getRawLength()));
 }
@@ -1846,6 +1862,10 @@ void MyMesh::onSendTimeout() {
 // window after radio transmission completes; allow time for the repeater's
 // randomised flood delay, which scales with packet airtime.
 void MyMesh::logTx(mesh::Packet* packet, int len) {
+  if(_multi_flood.isRepeat(packet)) {
+    _transport_trace.add(zen::TransportTrace::TX_COMPLETE,nullptr,packet->getPayloadType());return;
+  }
+  _multi_trace_tx=_repeater_trace.ownsPacket(packet);
   _manual_adverts.complete(packet);
   _repeater_trace.txComplete(packet);
   (void)len;
@@ -1867,6 +1887,9 @@ void MyMesh::logTx(mesh::Packet* packet, int len) {
 }
 
 void MyMesh::logTxFail(mesh::Packet* packet, int len) {
+  if(_multi_flood.isRepeat(packet)) {
+    _transport_trace.add(zen::TransportTrace::TX_FAILED,nullptr,packet->getPayloadType());return;
+  }
   _manual_adverts.complete(packet);
   // A definitive TX failure also closes its existing relay wait immediately.
   if(packet && _relay_active>0) {
@@ -2093,6 +2116,7 @@ void MyMesh::begin() {
 }
 
 void MyMesh::applyRadioParams() {
+  _multi_flood.invalidate();syncMultiFlood();
   if (_repeater_signal.configure(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr)) {
     _signal_adverts.reset();
     _repeater_trace.contextChanged();
@@ -2116,6 +2140,7 @@ void MyMesh::applyPowerState(bool low_power, bool emergency) {
   const bool was_available = radioAvailable();
   _low_power_mode = low_power;
   _emergency_mode = emergency;
+  syncMultiFlood();
   const bool available = radioAvailable();
   if(low_power) _repeater_trace.cancel(zen::RepeaterTraceSession::POWER_RESTRICTED);
 
@@ -3272,6 +3297,9 @@ bool MyMesh::handleCommand(const char* command, uint32_t sender_timestamp, char*
     command += 3;
   }
 
+  if (zen::MultiFloodSetting::handleCommand(command,reply,_prefs.multi_flood_mode,
+      [&](uint8_t mode) { return setMultiFloodMode(mode); })) return true;
+
   if (_prefs.getRadioPrefs()->handleCommand(command, sender_timestamp, reply)) {  // is radio CLI command?
     if (_prefs.getRadioPrefs()->isDirty()) { savePrefs(); }
     return true;
@@ -3633,6 +3661,7 @@ void MyMesh::checkSerialInterface() {
 }
 
 void MyMesh::loop() {
+  syncMultiFlood();
   const uint32_t context=traceContext();
   if(context!=_trace_context) { _trace_context=context;_repeater_trace.contextChanged(); }
   _repeater_trace.tick();

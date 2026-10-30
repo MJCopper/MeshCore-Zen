@@ -15,6 +15,7 @@
 #include "../../examples/companion_radio/zen-overlay/app/zen/RepeaterTraceSession.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/OperationResult.h"
 #include "../../examples/companion_radio/zen-overlay/app/ZenPrefs.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/MultiFloodSetting.h"
 #include "../../examples/companion_radio/zen-overlay/app/ui-new/PopupMenu.h"
 
 mesh::Identity::Identity() { memset(pub_key,0,sizeof(pub_key)); }
@@ -50,6 +51,11 @@ struct FakeMesh {
   std::vector<Result> discovery;
   Advert adverts[16]{};
   uint32_t generation=1;
+  ZenPrefs* settings_target=nullptr;bool setting_fail=false;unsigned setting_writes=0,syncs=0;
+  void syncMultiFlood() { ++syncs; }
+  bool setMultiFloodMode(uint8_t mode) {
+    return settings_target && zen::MultiFloodSetting::set(*settings_target,mode,[&](){++setting_writes;return !setting_fail;});
+  }
   uint8_t action_key[32]{};
   unsigned deleted=0,added=0,starred=0;
   int getNumContacts() const { return contacts.size(); }
@@ -111,6 +117,7 @@ public:
   template<class... T> void operationError(T...) {}
   void showAlert(const char*,int) {}
   void gotoToolsScreen() { ++tools; }
+  bool savePrefsIfDirty(bool& dirty) { dirty=false;return true; }
   void clearPing() {}
   bool startPing(const uint8_t* key) { ++ping;memcpy(action_key,key,32);return true; }
   bool isPingActive() { return false; }
@@ -121,6 +128,7 @@ public:
   void openAdminFor(const ContactInfo& c) { ++admin;memcpy(action_key,c.id.pub_key,32); }
 };
 #include "../../examples/companion_radio/zen-overlay/app/ui-new/NearbyScreen.h"
+#include "../../examples/companion_radio/zen-overlay/app/ui-new/RepeaterScreen.h"
 
 struct Provider {
   unsigned count(Model::Kind k) { return the_mesh.nodeListCount(k); }
@@ -427,6 +435,17 @@ TEST_F(NodeList, CompanionOnlyListAndUntypedAdvertsShowEmptyOnBothDisplays) {
     UITask task;NearbyScreen screen(&task);RecordingDisplay d(size.first,size.second,size.first==250?12:6,size.first==250?18:9);screen.onShow();draw(screen,d);
     EXPECT_TRUE(d.contains("No contacts"));EXPECT_FALSE(d.contains("Companion"));EXPECT_TRUE(d.inBounds());
     screen.handleInput(KEY_CONTEXT_MENU);draw(screen,d);EXPECT_FALSE(d.contains("Ping"));EXPECT_FALSE(d.contains("Delete contact"));EXPECT_FALSE(d.contains("Pin to dial"));
+  }
+}
+
+TEST_F(NodeList, RepeaterScreenCannotChangeHiddenMode) {
+  for(auto size:{std::make_pair(128,64),{250,122}}) {
+    the_mesh=FakeMesh{};UITask task;the_mesh.settings_target=&task.prefs;task.prefs.multi_flood_mode=2;
+    RepeaterScreen screen(&task);RecordingDisplay d(size.first,size.second,size.first==250?12:6,size.first==250?18:9);
+    screen.onShow();screen.render(d);EXPECT_TRUE(d.inBounds());EXPECT_FALSE(d.contains("Multi"));
+    EXPECT_FALSE(d.contains("Channel"));EXPECT_FALSE(d.contains("All floods"));
+    for(char key:{char(KEY_DOWN),char(KEY_UP),char(KEY_ENTER),char(KEY_LEFT),char(KEY_RIGHT)})screen.handleInput(key);
+    screen.onHide();screen.onShow();EXPECT_EQ(2,task.prefs.multi_flood_mode);EXPECT_EQ(0u,the_mesh.setting_writes);
   }
 }
 

@@ -206,6 +206,7 @@ public:
     }
     syncControl();return true;
   }
+  bool ownsPacket(const mesh::Packet* packet) const { return active() && packet && packet==_owned; }
   void txStarted(mesh::Packet* packet,uint32_t now) {
     if(!active()||packet!=_owned)return;
     sampleQueues(now);

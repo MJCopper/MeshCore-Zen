@@ -44,6 +44,7 @@ struct ZenSettings {  // Active Zen data only; independently staged during loadi
   struct DmNotifEntry { uint8_t prefix[4]; uint8_t state; }; // state: 0=default,1=muted,2=force-on
   static const int DM_NOTIF_TABLE_MAX = 16;
   DmNotifEntry dm_notif[DM_NOTIF_TABLE_MAX]; // 16*5 = 80 bytes [del→onContactRemoved]
+  uint8_t multi_flood_mode; // 0=Off, 1=channel floods, 2=all floods; independent of forwarding.
   uint8_t trace_login_setting; // 0=public fallback allowed, 1=disabled.
   bool tracePublicLogin() const { return trace_login_setting!=1; }
   void setTracePublicLogin(bool enabled) { trace_login_setting=enabled?0:1; }

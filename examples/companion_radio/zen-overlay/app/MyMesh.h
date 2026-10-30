@@ -11,6 +11,8 @@
 #include "zen/RepeaterSignalMonitor.h"
 #include "zen/SignalReception.h"
 #include "zen/NodeListModel.h"
+#include "zen/MultiFlood.h"
+#include "zen/MultiFloodSetting.h"
 #include "zen/TimezonePolicy.h"
 #include "zen/ConfigMaintenance.h"
 #include "zen/FloodScopeView.h"
@@ -36,7 +38,7 @@ class UITask;
 // Zen release version. The underlying MeshCore protocol/base version is
 // reported separately through the MESHCORE_VERSION build flag.
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "v2.2.62"
+#define FIRMWARE_VERSION "v2.2.64"
 #endif
 
 #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
@@ -281,7 +283,9 @@ public:
   bool setContactFavourite(const uint8_t* pub_key, bool favourite);
 
   bool startRepeaterTrace(const uint8_t* key,const char* name);
-  void cancelRepeaterTrace(zen::RepeaterTraceSession::Error reason=zen::RepeaterTraceSession::USER_CANCELLED) { _repeater_trace.cancel(reason); }
+  void cancelRepeaterTrace(zen::RepeaterTraceSession::Error reason=zen::RepeaterTraceSession::USER_CANCELLED) { _multi_flood.cancelTrace();_repeater_trace.cancel(reason); }
+  bool setMultiFloodMode(uint8_t mode);
+  void syncMultiFlood();
   const zen::RepeaterTraceSession& repeaterTrace() const { return _repeater_trace; }
   const char* repeaterTraceName() const { return _trace_target.name; }
   void traceHopName(const uint8_t* prefix,unsigned width,char* out,size_t size);
@@ -371,6 +375,17 @@ protected:
   uint32_t calcFloodTimeoutMillisFor(uint32_t pkt_airtime_millis) const override;
   uint32_t calcDirectTimeoutMillisFor(uint32_t pkt_airtime_millis, uint8_t path_len) const override;
   void onSendTimeout() override;
+  bool retainAfterTransmit(mesh::Packet* packet,uint32_t completed_at) override {
+    return _multi_flood.onTransmitComplete(packet,*_mgr,*getRNG(),completed_at,_multi_trace_tx);
+  }
+  void onPacketReleased(mesh::Packet* packet) override { _multi_flood.forget(packet); }
+  void serviceOptionalPackets(uint32_t,const mesh::Packet*) override { syncMultiFlood(); }
+  mesh::Packet* getOptionalPacket(uint32_t now) override { return _multi_flood.nextReady(now); }
+  void deferOptionalPackets(uint32_t now) override { _multi_flood.deferReady(now); }
+  bool allowPacketStart(mesh::Packet* packet,uint32_t now) override {
+    return !_multi_flood.isRepeat(packet) ||
+      (!_radio->isReceiving() && _multi_flood.canStart(packet,(uint32_t)_ms->getMillis()));
+  }
   void logTx(mesh::Packet* packet, int len) override;
   void logTxFail(mesh::Packet* packet, int len) override;
   void trackRelaySend(const mesh::Packet* pkt);   // arm the UI relayed-into-mesh tracker
@@ -710,6 +725,8 @@ private:
     bool traceCancelQueued(mesh::Packet* packet) override;
   } _trace_adapter{this};
   zen::RepeaterTraceSession _repeater_trace{_trace_adapter};
+  zen::MultiFlood _multi_flood;
+  bool _multi_trace_tx=false;
   ContactInfo _trace_target{};
   int _trace_peer_index=-1;
   const uint8_t* _trace_extra_keys[MAX_SEARCH_RESULTS]{};

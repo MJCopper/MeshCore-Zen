@@ -182,6 +182,7 @@ public:
     ZenSettings* staged=Allocator::create(destination);
     if(!staged){result=NO_MEMORY;return false;}
     struct StageGuard {ZenSettings* p;~StageGuard(){Allocator::destroy(p);}} stage_guard{staged};
+    staged->multi_flood_mode=0; // Missing field in every older record means Off.
     if(version<3)staged->pet_enabled=0;
     bool trace_seen=false,trace_login=true;size_t remaining=payload;
     while(remaining && reader.good){
@@ -205,7 +206,7 @@ public:
     }
     uint32_t computed=reader.hash;uint32_t supplied=reader.u32(false);
     if(!reader.good){result=IO_ERROR;return false;}
-    if(remaining || supplied!=computed)return false;
+    if(remaining || supplied!=computed || staged->multi_flood_mode>2)return false;
     staged->setTracePublicLogin(trace_seen?trace_login:true);
     destination=*staged;if(generation)*generation=gen;if(format)*format=version;result=OK;return true;
   }
