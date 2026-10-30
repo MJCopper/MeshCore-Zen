@@ -1566,17 +1566,21 @@ bool MyMesh::setMultiFloodMode(uint8_t mode) {
   if(!zen::MultiFloodSetting::set(_prefs,mode,[&]() { return saveZenPrefs(); }))return false;
   syncMultiFlood();return true;
 }
-void MyMesh::syncMultiFlood() {
+void MyMesh::syncMultiFlood(const mesh::Packet* active) {
+  _multi_flood_context.packetContext(_multi_flood,self_id.pub_key,
+    _prefs.path_hash_mode,_prefs.default_scope_key);
   _multi_flood.configure(_prefs.multi_flood_mode,
-    zen::Features::REPEATER && _prefs.isRepeatEn(),radioAvailable() && !_low_power_mode,traceContext());
+    zen::Features::REPEATER && _prefs.isRepeatEn(),radioAvailable() && !_low_power_mode);
   if(!_repeater_trace.active())_multi_flood.cancelTrace();
   // started() markers protect active TX even when the baseline mesh loop is
   // suspended by Low Power. Only this module's waiting packets are released.
-  while(auto packet=_multi_flood.takeExpired((uint32_t)_ms->getMillis(),nullptr))releasePacket(packet);
+  while(auto packet=_multi_flood.takeExpired((uint32_t)_ms->getMillis(),active))releasePacket(packet);
 }
 void MyMesh::onTxStarted(mesh::Packet* packet,uint32_t now) {
-  if(_multi_flood.isRepeat(packet)) { _multi_flood.started(packet);return; }
-  _multi_flood.firstStarted();
+  syncMultiFlood(packet);
+  const bool repeat=_multi_flood.isRepeat(packet);
+  _multi_flood.started(packet);
+  if(repeat)return;
   _repeater_trace.txStarted(packet,now);
   if(packet) _manual_adverts.started(packet,now,_radio->getEstAirtimeFor(packet->getRawLength()));
 }
@@ -2116,7 +2120,8 @@ void MyMesh::begin() {
 }
 
 void MyMesh::applyRadioParams() {
-  _multi_flood.invalidate();syncMultiFlood();
+  _multi_flood_context.radioApplied(_multi_flood,_prefs.freq,_prefs.bw,_prefs.sf,_prefs.cr);
+  syncMultiFlood();
   if (_repeater_signal.configure(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr)) {
     _signal_adverts.reset();
     _repeater_trace.contextChanged();
@@ -2750,6 +2755,7 @@ void MyMesh::handleCmdFrame(size_t len) {
         flushDirtyContacts();
         if (_store->saveMainIdentity(identity)) {
           self_id = identity;
+          syncMultiFlood();
           bindTraceIdentity();
           writeOKFrame();
           // re-load contacts, to invalidate ecdh shared_secrets
@@ -3778,5 +3784,5 @@ bool MyMesh::advertIndicatorActive() const {
 
 // To check if there is pending work
 bool MyMesh::hasPendingWork() const {
-  return _mgr->getOutboundTotal() > 0 || dirty_contacts_expiry != 0;
+  return _multi_flood.pendingCount()!=0 || _mgr->getOutboundTotal() > 0 || dirty_contacts_expiry != 0;
 }

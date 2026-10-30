@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+#include "../../examples/companion_radio/zen-overlay/app/zen/MultiFloodSetting.h"
 #include "../../examples/companion_radio/zen-overlay/app/zen/MultiFlood.h"
+#include "../../examples/companion_radio/zen-overlay/app/zen/MultiFloodContext.h"
 using FloodTextDoubler=zen::MultiFlood;
 #include <helpers/SimpleMeshTables.h>
 #include <helpers/StaticPoolPacketManager.h>
@@ -56,8 +58,12 @@ public:
     incoming.clear();
     return len;
   }
+  zen::MultiFlood* policyToInvalidate=nullptr;
+  unsigned invalidateAtAirtimeCheck=0;
   uint32_t getEstAirtimeFor(int) override {
-    if (++airtimeChecks == advanceOnAirtimeCheck && clock) clock->now += advanceMs;
+    ++airtimeChecks;
+    if(airtimeChecks==invalidateAtAirtimeCheck && policyToInvalidate)policyToInvalidate->invalidate();
+    if (airtimeChecks == advanceOnAirtimeCheck && clock) clock->now += advanceMs;
     return 100;
   }
   float packetScore(float, int) override { return 1; }
@@ -88,7 +94,18 @@ public:
   SimpleMeshTables seen;
   bool enabled = true, forward = false;
   bool zen_policy=false,forwarding_enabled=true,available=true,first_trace=false;
-  uint32_t profile=1;
+  uint32_t profile=1,observed_profile=1;
+  zen::MultiFloodContext context;
+  uint8_t identity[PUB_KEY_SIZE]={1},scope[16]={};
+  uint8_t hash_mode=0;
+  void sync() {
+    if(zen_policy) {
+      if(profile!=observed_profile)doubler.invalidate();
+      observed_profile=profile;
+      context.packetContext(doubler,identity,hash_mode,scope);
+      doubler.configure(doubler.getMode(),forwarding_enabled,available);
+    }
+  }
   unsigned operation_starts=0,operation_completions=0,operation_failures=0;
   zen::RepeaterTraceSession* session=nullptr;
   zen::ManualTransmitActivity activity;
@@ -102,23 +119,27 @@ public:
 
 protected:
   bool retainAfterTransmit(Packet* packet, uint32_t completed_at) override {
+    sync();
     return enabled && doubler.onTransmitComplete(packet, *_mgr, rng, completed_at,first_trace);
   }
   void onPacketReleased(Packet* packet) override { doubler.forget(packet); }
   void serviceOptionalPackets(uint32_t now, const Packet* active) override {
-    if(zen_policy)doubler.configure(doubler.getMode(),forwarding_enabled,available,profile);
+    sync();
     if (enabled) while (auto packet = doubler.takeExpired(now, active)) releasePacket(packet);
   }
-  Packet* getOptionalPacket(uint32_t now) override { return enabled ? doubler.nextReady(now) : nullptr; }
+  Packet* getOptionalPacket(uint32_t now) override { sync();return enabled ? doubler.nextReady(now) : nullptr; }
   void deferOptionalPackets(uint32_t now) override { if (enabled) doubler.deferReady(now); }
   bool allowPacketStart(Packet* packet, uint32_t) override {
+    sync();
     if (!enabled || !doubler.isRepeat(packet)) return true;
     if (_radio->isReceiving()) return false;
     return doubler.canStart(packet, (uint32_t)_ms->getMillis());
   }
   void onTxStarted(Packet* packet,uint32_t now) override {
-    if(zen_policy && doubler.isRepeat(packet)) { doubler.started(packet);return; }
-    if(zen_policy)doubler.firstStarted();
+    sync();
+    bool repeat=doubler.isRepeat(packet);
+    doubler.started(packet);
+    if(zen_policy && repeat)return;
     ++operation_starts;activity.started(packet,now,100);
     if(session)session->txStarted(packet,now);
   }
@@ -146,6 +167,7 @@ protected:
     if (!forward || (zen_policy && !forwarding_enabled) || seen.wasSeen(packet)) return ACTION_RELEASE;
     seen.markSeen(packet);
     if(zen_policy)packet->setPathHashCount(packet->getPathHashCount()+1);
+    doubler.noteForwarded(packet);
     return ACTION_RETRANSMIT(1);
   }
 };
@@ -411,6 +433,7 @@ TEST_F(DoublerTest, RepeatDelayWrapsAtThirtyTwoBits) {
   // with the actual uint32_t timestamps used on the nRF52.
   Packet* p = packet();
   uint32_t now = UINT32_MAX - 200;
+  dispatcher.doubler.started(p);
   ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, now));
   EXPECT_EQ(nullptr, dispatcher.doubler.nextReady(now + 499));
   EXPECT_EQ(p, dispatcher.doubler.nextReady(now + 500));
@@ -594,6 +617,7 @@ TEST_F(DoublerTest, FinalGuardDropsRepeatThatExpiresDuringPreparation) {
 TEST_F(DoublerTest, ExpiryWrapsAtThirtyTwoBits) {
   Packet* p = packet();
   uint32_t now = UINT32_MAX - 1000;
+  dispatcher.doubler.started(p);
   ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, now));
   EXPECT_EQ(p, dispatcher.doubler.nextReady(now + 2999));
   EXPECT_EQ(nullptr, dispatcher.doubler.takeExpired(now + 2999, nullptr));
@@ -737,11 +761,17 @@ TEST_F(DoublerTest, DirectAckAndMultipartAckStaySingleInEveryMode) {
 TEST_F(DoublerTest, ZenOriginForwardingModeAndPayloadMatrix) {
   dispatcher.zen_policy=true;
   for(unsigned mode:{0u,1u,2u})for(bool forwarding:{false,true})for(bool origin:{false,true})
-    for(uint8_t type:{uint8_t(PAYLOAD_TYPE_GRP_TXT),uint8_t(PAYLOAD_TYPE_ADVERT),uint8_t(PAYLOAD_TYPE_REQ),uint8_t(PAYLOAD_TYPE_ACK)}) {
+    for(uint8_t route:{uint8_t(ROUTE_TYPE_FLOOD),uint8_t(ROUTE_TYPE_TRANSPORT_FLOOD),uint8_t(ROUTE_TYPE_DIRECT),uint8_t(ROUTE_TYPE_TRANSPORT_DIRECT)})
+    for(uint8_t width:{uint8_t(1),uint8_t(2),uint8_t(3)})
+    for(uint8_t type:{uint8_t(PAYLOAD_TYPE_REQ),uint8_t(PAYLOAD_TYPE_RESPONSE),uint8_t(PAYLOAD_TYPE_TXT_MSG),
+      uint8_t(PAYLOAD_TYPE_ACK),uint8_t(PAYLOAD_TYPE_ADVERT),uint8_t(PAYLOAD_TYPE_GRP_TXT),uint8_t(PAYLOAD_TYPE_GRP_DATA),
+      uint8_t(PAYLOAD_TYPE_ANON_REQ),uint8_t(PAYLOAD_TYPE_PATH),uint8_t(PAYLOAD_TYPE_TRACE),uint8_t(PAYLOAD_TYPE_MULTIPART),
+      uint8_t(PAYLOAD_TYPE_CONTROL),uint8_t(PAYLOAD_TYPE_RAW_CUSTOM)}) {
       dispatcher.doubler.setMode(mode);dispatcher.forwarding_enabled=forwarding;
-      auto p=packet(ROUTE_TYPE_FLOOD,type);p->setPathHashSizeAndCount(1,origin?0:1);
+      auto p=packet(route,type);p->setPathHashSizeAndCount(width,origin?0:1);
+      if(!origin)dispatcher.doubler.noteForwarded(p);
       unsigned before=radio.frames.size();send(p);finish();
-      bool repeat=mode && (mode==2 || type==PAYLOAD_TYPE_GRP_TXT) && (forwarding || origin);
+      bool repeat=mode && (route==ROUTE_TYPE_FLOOD || route==ROUTE_TYPE_TRANSPORT_FLOOD) && (mode==2 || type==PAYLOAD_TYPE_GRP_TXT) && (forwarding || origin);
       EXPECT_EQ(repeat?1u:0u,dispatcher.doubler.pendingCount());
       tick(800);if(radio.transmitting)finish();tick(4000);
       EXPECT_EQ(before+(repeat?2:1),radio.frames.size())<<mode<<forwarding<<origin<<int(type);
@@ -760,7 +790,7 @@ TEST_F(DoublerTest, ZenDisablingForwardingCancelsOnlyForwardedWaitingCopies) {
 TEST_F(DoublerTest, ZenActiveForwardedRepeatFinishesAfterForwardingDisabled) {
   dispatcher.zen_policy=true;send(packet());finish();tick(500);ASSERT_TRUE(radio.transmitting);
   dispatcher.forwarding_enabled=false;
-  dispatcher.doubler.configure(1,false,true,dispatcher.profile);
+  dispatcher.doubler.configure(1,false,true);
   EXPECT_EQ(nullptr,dispatcher.doubler.takeExpired(clock.now,nullptr)); // app-level purge cannot free active
   EXPECT_EQ(31,manager.getFreeCount());tick();ASSERT_TRUE(radio.transmitting);finish();
   EXPECT_EQ(2u,radio.frames.size());EXPECT_EQ(32,manager.getFreeCount());
@@ -774,8 +804,8 @@ TEST_F(DoublerTest, ZenProfilePowerAndOffOnTransitionsCannotResurrectWaitingCopi
     if(change==1)dispatcher.available=false;
     if(change==2)dispatcher.doubler.invalidate();
     if(change==3) {
-      dispatcher.doubler.configure(0,true,true,dispatcher.profile);
-      dispatcher.doubler.configure(2,true,true,dispatcher.profile);
+      dispatcher.doubler.configure(0,true,true);
+      dispatcher.doubler.configure(2,true,true);
     }
     tick();EXPECT_EQ(0u,dispatcher.doubler.pendingCount());tick(4000);
     EXPECT_EQ(before,radio.frames.size());EXPECT_EQ(32,manager.getFreeCount());
@@ -846,20 +876,21 @@ TEST_F(DoublerTest, ZenModeTwoDoesNotRestartRealTraceStateAndCancellationRelease
 }
 TEST_F(DoublerTest, ZenTraceCancellationKeepsUnrelatedLocalMessages) {
   dispatcher.doubler.setMode(2);auto control=packet(ROUTE_TYPE_FLOOD,PAYLOAD_TYPE_REQ);control->path_len=0;
+  dispatcher.doubler.started(control);
   ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(control,manager,dispatcher.rng,uint32_t(clock.now),true));
-  auto text=packet();text->path_len=0;ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(text,manager,dispatcher.rng,uint32_t(clock.now),false));
+  auto text=packet();text->path_len=0;dispatcher.doubler.started(text);ASSERT_TRUE(dispatcher.doubler.onTransmitComplete(text,manager,dispatcher.rng,uint32_t(clock.now),false));
   dispatcher.doubler.cancelTrace();auto expired=dispatcher.doubler.takeExpired(clock.now,nullptr);ASSERT_EQ(control,expired);dispatcher.releasePacket(expired);
   EXPECT_EQ(1u,dispatcher.doubler.pendingCount());EXPECT_EQ(text,dispatcher.doubler.nextReady(clock.now+500));
   dispatcher.releasePacket(text);EXPECT_EQ(32,manager.getFreeCount());
 }
 
 TEST_F(DoublerTest, ZenSchedulerHasFixedMemoryAndNeverAllocates) {
-  zen::MultiFlood policy;policy.configure(2,true,true,1);policy.firstStarted();
+  zen::MultiFlood policy;policy.configure(2,true,true);
   Packet* packets[4];for(auto& p:packets) { p=packet();p->path_len=0; }
   bool accepted=true;allocation_count=0;track_allocations=true;
-  for(auto p:packets)accepted=policy.onTransmitComplete(p,manager,dispatcher.rng,clock.now)&&accepted;
+  for(auto p:packets) { policy.started(p);accepted=policy.onTransmitComplete(p,manager,dispatcher.rng,clock.now)&&accepted; }
   auto ready=policy.nextReady(clock.now+500);policy.deferReady(clock.now+500);
-  policy.configure(0,false,false,2);
+  policy.configure(0,false,false);
   while(auto p=policy.takeExpired(clock.now,nullptr))manager.free(p);
   track_allocations=false;
   EXPECT_TRUE(accepted);EXPECT_NE(nullptr,ready);EXPECT_EQ(0u,allocation_count);
@@ -872,7 +903,7 @@ TEST_F(DoublerTest, ZenBothOriginsAndScopedFloodsPreserveEverySupportedHashWidth
     for(uint8_t width:{uint8_t(1),uint8_t(2),uint8_t(3)})for(bool local:{false,true}) {
       dispatcher.forwarding_enabled=!local;
       auto p=packet(route);p->setPathHashSizeAndCount(width,local?0:1);
-      EXPECT_EQ(!local,zen::MultiFlood::forwarded(p));
+      EXPECT_EQ(!local,dispatcher.doubler.forwarded(p));
       unsigned before=radio.frames.size();send(p);finish();tick(500);finish();
       ASSERT_EQ(before+2,radio.frames.size());EXPECT_EQ(radio.frames[before],radio.frames[before+1]);
       EXPECT_EQ(32,manager.getFreeCount());
@@ -891,6 +922,294 @@ TEST_F(DoublerTest, ZenReconfigurationDuringOriginalTxCannotCreateCopyOnNewProfi
   }
   // A later ordinary first TX re-arms the latch and remains eligible.
   auto p=packet();p->path_len=0;send(p);finish();EXPECT_EQ(1u,dispatcher.doubler.pendingCount());tick(500);finish();EXPECT_EQ(32,manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, OffOnBeforeCleanupNeverResurrectsCopy) {
+  send(packet()); finish();
+  dispatcher.doubler.setMode(0);
+  dispatcher.doubler.setMode(1);
+  EXPECT_EQ(nullptr, dispatcher.doubler.nextReady(clock.now + 500));
+  tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, NarrowWidenBeforeCleanupKeepsOnlyContinuouslyEligibleCopy) {
+  dispatcher.doubler.setMode(2);
+  send(packet(ROUTE_TYPE_FLOOD, PAYLOAD_TYPE_ACK)); finish();
+  send(packet()); finish();
+  dispatcher.doubler.setMode(1);
+  dispatcher.doubler.setMode(2);
+  tick(500); finish();
+  ASSERT_EQ(3u, radio.frames.size());
+  EXPECT_EQ(radio.frames[1], radio.frames[2]);
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, RadioContextChangeDropsOldCopyAndAllowsFreshProfile) {
+  zen::MultiFloodContext context;
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  send(packet()); finish();
+  context.radioApplied(dispatcher.doubler, 917.0f, 62.5f, 7, 7);
+  tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  send(packet()); finish(); tick(500); finish();
+  ASSERT_EQ(3u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ContextChangeDuringOriginalRejectsItsCompletionCopy) {
+  zen::MultiFloodContext context;
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  send(packet());
+  context.radioApplied(dispatcher.doubler, 917.0f, 62.5f, 7, 7);
+  finish(); tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  send(packet()); finish(); tick(500); finish();
+  EXPECT_EQ(3u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, RadioRoundTripCannotReviveWaitingOrActiveOriginal) {
+  zen::MultiFloodContext context;
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  for (bool active : {false, true}) {
+    auto before = radio.frames.size();
+    send(packet());
+    if (!active) finish();
+    context.radioApplied(dispatcher.doubler, 917.0f, 125.0f, 8, 5);
+    context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+    if (active) finish();
+    tick(500);
+    EXPECT_EQ(before + 1, radio.frames.size());
+    EXPECT_EQ(32, manager.getFreeCount());
+  }
+}
+
+TEST_F(DoublerTest, ContextChangeNeverFreesInFlightCopyEvenWithoutActiveArgument) {
+  send(packet()); finish(); tick(500);
+  ASSERT_TRUE(radio.transmitting);
+  dispatcher.doubler.invalidate();
+  EXPECT_EQ(nullptr, dispatcher.doubler.takeExpired(clock.now + 5000, nullptr));
+  EXPECT_EQ(nullptr, dispatcher.doubler.nextReady(clock.now));
+  EXPECT_EQ(31, manager.getFreeCount());
+  finish(); tick(1000);
+  EXPECT_EQ(2u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, AvailabilityOffOnPermanentlyCancelsOldCopies) {
+  send(packet()); finish();
+  dispatcher.doubler.configure(dispatcher.doubler.getMode(),true,false);
+  dispatcher.doubler.configure(dispatcher.doubler.getMode(),true,true);
+  tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+  send(packet());
+  dispatcher.doubler.configure(dispatcher.doubler.getMode(),true,false);
+  dispatcher.doubler.configure(dispatcher.doubler.getMode(),true,true);
+  finish(); tick(500);
+  EXPECT_EQ(2u, radio.frames.size());
+  send(packet()); finish(); tick(500); finish();
+  EXPECT_EQ(4u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, IdentityHashModeAndDefaultScopeChangesCancelCopies) {
+  for (unsigned change = 0; change < 3; change++) {
+    zen::MultiFloodContext context;
+    uint8_t identity[PUB_KEY_SIZE] = {}, scope[16] = {}, hashMode = 0;
+    context.packetContext(dispatcher.doubler, identity, hashMode, scope);
+    auto before = radio.frames.size();
+    send(packet()); finish();
+    if (change == 0) identity[0] = 1;
+    if (change == 1) hashMode = 2;
+    if (change == 2) scope[0] = 1;
+    context.packetContext(dispatcher.doubler, identity, hashMode, scope);
+    tick(500);
+    EXPECT_EQ(before + 1, radio.frames.size());
+    EXPECT_EQ(32, manager.getFreeCount());
+  }
+}
+
+TEST_F(DoublerTest, EachAppliedRadioParameterInvalidates) {
+  for (unsigned change = 0; change < 4; change++) {
+    zen::MultiFloodContext context;
+    context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+    auto before = radio.frames.size();
+    send(packet()); finish();
+    context.radioApplied(dispatcher.doubler, change == 0 ? 917.0f : 916.575f,
+                         change == 1 ? 125.0f : 62.5f, change == 2 ? 8 : 7, change == 3 ? 5 : 7);
+    tick(500);
+    EXPECT_EQ(before + 1, radio.frames.size());
+    EXPECT_EQ(32, manager.getFreeCount());
+  }
+}
+
+TEST_F(DoublerTest, RepeatedIdenticalObservationsDoNotCancelOrRefreshExpiry) {
+  zen::MultiFloodContext context;
+  uint8_t identity[PUB_KEY_SIZE] = {}, scope[16] = {};
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  context.packetContext(dispatcher.doubler, identity, 0, scope);
+  send(packet()); finish();
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  context.packetContext(dispatcher.doubler, identity, 0, scope);
+  dispatcher.doubler.setMode(1);
+  tick(2999);
+  ASSERT_EQ(2u, radio.frames.size());
+  finish();
+  send(packet()); finish();
+  tick(2999);
+  context.packetContext(dispatcher.doubler, identity, 0, scope);
+  finish();
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, DifferentPerPacketScopesCanBothRepeatWithoutProfileChange) {
+  zen::MultiFloodContext context;
+  uint8_t identity[PUB_KEY_SIZE] = {}, defaultScope[16] = {};
+  context.packetContext(dispatcher.doubler, identity, 0, defaultScope);
+  send(packet(ROUTE_TYPE_TRANSPORT_FLOOD)); finish();
+  auto second = packet(ROUTE_TYPE_TRANSPORT_FLOOD);
+  second->transport_codes[0] ^= 0xFFFF;
+  send(second); finish();
+  context.packetContext(dispatcher.doubler, identity, 0, defaultScope);
+  tick(399); finish(); tick(); finish();
+  ASSERT_EQ(4u, radio.frames.size());
+  EXPECT_EQ(radio.frames[0], radio.frames[2]);
+  EXPECT_EQ(radio.frames[1], radio.frames[3]);
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, FinalGuardRejectsContextChangeDuringPreparation) {
+  send(packet()); finish();
+  radio.policyToInvalidate = &dispatcher.doubler;
+  radio.invalidateAtAirtimeCheck = radio.airtimeChecks + 2;
+  tick(500);
+  EXPECT_EQ(1u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, CompletionWithoutSuccessfulStartFailsClosed) {
+  auto p = packet();
+  EXPECT_FALSE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, clock.now));
+  dispatcher.doubler.started(p);
+  dispatcher.doubler.invalidate();
+  dispatcher.releasePacket(p);
+  EXPECT_FALSE(dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, clock.now));
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ContextAndCancellationPolicyNeverAllocate) {
+  auto p = packet();
+  zen::MultiFloodContext context;
+  uint8_t identity[PUB_KEY_SIZE] = {}, scope[16] = {};
+  allocation_count = 0;
+  track_allocations = true;
+  context.radioApplied(dispatcher.doubler, 916.575f, 62.5f, 7, 7);
+  context.packetContext(dispatcher.doubler, identity, 0, scope);
+  dispatcher.doubler.started(p);
+  bool retained = dispatcher.doubler.onTransmitComplete(p, manager, dispatcher.rng, 1000);
+  dispatcher.doubler.setMode(0);
+  dispatcher.doubler.setMode(1);
+  context.radioApplied(dispatcher.doubler, 917.0f, 125.0f, 8, 5);
+  auto expired = dispatcher.doubler.takeExpired(1001, nullptr);
+  track_allocations = false;
+  EXPECT_TRUE(retained);
+  EXPECT_EQ(p, expired);
+  EXPECT_EQ(0u, allocation_count);
+  dispatcher.releasePacket(expired);
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+
+TEST_F(DoublerTest, ExplicitZeroPathRelayKeepsOriginAcrossRetentionAndRoleChanges) {
+  dispatcher.zen_policy=true;
+  for(uint8_t width:{uint8_t(1),uint8_t(2),uint8_t(3)}) {
+    auto p=packet();p->setPathHashSizeAndCount(width,0);
+    dispatcher.doubler.noteForwarded(p);
+    dispatcher.forwarding_enabled=true;send(p);finish();
+    ASSERT_EQ(1u,dispatcher.doubler.pendingCount());
+    EXPECT_TRUE(dispatcher.doubler.forwarded(p));
+    dispatcher.forwarding_enabled=false;tick();
+    EXPECT_EQ(0u,dispatcher.doubler.pendingCount());
+    EXPECT_EQ(32,manager.getFreeCount());
+    auto local=packet();local->setPathHashSizeAndCount(width,0);
+    EXPECT_FALSE(dispatcher.doubler.forwarded(local));
+    send(local);finish();tick(500);finish();
+    EXPECT_EQ(32,manager.getFreeCount());
+  }
+  EXPECT_EQ(9u,radio.frames.size());
+}
+
+TEST_F(DoublerTest, ZeroPathRelayCannotRepeatWhenForwardingDisabledDuringOriginal) {
+  dispatcher.zen_policy=true;
+  auto p=packet();p->path_len=0;dispatcher.doubler.noteForwarded(p);send(p);
+  dispatcher.forwarding_enabled=false;finish();tick(500);
+  EXPECT_EQ(1u,radio.frames.size());EXPECT_EQ(0u,dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32,manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ForwardedStartFailureReleasesOriginBeforePacketReuse) {
+  dispatcher.zen_policy=true;dispatcher.forwarding_enabled=false;
+  auto p=packet();p->path_len=0;dispatcher.doubler.noteForwarded(p);
+  radio.fail=true;dispatcher.sendPacket(p,1);tick();
+  EXPECT_EQ(32,manager.getFreeCount());EXPECT_FALSE(dispatcher.doubler.forwarded(p));
+  auto local=packet();local->path_len=0;send(local);finish();tick(500);finish();
+  EXPECT_EQ(2u,radio.frames.size());EXPECT_EQ(32,manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, OriginTrackerFitsWholeZenPoolAndOverflowFailsClosed) {
+  Packet* packets[32];
+  for(auto& p:packets) { p=packet();p->path_len=0;dispatcher.doubler.noteForwarded(p); }
+  // Repeated observations must not consume slots.
+  for(auto p:packets) { dispatcher.doubler.noteForwarded(p);EXPECT_TRUE(dispatcher.doubler.forwarded(p)); }
+  for(auto p:packets)dispatcher.releasePacket(p);
+  auto local=packet();local->path_len=0;send(local);finish();tick(500);finish();
+  EXPECT_EQ(2u,radio.frames.size());
+  for(auto& p:packets) { p=packet();p->path_len=0;dispatcher.doubler.noteForwarded(p); }
+  Packet unexpected{};dispatcher.doubler.noteForwarded(&unexpected);
+  for(auto p:packets)dispatcher.releasePacket(p);
+  local=packet();local->path_len=0;send(local);finish();tick(500);
+  EXPECT_EQ(3u,radio.frames.size());EXPECT_EQ(0u,dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32,manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, PacketContextRoundTripCannotReviveOriginalOrWaitingRepeat) {
+  dispatcher.zen_policy=true;
+  for(unsigned field:{0u,1u,2u})for(bool active:{false,true}) {
+    auto before=radio.frames.size();auto p=packet();p->path_len=0;send(p);if(!active)finish();
+    uint8_t* value=field==0?&dispatcher.identity[31]:field==1?&dispatcher.hash_mode:&dispatcher.scope[15];
+    ++*value;dispatcher.sync();--*value;dispatcher.sync();
+    if(active)finish();tick(500);
+    EXPECT_EQ(before+1,radio.frames.size());EXPECT_EQ(32,manager.getFreeCount());
+  }
+}
+
+TEST_F(DoublerTest, UnchangedAppliedRadioAndDifferentPacketScopesPreserveCopies) {
+  dispatcher.zen_policy=true;
+  dispatcher.context.radioApplied(dispatcher.doubler,916.575f,62.5f,7,7);
+  auto first=packet(ROUTE_TYPE_TRANSPORT_FLOOD);first->path_len=0;send(first);finish();
+  // Reapplying unchanged hardware settings leaves both packet scopes valid.
+  dispatcher.context.radioApplied(dispatcher.doubler,916.575f,62.5f,7,7);
+  auto second=packet(ROUTE_TYPE_TRANSPORT_FLOOD);second->path_len=0;second->transport_codes[0]^=0xffff;
+  send(second);finish();dispatcher.sync();
+  tick(399);finish();tick();finish();
+  ASSERT_EQ(4u,radio.frames.size());EXPECT_EQ(radio.frames[0],radio.frames[2]);
+  EXPECT_EQ(radio.frames[1],radio.frames[3]);EXPECT_EQ(32,manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, FailedDisableAndUnchangedSettingsLeaveWaitingCopyEligible) {
+  struct Prefs { uint8_t multi_flood_mode=1; } prefs;
+  dispatcher.zen_policy=true;auto p=packet();p->path_len=0;send(p);finish();
+  unsigned writes=0;
+  EXPECT_FALSE(zen::MultiFloodSetting::set(prefs,0,[&](){++writes;return false;}));
+  dispatcher.doubler.setMode(prefs.multi_flood_mode);
+  EXPECT_TRUE(zen::MultiFloodSetting::set(prefs,1,[&](){++writes;return true;}));
+  dispatcher.sync();tick(500);finish();
+  EXPECT_EQ(1u,writes);EXPECT_EQ(2u,radio.frames.size());EXPECT_EQ(32,manager.getFreeCount());
 }
 
 int main(int argc, char** argv) {
