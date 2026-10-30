@@ -1,13 +1,71 @@
 # Flood channel text doubler
 
-Current release: **v1.18.0-doubler.3**, based on MeshCore v1.18.0.
+Current release: **v1.18.0-doubler.5**, based on MeshCore v1.18.0.
 
-This opt-in repeater firmware sends flood channel text twice. It covers Public,
-hashtag channels and private channels without knowing their names or keys.
-Ordinary floods and region-scoped floods qualify when their payload type is
-`PAYLOAD_TYPE_GRP_TXT` (0x05). Existing routing, region filters and duplicate
-suppression decide whether the first transmission is allowed. All other packet
-types and direct routes retain their existing behaviour.
+This opt-in repeater firmware adds one best-effort second transmission to
+selected flood packets. Repeating is off by default. Mode 1 covers Public, hashtag and private channel
+text without knowing their names or keys. `multi.flood` can disable repeating or
+extend it to all outgoing flood payload types. Existing routing, region filters
+and duplicate suppression decide whether the first transmission is allowed.
+Direct routes always retain their existing behaviour.
+
+## CLI and saved mode
+
+Commands follow the existing `multi.acks` get/set convention:
+
+```text
+get multi.flood
+> 0
+set multi.flood 2
+OK
+```
+
+| Value | Eligible second transmissions |
+| --- | --- |
+| `0` (default) | None |
+| `1` | Flood channel text (`PAYLOAD_TYPE_GRP_TXT`): Public, hashtag and private channels |
+| `2` | All outgoing flood payload types, including ACKs, adverts, replies and channel data |
+
+Both ordinary and region-scoped floods qualify. Mode 2 does not enable packet
+types or routes that baseline firmware otherwise rejects. Each eligible outgoing
+packet gets at most one optional additional TX. `multi.acks` remains independent;
+its direct ACK/multipart-ACK transmissions are not doubled by any mode.
+
+Only the complete values `0`, `1` and `2` are accepted. Trailing whitespace is
+allowed; extra arguments, signed values, decimals and strings such as `1abc`
+return an error. Queries and unchanged values do not write flash. These commands
+use the normal serial CLI and existing authenticated remote administrator path;
+region-import processing still takes precedence while an import is active.
+
+Settings are stored only in `/doubler.json`:
+
+```json
+{"schema":1,"multi_flood":0}
+```
+
+The module does not change `NodePrefs`, `/prefs.json`, legacy `/com_prefs`, or the
+baseline preference serializer. Missing settings use mode 0 without a boot-time
+write. Corrupt settings fail off and may be repaired with an explicit valid
+`set multi.flood` command, including `set multi.flood 0`. Unsupported schemas,
+unknown fields, oversized files or read failures fail off and reject edits,
+preserving data for compatible firmware. The boot log reports unavailable
+settings; `get multi.flood` reports the effective mode.
+
+Changes are written to `/doubler.tmp`, closed, checked by reading the bytes back,
+then atomically renamed over `/doubler.json`. Save failure returns an error and
+keeps the previous runtime mode and valid file. A leftover temporary file is
+ignored at boot. This relies on the nRF52 LittleFS backend's atomic rename;
+physical power-loss testing is still required on hardware.
+
+Setting mode 0 cancels waiting copies on the next scheduler pass. Changing 2 to
+1 cancels waiting non-channel copies. Other retained copies keep their original
+ready/expiry times. An active TX always finishes, preserving its repeat marker
+so it cannot cause a third transmission. New eligibility applies at first TX
+completion, without replaying packets that have already been released.
+
+Ordinary baseline preference saves do not touch the module file. A stock-firmware
+round trip can preserve it when the filesystem is retained; formatting erases
+it. Future firmware that reformats storage cannot be guaranteed to preserve it.
 
 ## Build and artifacts
 
@@ -27,10 +85,10 @@ python3 variants/doubler/build.py
 Pass `--pio /path/to/pio` if needed. Outputs are:
 
 ```text
-.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.3.uf2
-.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.3.uf2
-.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.3.ota.zip
-.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.3.ota.zip
+.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.5.uf2
+.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.5.uf2
+.pio/build/Xiao_nrf52_repeater_doubler/Xiao_nrf52_repeater_doubler.1.18.0-doubler.5.ota.zip
+.pio/build/RAK_4631_repeater_doubler/RAK_4631_repeater_doubler.1.18.0-doubler.5.ota.zip
 .pio/build/doubler-manifest.json
 ```
 
@@ -131,6 +189,12 @@ the custom builds and owns the release version. The policy holds packets already
 allocated from the repeater's static pool; waiting copies need neither a new
 allocation nor an outbound queue insertion.
 
+`DoublerSettings.h` owns CLI parsing and schema validation. `DoublerFileStorage.h`
+owns the temporary-file/readback/rename sequence. `MyMesh.cpp` loads the saved
+mode at startup and intercepts this one CLI setting before the common fallback.
+The opt-in profiles explicitly declare ArduinoJson for JSON validation; baseline
+CLI and preference definitions are unchanged.
+
 When updating upstream, review the TX-completion/release hooks, pool ownership,
 parent environment names and packet classification, then rerun tests and both
 builds. Update the version in the custom configuration, README and this document
@@ -155,6 +219,12 @@ guards, and 32-bit delay/expiry rollover. Routing and
 cryptographic interoperability still require hardware validation: native tests
 use the repository's noncryptographic crypto mocks.
 
+Mode/storage tests cover every mode/route/payload combination, direct ACK
+behaviour, live transitions, default/query/strict validation, reloads, corrupt
+and future files, and filesystem failures during open, write, close/readback,
+temporary cleanup and rename. The real storage adapter runs against a
+fault-injectable filesystem; this does not substitute for a physical power cut.
+
 ## Hardware and field acceptance
 
 Run the following for **each** modified board against an unmodified 1.18
@@ -166,6 +236,11 @@ not establish these results.
    exercise an OTA upgrade using its `.ota.zip` and compatible DFU updater.
    Confirm it reboots, reports the new version and has matching radio settings.
    Also verify UF2 flashing as the recovery route.
+   Exercise `get multi.flood` and all three `set` values over serial and the
+   authenticated remote CLI. Reboot after each change and verify persistence.
+   Check invalid commands do not change the mode or stored value. Save a normal
+   baseline preference, then perform a stock-to-doubler round trip with the
+   filesystem preserved and confirm the module setting survives.
 2. Send Public, hashtag and private channel text. Verify two identical outgoing
    frames; in an idle setup, the repeat starts 500–800 ms after first TX
    completion, allowing normal loop/radio scheduling overhead.

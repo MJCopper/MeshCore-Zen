@@ -20,12 +20,20 @@ private:
     uint32_t expires_at = 0;
   };
   Pending pending[MAX_PENDING];
+  uint8_t mode = 0;
 
   static bool reached(uint32_t now, uint32_t deadline) {
     return (int32_t)(now - deadline) >= 0;
   }
 
 public:
+  uint8_t getMode() const { return mode; }
+  void setMode(uint8_t value) { mode = value <= 2 ? value : 0; }
+  bool eligible(const mesh::Packet* packet) const {
+    return mode != 0 && packet->isRouteFlood()
+        && (mode == 2 || packet->getPayloadType() == PAYLOAD_TYPE_GRP_TXT);
+  }
+
   unsigned pendingCount() const {
     unsigned count = 0;
     for (const auto& p : pending) if (p.packet) count++;
@@ -53,7 +61,8 @@ public:
   // keeps its record until completion/release to prevent a third transmission.
   mesh::Packet* nextReady(uint32_t now) const {
     for (const auto& p : pending) {
-      if (p.packet && reached(now, p.ready_at) && !reached(now, p.expires_at)) return p.packet;
+      if (p.packet && eligible(p.packet) && reached(now, p.ready_at)
+          && !reached(now, p.expires_at)) return p.packet;
     }
     return nullptr;
   }
@@ -66,10 +75,12 @@ public:
     }
   }
 
-  // Remove only waiting copies; an in-flight transmission must finish normally.
+  // Discard expired or newly ineligible waiting copies. An in-flight copy must
+  // finish normally, retaining its marker until completion/release.
   mesh::Packet* takeExpired(uint32_t now, const mesh::Packet* active) {
     for (auto& p : pending) {
-      if (p.packet && p.packet != active && reached(now, p.expires_at)) {
+      if (p.packet && p.packet != active
+          && (!eligible(p.packet) || reached(now, p.expires_at))) {
         mesh::Packet* packet = p.packet;
         p.packet = nullptr;
         return packet;
@@ -80,7 +91,7 @@ public:
 
   bool canStart(const mesh::Packet* packet, uint32_t now) const {
     for (const auto& p : pending) {
-      if (p.packet == packet) return !reached(now, p.expires_at);
+      if (p.packet == packet) return eligible(packet) && !reached(now, p.expires_at);
     }
     return true;  // normal packets retain baseline behaviour
   }
@@ -90,8 +101,7 @@ public:
   bool onTransmitComplete(mesh::Packet* packet, mesh::PacketManager& manager,
                           mesh::RNG& rng, uint32_t now) {
     if (forget(packet)) return false;  // second attempt: never repeat again
-    if (!packet->isRouteFlood() || packet->getPayloadType() != PAYLOAD_TYPE_GRP_TXT
-        || manager.getFreeCount() < FREE_PACKET_RESERVE) return false;
+    if (!eligible(packet) || manager.getFreeCount() < FREE_PACKET_RESERVE) return false;
 
     for (auto& p : pending) {
       if (!p.packet) {

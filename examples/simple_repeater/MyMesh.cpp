@@ -947,6 +947,15 @@ void MyMesh::begin(FILESYSTEM *fs) {
   _fs = fs;
   // load persisted prefs
   _cli.loadPrefs(_fs);
+#ifdef FLOOD_TEXT_DOUBLER
+  DoublerFileStorage<FILESYSTEM> doubler_storage(*_fs, FILE_O_WRITE);
+  auto doubler_status = doubler_settings.load(doubler_storage);
+  flood_text_doubler.setMode(doubler_settings.getMode());
+  if (doubler_status != DoublerSettings::VALID && doubler_status != DoublerSettings::DEFAULTED) {
+    Serial.printf("multi.flood: settings unavailable (status %u); repeating off, file preserved\n",
+                  (unsigned)doubler_status);
+  }
+#endif
   acl.load(_fs, self_id);
   // TODO: key_store.begin();
   region_map.load(_fs);
@@ -1282,6 +1291,13 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
       strcpy(reply, "OK - Discover sent");
     }
   } else{
+#ifdef FLOOD_TEXT_DOUBLER
+    DoublerFileStorage<FILESYSTEM> doubler_storage(*_fs, FILE_O_WRITE);
+    if (doubler_settings.handleCommand(command, reply, doubler_storage)) {
+      flood_text_doubler.setMode(doubler_settings.getMode());
+      return;
+    }
+#endif
     _cli.handleCommand(sender_timestamp, command, reply);  // common CLI commands
   }
 }

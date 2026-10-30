@@ -39,6 +39,7 @@
 
 #ifdef FLOOD_TEXT_DOUBLER
 #include <helpers/FloodTextDoubler.h>
+#include <helpers/DoublerFileStorage.h>
 #endif
 
 #ifdef WITH_BRIDGE
@@ -102,6 +103,7 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   RateLimiter discover_limiter, anon_limiter;
 #ifdef FLOOD_TEXT_DOUBLER
   FloodTextDoubler flood_text_doubler;
+  DoublerSettings doubler_settings;
 #endif
   uint32_t pending_discover_tag;
   unsigned long pending_discover_until;

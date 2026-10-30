@@ -117,7 +117,12 @@ protected:
   StaticPoolPacketManager manager{32};
   TestDispatcher dispatcher{radio, clock, manager};
 
-  void SetUp() override { radio.clock = &clock; dispatcher.begin(); }
+  void SetUp() override {
+    radio.clock = &clock;
+    EXPECT_EQ(0, dispatcher.doubler.getMode());
+    dispatcher.doubler.setMode(1);  // repetition tests explicitly enable channel text
+    dispatcher.begin();
+  }
   void tick(unsigned long ms = 1) { clock.now += ms; dispatcher.loop(); }
   Packet* packet(uint8_t route = ROUTE_TYPE_FLOOD, uint8_t type = PAYLOAD_TYPE_GRP_TXT) {
     Packet* p = dispatcher.obtainNewPacket();
@@ -558,6 +563,135 @@ TEST_F(DoublerTest, ExpiryWrapsAtThirtyTwoBits) {
   dispatcher.releasePacket(p);
   EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
   EXPECT_EQ(32, manager.getFreeCount());
+}
+
+
+TEST_F(DoublerTest, AllModeRouteAndPayloadCombinationsHaveExpectedSendCounts) {
+  for (uint8_t mode = 0; mode <= 2; mode++) {
+    dispatcher.doubler.setMode(mode);
+    for (uint8_t route = 0; route < 4; route++) {
+      for (uint8_t type = 0; type < 16; type++) {
+        auto before = radio.frames.size();
+        bool flood = route == ROUTE_TYPE_FLOOD || route == ROUTE_TYPE_TRANSPORT_FLOOD;
+        bool repeat = flood && (mode == 2 || (mode == 1 && type == PAYLOAD_TYPE_GRP_TXT));
+        send(packet(route, type)); finish(); tick(500);
+        EXPECT_EQ(before + (repeat ? 2 : 1), radio.frames.size()) << +mode << ":" << +route << ":" << +type;
+        if (repeat) finish();
+        EXPECT_EQ(32, manager.getFreeCount());
+        EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+      }
+    }
+  }
+}
+
+TEST_F(DoublerTest, TurningOffCancelsWaitingCopiesOnNextLoop) {
+  send(packet()); finish();
+  dispatcher.doubler.setMode(0);
+  tick();
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  tick(1000);
+  EXPECT_EQ(1u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, NarrowingModeCancelsOnlyNonChannelCopies) {
+  dispatcher.doubler.setMode(2);
+  send(packet(ROUTE_TYPE_FLOOD, PAYLOAD_TYPE_ACK)); finish();
+  send(packet()); finish();
+  EXPECT_EQ(2u, dispatcher.doubler.pendingCount());
+  dispatcher.doubler.setMode(1);
+  tick();
+  EXPECT_EQ(1u, dispatcher.doubler.pendingCount());
+  tick(499); finish();
+  ASSERT_EQ(3u, radio.frames.size());
+  EXPECT_EQ(radio.frames[1], radio.frames[2]);
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, WideningModeDoesNotRefreshExistingDelayOrExpiry) {
+  send(packet()); finish();
+  tick(499);
+  dispatcher.doubler.setMode(2);
+  tick();
+  ASSERT_EQ(2u, radio.frames.size());
+  finish();
+  dispatcher.doubler.setMode(1);
+  send(packet()); finish();
+  tick(2999);
+  ASSERT_TRUE(radio.transmitting);
+  dispatcher.doubler.setMode(2);
+  finish();
+  EXPECT_EQ(32, manager.getFreeCount());
+  send(packet()); finish();
+  tick(2999);
+  dispatcher.doubler.setMode(1);  // active repeat can finish despite mode change
+  finish();
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+}
+
+TEST_F(DoublerTest, ModeChangeCannotExtendWaitingCopyExpiry) {
+  send(packet()); finish();
+  radio.busy = true;
+  tick(2900);
+  dispatcher.doubler.setMode(2);
+  tick(100);
+  EXPECT_EQ(0u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(32, manager.getFreeCount());
+  EXPECT_EQ(1u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, ActiveRepeatFinishesWhenFeatureIsTurnedOff) {
+  send(packet()); finish(); tick(500);
+  ASSERT_TRUE(radio.transmitting);
+  dispatcher.doubler.setMode(0);
+  tick();
+  EXPECT_EQ(1u, dispatcher.doubler.pendingCount());
+  EXPECT_EQ(31, manager.getFreeCount());
+  finish(); tick(1000);
+  EXPECT_EQ(2u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, ActiveNonChannelRepeatIsNotRepeatedAgainWhenModeNarrows) {
+  dispatcher.doubler.setMode(2);
+  send(packet(ROUTE_TYPE_FLOOD, PAYLOAD_TYPE_ADVERT)); finish(); tick(500);
+  dispatcher.doubler.setMode(1);
+  finish(); tick(1000);
+  EXPECT_EQ(2u, radio.frames.size());
+  EXPECT_EQ(32, manager.getFreeCount());
+}
+
+TEST_F(DoublerTest, EnableAppliesAtFirstCompletionWithoutReplayingPastPackets) {
+  dispatcher.doubler.setMode(0);
+  send(packet()); finish();
+  dispatcher.doubler.setMode(1);
+  tick(1000);
+  EXPECT_EQ(1u, radio.frames.size());
+  send(packet());
+  dispatcher.doubler.setMode(0);
+  finish(); tick(1000);
+  EXPECT_EQ(2u, radio.frames.size());  // disabled before first TX completion
+  send(packet());
+  dispatcher.doubler.setMode(1);
+  finish(); tick(500); finish();
+  EXPECT_EQ(4u, radio.frames.size());
+}
+
+TEST_F(DoublerTest, DirectAckAndMultipartAckStaySingleInEveryMode) {
+  // Baseline multi.acks emits direct ACK/multipart-ACK packets. Vary its packet
+  // count here; the baseline ACK generation function itself is unchanged.
+  for (uint8_t mode = 0; mode <= 2; mode++) {
+    dispatcher.doubler.setMode(mode);
+    for (unsigned extra = 0; extra <= 1; extra++) {
+      auto before = radio.frames.size();
+      for (unsigned i = 0; i < extra; i++) {
+        send(packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_MULTIPART)); finish();
+      }
+      send(packet(ROUTE_TYPE_DIRECT, PAYLOAD_TYPE_ACK)); finish(); tick(1000);
+      EXPECT_EQ(before + extra + 1, radio.frames.size());
+      EXPECT_EQ(32, manager.getFreeCount());
+    }
+  }
 }
 
 int main(int argc, char** argv) {
