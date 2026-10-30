@@ -14,23 +14,49 @@ public:
   static constexpr int FREE_PACKET_RESERVE = 4;
 
 private:
+  enum : uint8_t { CANCELLED = 1, IN_FLIGHT = 2 };
   struct Pending {
     mesh::Packet* packet = nullptr;
     uint32_t ready_at = 0;
     uint32_t expires_at = 0;
+    uint8_t flags = 0;
   };
   Pending pending[MAX_PENDING];
   uint8_t mode = 0;
+  const bool local_only;
+  bool available = true;
+  uint32_t generation = 0, first_generation = 0;
+  mesh::Packet* first_active = nullptr;
 
   static bool reached(uint32_t now, uint32_t deadline) {
     return (int32_t)(now - deadline) >= 0;
   }
 
 public:
+  explicit FloodTextDoubler(bool locally_originated_only = false) : local_only(locally_originated_only) {}
   uint8_t getMode() const { return mode; }
-  void setMode(uint8_t value) { mode = value <= 2 ? value : 0; }
+  void setMode(uint8_t value) {
+    mode = value <= 2 ? value : 0;
+    for (auto& p : pending) if (p.packet && !eligible(p.packet)) p.flags |= CANCELLED;
+  }
+  void invalidateContext() {
+    ++generation;
+    for (auto& p : pending) if (p.packet) p.flags |= CANCELLED;
+  }
+  void setAvailable(bool value) {
+    if (value != available) { invalidateContext(); available = value; }
+  }
+  void onTransmitStarted(mesh::Packet* packet) {
+    if (!packet) return;
+    for (auto& p : pending) {
+      if (p.packet == packet) { p.flags |= IN_FLIGHT; return; }
+    }
+    first_active = packet;
+    first_generation = generation;
+  }
   bool eligible(const mesh::Packet* packet) const {
-    return mode != 0 && packet->isRouteFlood()
+    return available && mode != 0 && packet->isRouteFlood()
+        && (!local_only || packet->getPathHashCount() == 0)
         && (mode == 2 || packet->getPayloadType() == PAYLOAD_TYPE_GRP_TXT);
   }
 
@@ -42,9 +68,10 @@ public:
 
   bool forget(mesh::Packet* packet) {
     if (!packet) return false;
+    if (first_active == packet) first_active = nullptr;
     for (auto& p : pending) {
       if (p.packet == packet) {
-        p.packet = nullptr;
+        p = Pending{};
         return true;
       }
     }
@@ -61,8 +88,8 @@ public:
   // keeps its record until completion/release to prevent a third transmission.
   mesh::Packet* nextReady(uint32_t now) const {
     for (const auto& p : pending) {
-      if (p.packet && eligible(p.packet) && reached(now, p.ready_at)
-          && !reached(now, p.expires_at)) return p.packet;
+      if (p.packet && !(p.flags & IN_FLIGHT) && reached(now, p.ready_at)
+          && canStart(p.packet, now)) return p.packet;
     }
     return nullptr;
   }
@@ -71,7 +98,7 @@ public:
   // changes expiry or the dispatcher's normal-packet CAD/backoff timers.
   void deferReady(uint32_t now) {
     for (auto& p : pending) {
-      if (p.packet && reached(now, p.ready_at)) p.ready_at = now + RETRY_DELAY_MS;
+      if (p.packet && !(p.flags & IN_FLIGHT) && reached(now, p.ready_at)) p.ready_at = now + RETRY_DELAY_MS;
     }
   }
 
@@ -79,10 +106,10 @@ public:
   // finish normally, retaining its marker until completion/release.
   mesh::Packet* takeExpired(uint32_t now, const mesh::Packet* active) {
     for (auto& p : pending) {
-      if (p.packet && p.packet != active
-          && (!eligible(p.packet) || reached(now, p.expires_at))) {
+      if (p.packet && p.packet != active && !(p.flags & IN_FLIGHT)
+          && ((p.flags & CANCELLED) || !eligible(p.packet) || reached(now, p.expires_at))) {
         mesh::Packet* packet = p.packet;
-        p.packet = nullptr;
+        p = Pending{};
         return packet;
       }
     }
@@ -91,7 +118,7 @@ public:
 
   bool canStart(const mesh::Packet* packet, uint32_t now) const {
     for (const auto& p : pending) {
-      if (p.packet == packet) return eligible(packet) && !reached(now, p.expires_at);
+      if (p.packet == packet) return !(p.flags & CANCELLED) && eligible(packet) && !reached(now, p.expires_at);
     }
     return true;  // normal packets retain baseline behaviour
   }
@@ -100,8 +127,9 @@ public:
   // A true return transfers ownership to this module's bounded waiting list.
   bool onTransmitComplete(mesh::Packet* packet, mesh::PacketManager& manager,
                           mesh::RNG& rng, uint32_t now) {
+    bool current = first_active == packet && first_generation == generation;
     if (forget(packet)) return false;  // second attempt: never repeat again
-    if (!eligible(packet) || manager.getFreeCount() < FREE_PACKET_RESERVE) return false;
+    if (!current || !eligible(packet) || manager.getFreeCount() < FREE_PACKET_RESERVE) return false;
 
     for (auto& p : pending) {
       if (!p.packet) {
@@ -109,9 +137,12 @@ public:
         uint32_t delay = rng.nextInt(MIN_DELAY_MS, MAX_DELAY_MS + 1);
         p.ready_at = now + delay;
         p.expires_at = now + MAX_AGE_MS;
+        p.flags = 0;
         return true;
       }
     }
     return false;  // bounded best effort under load
   }
 };
+static_assert(sizeof(FloodTextDoubler) <= (sizeof(void*) == 4 ? 80u : 120u),
+              "Doubler policy exceeded its fixed RAM budget");

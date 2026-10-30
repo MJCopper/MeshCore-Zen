@@ -33,6 +33,10 @@
 #include <helpers/StaticPoolPacketManager.h>
 #include <target.h>
 
+#ifdef FLOOD_TEXT_DOUBLER
+#include <helpers/CompanionFloodDoubler.h>
+#endif
+
 /* ---------------------------------- CONFIGURATION ------------------------------------- */
 
 #ifndef LORA_FREQ
@@ -127,6 +131,45 @@ public:
   int  getRecentlyHeard(AdvertPath dest[], int max_num);
 
 protected:
+#ifdef FLOOD_TEXT_DOUBLER
+  void syncDoublerContext() {
+    companion_doubler.packetContext(self_id.pub_key, _prefs.path_hash_mode, _prefs.default_scope_key);
+  }
+  void onTxStarted(mesh::Packet* packet, uint32_t) override {
+    syncDoublerContext();
+    companion_doubler.onTransmitStarted(packet);
+  }
+  bool retainAfterTransmit(mesh::Packet* packet, uint32_t completed_at) override {
+    syncDoublerContext();
+    return companion_doubler.onTransmitComplete(packet, *_mgr, *getRNG(), completed_at);
+  }
+  void onPacketReleased(mesh::Packet* packet) override {
+    companion_doubler.onPacketReleased(packet);
+  }
+  mesh::DispatcherAction onRecvPacket(mesh::Packet* packet) override {
+    auto action = BaseChatMesh::onRecvPacket(packet);
+    if (action != ACTION_RELEASE && action != ACTION_MANUAL_HOLD) companion_doubler.noteForwarded(packet);
+    return action;
+  }
+  void serviceOptionalPackets(uint32_t now, const mesh::Packet* active) override {
+    syncDoublerContext();
+    while (auto packet = companion_doubler.packets.takeExpired(now, active)) releasePacket(packet);
+  }
+  mesh::Packet* getOptionalPacket(uint32_t now) override {
+    syncDoublerContext();
+    return companion_doubler.packets.nextReady(now);
+  }
+  void deferOptionalPackets(uint32_t now) override {
+    companion_doubler.packets.deferReady(now);
+  }
+  bool allowPacketStart(mesh::Packet* packet, uint32_t now) override {
+    syncDoublerContext();
+    if (!companion_doubler.packets.isRepeat(packet)) return true;
+    if (_radio->isReceiving()) return false;
+    return companion_doubler.packets.canStart(packet, (uint32_t)_ms->getMillis());
+  }
+#endif
+
   float getAirtimeBudgetFactor() const override;
   int getInterferenceThreshold() const override;
   bool getCADEnabled() const override;
@@ -199,6 +242,9 @@ public:
     _prefs.node_lon = sensors.node_lon;
     _store->savePrefs(_prefs);
     _prefs.clearDirty();
+#ifdef FLOOD_TEXT_DOUBLER
+    syncDoublerContext();
+#endif
   }
 
 #if ENV_INCLUDE_GPS == 1
@@ -241,6 +287,9 @@ private:
 
   DataStore* _store;
   NodePrefs _prefs;
+#ifdef FLOOD_TEXT_DOUBLER
+  CompanionFloodDoubler companion_doubler;
+#endif
   uint32_t pending_login;
   uint32_t pending_status;
   uint32_t pending_telemetry, pending_discovery;   // pending _TELEMETRY_REQ

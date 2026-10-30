@@ -1,10 +1,14 @@
-## Flood text doubler — v1.18.0-doubler.5
+## Flood text doubler — v1.18.0-doubler.7
 
-Optional repeater builds for Xiao nRF52 WIO and RAK4631 can send flood channel text
+Optional repeater builds for Xiao nRF52 WIO and RAK4631, plus USB/Bluetooth Xiao
+nRF52 WIO companion builds, can send flood channel text
 twice, with a random 500–800 ms gap after the first transmission completes.
 `set multi.flood 0|1|2` selects off (default), channel text, or all outgoing floods;
 the setting survives reboot in a separate module configuration file.
-UF2 and OTA upgrade ZIPs are available for both targets. See
+Cancellation is permanent for each optional copy; applied radio, identity,
+path-hash and default-scope changes discard copies from the old context.
+Companion builds repeat only locally originated floods. UF2 and OTA upgrade
+ZIPs are available for all four targets. See
 [build instructions, design and hardware test procedure](docs/doubler.md).
 
 ## About MeshCore

@@ -353,6 +353,7 @@ void Dispatcher::checkSend() {
         return;
       }
       outbound_expiry = futureMillis(max_airtime);
+      onTxStarted(outbound, (uint32_t)outbound_start);
 
     #if MESH_PACKET_LOGGING
       Serial.print(getLogDateTime());

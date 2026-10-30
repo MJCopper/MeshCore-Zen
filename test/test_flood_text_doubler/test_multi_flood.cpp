@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <helpers/DoublerFileStorage.h>
+#include <helpers/CompanionFloodDoubler.h>
+#include <helpers/StaticPoolPacketManager.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -235,4 +237,269 @@ TEST_F(MultiFloodSettingsTest, BaselinePreferenceSavesDoNotTouchModuleFile) {
   fs.files["/prefs.json"] = "{\"radio\":{\"multi_ack\":0}}";
   EXPECT_EQ(DoublerSettings::VALID, settings.load(storage));
   EXPECT_EQ(0, settings.getMode());
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionCliSupportsPlainAndPrefixedCommands) {
+  CompanionFloodDoubler companion;
+  EXPECT_EQ(DoublerSettings::DEFAULTED, companion.load(fs, 1));
+  EXPECT_TRUE(companion.handleCommand("  ab|get multi.flood", reply, fs, 1));
+  EXPECT_STREQ("ab|> 0", reply);
+  EXPECT_TRUE(companion.handleCommand("xy|set multi.flood 1", reply, fs, 1));
+  EXPECT_STREQ("xy|OK", reply);
+  EXPECT_EQ(1, companion.packets.getMode());
+  EXPECT_TRUE(companion.handleCommand("get multi.flood", reply, fs, 1));
+  EXPECT_STREQ("> 1", reply);
+  CompanionFloodDoubler reboot;
+  EXPECT_EQ(DoublerSettings::VALID, reboot.load(fs, 1));
+  EXPECT_EQ(1, reboot.packets.getMode());
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionCliLeavesUnrelatedPrefixHandlingToBaseline) {
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  for (auto command : {"ab|get name", "ab|get multi.acks", "get name", "abc", "", "a|"}) {
+    strcpy(reply, "untouched");
+    EXPECT_FALSE(companion.handleCommand(command, reply, fs, 1));
+    EXPECT_STREQ("untouched", reply);
+  }
+  EXPECT_TRUE(companion.handleCommand("ab|set multi.flood 9", reply, fs, 1));
+  EXPECT_STREQ("ab|Err - expected 0, 1 or 2", reply);
+  EXPECT_EQ(0, companion.packets.getMode());
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionSaveFailureKeepsPolicyModeAndReplyPrefix) {
+  load(1);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  fs.failRename = true;
+  EXPECT_TRUE(companion.handleCommand("ab|set multi.flood 2", reply, fs, 1));
+  EXPECT_STREQ("ab|Err - unable to save multi.flood", reply);
+  EXPECT_EQ(1, companion.packets.getMode());
+  EXPECT_EQ(json(1), fs.files.at("/doubler.json"));
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionFutureSchemaRemainsOffAndPreserved) {
+  fs.files["/doubler.json"] = "{\"schema\":2,\"multi_flood\":2}";
+  CompanionFloodDoubler companion;
+  EXPECT_EQ(DoublerSettings::UNSUPPORTED, companion.load(fs, 1));
+  EXPECT_EQ(0, companion.packets.getMode());
+  EXPECT_TRUE(companion.handleCommand("ab|set multi.flood 1", reply, fs, 1));
+  EXPECT_NE(nullptr, strstr(reply, "file preserved"));
+  EXPECT_EQ(0u, fs.writes);
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionSettingsUseSuppliedPrimaryFsOnly) {
+  TestSettingsFS secondary;
+  secondary.files["/doubler.json"] = json(2);
+  CompanionFloodDoubler companion;
+  EXPECT_EQ(DoublerSettings::DEFAULTED, companion.load(fs, 1));
+  EXPECT_EQ(0, companion.packets.getMode());
+  companion.handleCommand("set multi.flood 1", reply, fs, 1);
+  EXPECT_EQ(json(1), fs.files.at("/doubler.json"));
+  EXPECT_EQ(json(2), secondary.files.at("/doubler.json"));
+}
+
+TEST_F(MultiFloodSettingsTest, CompanionPendingWorkSurvivesUntilCancellationOrCompletion) {
+  struct ZeroRNG : mesh::RNG {
+    void random(uint8_t* destination, size_t length) override { memset(destination, 0, length); }
+  } rng;
+  StaticPoolPacketManager manager(16);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  companion.handleCommand("set multi.flood 1", reply, fs, 1);
+  auto p = manager.allocNew();
+  p->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+  p->setPathHashSizeAndCount(1, 0);
+  p->payload_len = 19;
+  memset(p->payload, 0, p->payload_len);
+  EXPECT_FALSE(companion.hasPendingWork());
+  companion.packets.onTransmitStarted(p);
+  ASSERT_TRUE(companion.packets.onTransmitComplete(p, manager, rng, 1000));
+  EXPECT_TRUE(companion.hasPendingWork());
+  EXPECT_EQ(0, manager.getOutboundTotal());  // optional work must inhibit sleep independently
+  companion.handleCommand("set multi.flood 0", reply, fs, 1);
+  EXPECT_EQ(nullptr, companion.packets.nextReady(1500));
+  EXPECT_EQ(nullptr, companion.packets.takeExpired(1500, p));  // active copy is never freed
+  EXPECT_TRUE(companion.hasPendingWork());
+  companion.packets.onTransmitStarted(p);
+  EXPECT_FALSE(companion.packets.onTransmitComplete(p, manager, rng, 1600));
+  manager.free(p);
+  EXPECT_FALSE(companion.hasPendingWork());
+  EXPECT_EQ(16, manager.getFreeCount());
+}
+
+TEST_F(MultiFloodSettingsTest, ExplicitForwardingTrackingExcludesEvenZeroEntryRelays) {
+  struct ZeroRNG : mesh::RNG {
+    void random(uint8_t* destination, size_t length) override { memset(destination, 0, length); }
+  } rng;
+  StaticPoolPacketManager manager(16);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  companion.handleCommand("set multi.flood 2", reply, fs, 1);
+  for (unsigned round = 0; round < 2; round++) {
+    std::vector<mesh::Packet*> relays;
+    for (unsigned i = 0; i < 16; i++) {
+      auto p = manager.allocNew();
+      ASSERT_NE(nullptr, p);
+      p->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+      p->setPathHashSizeAndCount(1, 0);  // unusual forwarded metadata, including a path-count wrap
+      companion.noteForwarded(p);
+      relays.push_back(p);
+    }
+    for (auto p : relays) {
+      companion.onTransmitStarted(p);
+      EXPECT_FALSE(companion.onTransmitComplete(p, manager, rng, 1000));
+      companion.onPacketReleased(p);
+      manager.free(p);
+    }
+    EXPECT_EQ(0u, companion.packets.pendingCount());
+    EXPECT_EQ(16, manager.getFreeCount());
+  }
+  // After release, a local packet reusing the same pool is eligible normally.
+  auto local = manager.allocNew();
+  local->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+  local->setPathHashSizeAndCount(1, 0);
+  companion.onTransmitStarted(local);
+  EXPECT_TRUE(companion.onTransmitComplete(local, manager, rng, 2000));
+  companion.onTransmitStarted(local);
+  EXPECT_FALSE(companion.onTransmitComplete(local, manager, rng, 2600));
+  companion.onPacketReleased(local);
+  manager.free(local);
+  EXPECT_EQ(16, manager.getFreeCount());
+}
+
+TEST_F(MultiFloodSettingsTest, ForwardedStartFailureReleasesOriginRecord) {
+  struct ZeroRNG : mesh::RNG {
+    void random(uint8_t* destination, size_t length) override { memset(destination, 0, length); }
+  } rng;
+  StaticPoolPacketManager manager(16);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  companion.handleCommand("set multi.flood 2", reply, fs, 1);
+  auto p = manager.allocNew();
+  p->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+  p->setPathHashSizeAndCount(1, 0);
+  companion.noteForwarded(p);
+  companion.onPacketReleased(p);  // same cleanup hook used for failed starts/timeouts
+  companion.onTransmitStarted(p);
+  EXPECT_TRUE(companion.onTransmitComplete(p, manager, rng, 1000));
+  companion.onPacketReleased(p);
+  manager.free(p);
+  EXPECT_EQ(16, manager.getFreeCount());
+}
+
+TEST_F(MultiFloodSettingsTest, UnexpectedForwardingTrackerOverflowFailsClosed) {
+  struct ZeroRNG : mesh::RNG {
+    void random(uint8_t* destination, size_t length) override { memset(destination, 0, length); }
+  } rng;
+  StaticPoolPacketManager futurePool(17);  // exercise a future pool/adapter capacity mismatch
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  companion.handleCommand("set multi.flood 2", reply, fs, 1);
+  std::vector<mesh::Packet*> relays;
+  for (unsigned i = 0; i < 17; i++) {
+    auto p = futurePool.allocNew();
+    ASSERT_NE(nullptr, p);
+    p->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+    p->setPathHashSizeAndCount(1, 0);
+    companion.noteForwarded(p);
+    relays.push_back(p);
+  }
+  for (auto p : relays) {
+    companion.onTransmitStarted(p);
+    EXPECT_FALSE(companion.onTransmitComplete(p, futurePool, rng, 1000));
+    companion.onPacketReleased(p);
+    futurePool.free(p);
+  }
+  auto local = futurePool.allocNew();
+  companion.onTransmitStarted(local);
+  EXPECT_FALSE(companion.onTransmitComplete(local, futurePool, rng, 2000));
+  companion.onPacketReleased(local);
+  futurePool.free(local);
+  EXPECT_EQ(17, futurePool.getFreeCount());
+}
+
+namespace {
+struct ContextRNG : mesh::RNG {
+  void random(uint8_t* destination, size_t length) override { memset(destination, 0, length); }
+};
+mesh::Packet* contextPacket(StaticPoolPacketManager& manager) {
+  auto p = manager.allocNew();
+  p->header = ROUTE_TYPE_FLOOD | (PAYLOAD_TYPE_GRP_TXT << PH_TYPE_SHIFT);
+  p->setPathHashSizeAndCount(1, 0);
+  p->payload_len = 19;
+  memset(p->payload, 0, p->payload_len);
+  return p;
+}
+}
+
+TEST_F(MultiFloodSettingsTest, SuccessfulCliOffOnAndQueryCannotRevivePendingCopy) {
+  load(1);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  StaticPoolPacketManager manager(16);
+  ContextRNG rng;
+  auto p = contextPacket(manager);
+  companion.onTransmitStarted(p);
+  ASSERT_TRUE(companion.onTransmitComplete(p, manager, rng, 1000));
+  ASSERT_TRUE(companion.handleCommand("set multi.flood 0", reply, fs, 1));
+  EXPECT_STREQ("OK", reply);
+  ASSERT_TRUE(companion.handleCommand("set multi.flood 1", reply, fs, 1));
+  EXPECT_STREQ("OK", reply);
+  companion.handleCommand("get multi.flood", reply, fs, 1);
+  EXPECT_STREQ("> 1", reply);
+  EXPECT_EQ(nullptr, companion.packets.nextReady(1500));
+  EXPECT_TRUE(companion.hasPendingWork());
+  auto cancelled = companion.packets.takeExpired(1001, nullptr);
+  ASSERT_EQ(p, cancelled);
+  companion.onPacketReleased(cancelled);
+  manager.free(cancelled);
+  EXPECT_FALSE(companion.hasPendingWork());
+  EXPECT_EQ(16, manager.getFreeCount());
+}
+
+TEST_F(MultiFloodSettingsTest, FailedCliDisablePreservesWaitingCopyAndStoredMode) {
+  load(1);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  StaticPoolPacketManager manager(16);
+  ContextRNG rng;
+  auto p = contextPacket(manager);
+  companion.onTransmitStarted(p);
+  ASSERT_TRUE(companion.onTransmitComplete(p, manager, rng, 1000));
+  fs.failRename = true;
+  companion.handleCommand("set multi.flood 0", reply, fs, 1);
+  EXPECT_STREQ("Err - unable to save multi.flood", reply);
+  EXPECT_EQ(1, companion.packets.getMode());
+  EXPECT_EQ(json(1), fs.files.at("/doubler.json"));
+  EXPECT_EQ(p, companion.packets.nextReady(1500));
+  companion.onTransmitStarted(p);
+  EXPECT_FALSE(companion.onTransmitComplete(p, manager, rng, 1600));
+  companion.onPacketReleased(p);
+  manager.free(p);
+  EXPECT_EQ(16, manager.getFreeCount());
+}
+
+TEST_F(MultiFloodSettingsTest, ContextInvalidationReleasesPendingWorkWithoutAnySettingsWrite) {
+  load(1);
+  CompanionFloodDoubler companion;
+  companion.load(fs, 1);
+  companion.radioApplied(916.575f, 62.5f, 7, 7);
+  StaticPoolPacketManager manager(16);
+  ContextRNG rng;
+  auto p = contextPacket(manager);
+  companion.onTransmitStarted(p);
+  ASSERT_TRUE(companion.onTransmitComplete(p, manager, rng, 1000));
+  auto writes = fs.writes;
+  companion.radioApplied(917.0f, 62.5f, 7, 7);
+  companion.radioApplied(916.575f, 62.5f, 7, 7);
+  EXPECT_EQ(nullptr, companion.packets.nextReady(1500));
+  EXPECT_TRUE(companion.hasPendingWork());
+  ASSERT_EQ(p, companion.packets.takeExpired(1001, nullptr));
+  companion.onPacketReleased(p);
+  manager.free(p);
+  EXPECT_FALSE(companion.hasPendingWork());
+  EXPECT_EQ(writes, fs.writes);
+  EXPECT_EQ(json(1), fs.files.at("/doubler.json"));
+  EXPECT_EQ(16, manager.getFreeCount());
 }

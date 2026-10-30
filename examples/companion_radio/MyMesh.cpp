@@ -978,6 +978,13 @@ void MyMesh::begin() {
 
   // load persisted prefs
   _store->loadPrefs(_prefs);
+#ifdef FLOOD_TEXT_DOUBLER
+  auto doubler_status = companion_doubler.load(*_store->getPrimaryFS(), FILE_O_WRITE);
+  if (doubler_status != DoublerSettings::VALID && doubler_status != DoublerSettings::DEFAULTED) {
+    Serial.printf("multi.flood: settings unavailable (status %u); repeating off, file preserved\n",
+                  (unsigned)doubler_status);
+  }
+#endif
   sensors.node_lat = _prefs.node_lat;
   sensors.node_lon = _prefs.node_lon;
 
@@ -1002,6 +1009,9 @@ void MyMesh::begin() {
   addChannel("Public", PUBLIC_GROUP_PSK); // pre-configure public channel
   _store->loadChannels(this);
 
+#ifdef FLOOD_TEXT_DOUBLER
+  companion_doubler.radioApplied(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+#endif
   radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
   radio_driver.setTxPower(_prefs.tx_power_dbm);
   radio_driver.setRxBoostedGainMode(_prefs.rx_boosted_gain);
@@ -1447,6 +1457,9 @@ void MyMesh::handleCmdFrame(size_t len) {
       _prefs.setRepeatEn(repeat != 0);
       savePrefs();
 
+#ifdef FLOOD_TEXT_DOUBLER
+      companion_doubler.radioApplied(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+#endif
       radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
       MESH_DEBUG_PRINTLN("OK: CMD_SET_RADIO_PARAMS: f=%d, bw=%d, sf=%d, cr=%d", freq, bw, (uint32_t)sf,
                          (uint32_t)cr);
@@ -1543,6 +1556,9 @@ void MyMesh::handleCmdFrame(size_t len) {
         identity.readFrom(&cmd_frame[1], 64);
         if (_store->saveMainIdentity(identity)) {
           self_id = identity;
+#ifdef FLOOD_TEXT_DOUBLER
+          syncDoublerContext();
+#endif
           writeOKFrame();
           // re-load contacts, to invalidate ecdh shared_secrets
           resetContacts();
@@ -2077,6 +2093,9 @@ void MyMesh::enterCLIRescue() {
 }
 
 bool MyMesh::handleCommand(const char* command, uint32_t sender_timestamp, char* reply) {
+#ifdef FLOOD_TEXT_DOUBLER
+  if (companion_doubler.handleCommand(command, reply, *_store->getPrimaryFS(), FILE_O_WRITE)) return true;
+#endif
   while (*command == ' ') command++; // skip leading spaces
 
   if (strlen(command) > 4 && command[2] == '|') { // optional prefix (for companion radio CLI)
@@ -2450,5 +2469,8 @@ bool MyMesh::advert() {
 
 // To check if there is pending work
 bool MyMesh::hasPendingWork() const {
+#ifdef FLOOD_TEXT_DOUBLER
+  if (companion_doubler.hasPendingWork()) return true;
+#endif
   return _mgr->getOutboundTotal() > 0 || dirty_contacts_expiry != 0;
 }

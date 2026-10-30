@@ -986,6 +986,9 @@ void MyMesh::begin(FILESYSTEM *fs) {
   }
 #endif
 
+#ifdef FLOOD_TEXT_DOUBLER
+  doubler_context.radioApplied(flood_text_doubler, _prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+#endif
   radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
   radio_driver.setTxPower(_prefs.tx_power_dbm);
 
@@ -1170,6 +1173,9 @@ void MyMesh::onDefaultRegionChanged(const RegionEntry* r) {
   } else {
     memset(default_scope.key, 0, sizeof(default_scope.key));
   }
+#ifdef FLOOD_TEXT_DOUBLER
+  syncDoublerContext();
+#endif
 }
 
 void MyMesh::formatStatsReply(char *reply) {
@@ -1325,12 +1331,18 @@ void MyMesh::loop() {
 
   if (set_radio_at && millisHasNowPassed(set_radio_at)) { // apply pending (temporary) radio params
     set_radio_at = 0;                                     // clear timer
+#ifdef FLOOD_TEXT_DOUBLER
+    doubler_context.radioApplied(flood_text_doubler, pending_freq, pending_bw, pending_sf, pending_cr);
+#endif
     radio_driver.setParams(pending_freq, pending_bw, pending_sf, pending_cr);
     MESH_DEBUG_PRINTLN("Temp radio params");
   }
 
   if (revert_radio_at && millisHasNowPassed(revert_radio_at)) { // revert radio params to orig
     revert_radio_at = 0;                                        // clear timer
+#ifdef FLOOD_TEXT_DOUBLER
+    doubler_context.radioApplied(flood_text_doubler, _prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
+#endif
     radio_driver.setParams(_prefs.freq, _prefs.bw, _prefs.sf, _prefs.cr);
     MESH_DEBUG_PRINTLN("Radio params restored");
   }

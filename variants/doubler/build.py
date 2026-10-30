@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and validate UF2 and OTA ZIP outputs for both opt-in repeaters."""
+"""Build and validate UF2 and OTA ZIP outputs for all four opt-in targets."""
 
 import argparse
 import binascii
@@ -15,8 +15,12 @@ from zipfile import ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TARGETS = ("Xiao_nrf52_repeater_doubler", "RAK_4631_repeater_doubler")
-BOARDS = ("seeed-xiao-afruitnrf52-nrf52840", "rak4631")
+TARGETS = {
+    "Xiao_nrf52_repeater_doubler": "seeed-xiao-afruitnrf52-nrf52840",
+    "RAK_4631_repeater_doubler": "rak4631",
+    "Xiao_nrf52_companion_radio_usb_doubler": "seeed-xiao-afruitnrf52-nrf52840",
+    "Xiao_nrf52_companion_radio_ble_doubler": "seeed-xiao-afruitnrf52-nrf52840",
+}
 
 
 def verify_uf2(path):
@@ -71,7 +75,7 @@ def main():
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         "working_tree_dirty": bool(subprocess.check_output(
             ["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()), "artifacts": []}
-    for target, board in zip(TARGETS, BOARDS):
+    for target, board in TARGETS.items():
         path = ROOT / ".pio/build" / target / f"{target}.{version.removeprefix('v')}.uf2"
         env = dict(os.environ, UF2_FILE_PATH=str(path))
         # The default target includes PlatformIO's flash/RAM size checks.
@@ -86,7 +90,7 @@ def main():
         manifest["artifacts"].append(verify_ota_zip(ota_path, board, version))
     output = ROOT / ".pio/build/doubler-manifest.json"
     output.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"Verified UF2 and OTA ZIP for both targets; manifest: {output}")
+    print(f"Verified UF2 and OTA ZIP for all {len(TARGETS)} targets; manifest: {output}")
 
 
 if __name__ == "__main__":

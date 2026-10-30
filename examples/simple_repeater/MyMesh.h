@@ -39,6 +39,7 @@
 
 #ifdef FLOOD_TEXT_DOUBLER
 #include <helpers/FloodTextDoubler.h>
+#include <helpers/DoublerContext.h>
 #include <helpers/DoublerFileStorage.h>
 #endif
 
@@ -103,6 +104,7 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
   RateLimiter discover_limiter, anon_limiter;
 #ifdef FLOOD_TEXT_DOUBLER
   FloodTextDoubler flood_text_doubler;
+  DoublerContext doubler_context;
   DoublerSettings doubler_settings;
 #endif
   uint32_t pending_discover_tag;
@@ -138,22 +140,33 @@ class MyMesh : public mesh::Mesh, public CommonCLICallbacks {
 
 protected:
 #ifdef FLOOD_TEXT_DOUBLER
+  void syncDoublerContext() {
+    doubler_context.packetContext(flood_text_doubler, self_id.pub_key, _prefs.path_hash_mode, default_scope.key);
+  }
+  void onTxStarted(mesh::Packet* packet, uint32_t) override {
+    syncDoublerContext();
+    flood_text_doubler.onTransmitStarted(packet);
+  }
   bool retainAfterTransmit(mesh::Packet* packet, uint32_t completed_at) override {
+    syncDoublerContext();
     return flood_text_doubler.onTransmitComplete(packet, *_mgr, *getRNG(), completed_at);
   }
   void onPacketReleased(mesh::Packet* packet) override {
     flood_text_doubler.forget(packet);
   }
   void serviceOptionalPackets(uint32_t now, const mesh::Packet* active) override {
+    syncDoublerContext();
     while (auto packet = flood_text_doubler.takeExpired(now, active)) releasePacket(packet);
   }
   mesh::Packet* getOptionalPacket(uint32_t now) override {
+    syncDoublerContext();
     return flood_text_doubler.nextReady(now);
   }
   void deferOptionalPackets(uint32_t now) override {
     flood_text_doubler.deferReady(now);
   }
   bool allowPacketStart(mesh::Packet* packet, uint32_t now) override {
+    syncDoublerContext();
     if (!flood_text_doubler.isRepeat(packet)) return true;
     if (_radio->isReceiving()) return false;
     return flood_text_doubler.canStart(packet, (uint32_t)_ms->getMillis());
@@ -225,6 +238,9 @@ public:
 
   void savePrefs() override {
     _cli.savePrefs(_fs);
+#ifdef FLOOD_TEXT_DOUBLER
+    syncDoublerContext();
+#endif
   }
 
   void sendFloodScoped(const TransportKey& scope, mesh::Packet* pkt, uint32_t delay_millis, uint8_t path_hash_size);
